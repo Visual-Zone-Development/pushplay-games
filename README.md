@@ -2,7 +2,7 @@
 
 Ask an AI for a game, and it shows up on your Steam Deck.
 
-Every folder in `games/` is a game. Push to any branch and GitHub Actions builds the games that changed: it plays each one headlessly to catch crashes, renders its cover art, and publishes it to this repo's **pushplay-latest** release. The [PushPlay](https://github.com/Visual-Zone-Development/pushplay) launcher on your Deck watches that release, so new games and updates appear on their own.
+Every folder in `games/` is a game. Push to any branch and GitHub Actions builds the games that changed: it plays each one headlessly to catch crashes, renders its cover art, and publishes it to this repo's **pushplay-latest** release. The [PushPlay](https://pushplay.gg) launcher on your Deck watches that release, so new games and updates appear on their own.
 
 Comes with one sample game, **Star Courier**.
 
