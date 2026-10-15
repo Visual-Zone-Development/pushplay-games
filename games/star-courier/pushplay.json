@@ -12,5 +12,10 @@
     "hero": "art/hero.svg"
   },
   "controls": "gamepad",
-  "players": "1"
+  "players": "1",
+  "tags": [
+    "arcade",
+    "space",
+    "score attack"
+  ]
 }

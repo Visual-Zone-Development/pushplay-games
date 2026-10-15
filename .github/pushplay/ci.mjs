@@ -83,6 +83,7 @@ if (targets.length) {
         version: m.version ?? null,
         players: m.players ?? null,
         controls: m.controls ?? null,
+        tags: m.tags ?? [],
         online: m.online ?? false,
         platform: 'web',
         build: buildNumber,

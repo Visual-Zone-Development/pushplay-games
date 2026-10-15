@@ -118,6 +118,14 @@
         "keyboard-mapped"
       ]
     },
+    "tags": {
+      "maxItems": 8,
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z0-9][a-z0-9 &'-]{0,23}$"
+      }
+    },
     "players": {
       "type": "string",
       "maxLength": 16

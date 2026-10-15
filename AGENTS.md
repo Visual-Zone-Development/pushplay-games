@@ -6,7 +6,7 @@ This repo is a collection of small games. Each folder in `games/` is one game. W
 
 1. **New game:** `npm run new-game <game-id>` (add `--vite` if you need npm packages like three.js). The id is lowercase-with-dashes and becomes the folder name. This creates a working, controller-ready starter: `game.js`, `input.js`, `pushplay.json` and placeholder art.
 2. **Build the game** in that folder. Only touch other games, `.github/` or root files if the user asked you to.
-3. **Fill in `pushplay.json`:** a real `description`, `players`, and anything else that applies (see *Manifest*).
+3. **Fill in `pushplay.json`:** a real `description`, `players`, `tags`, and anything else that applies (see *Manifest*).
 4. **Make the art:** replace `art/cover.svg` and `art/hero.svg` (see *Art*). This is required; the check fails on placeholder art.
 5. **Run `npm run check <game-id>` and fix everything it reports.** It builds the game, plays it headlessly at Steam Deck resolution with a virtual gamepad, and renders the art to PNG.
 6. **Look at the output images** it prints (`.github/pushplay/.work/out/<id>/__art/cover.png`, `hero.png`, `screenshot.png`). If you can view images, check that the art reads well at small size and that the screenshot shows the game, not an error or empty screen. Iterate until they look good.
@@ -62,6 +62,7 @@ If your environment can't install the browser (some cloud sandboxes block the do
   "art": { "cover": "art/cover.svg", "hero": "art/hero.svg" },
   "controls": "gamepad",
   "players": "1",
+  "tags": ["arcade", "space", "score attack"],
   "online": false
 }
 ```
@@ -69,6 +70,7 @@ If your environment can't install the browser (some cloud sandboxes block the do
 - `id` must equal the folder name.
 - `description`: 1–3 sentences in plain language: what you do and what makes it fun. It's shown in the library.
 - `players`: like `"1"` or `"1-4"`.
+- `tags`: 2–5 lowercase words players can filter the library by: genre first (`"racing"`, `"puzzle"`, `"platformer"`, `"shooter"`), then setting or style (`"space"`, `"pixel art"`, `"cozy"`), and `"local multiplayer"` if it supports more than one player. Reuse tags other games in `games/` already use when they fit, so filters group them. Letters, digits, spaces, `-`, `&` and `'`, up to 24 characters each, at most 8.
 - `version`: bump it when you make a notable change.
 - Vite games also have `"build": { "preset": "vite", "output": "dist" }` (the scaffold adds it).
 
