@@ -14,5 +14,6 @@
   "topic": "pushplay-game",
   "legacyTopics": [],
   "action": "pushplay/build",
-  "domain": "pushplay.gg"
+  "domain": "pushplay.gg",
+  "githubAppClientId": ""
 }
