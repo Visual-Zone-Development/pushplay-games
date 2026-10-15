@@ -221,7 +221,7 @@ function fallbackArt(kind, name, base, size) {
     html,body{margin:0;width:${size.width}px;height:${size.height}px;overflow:hidden;background:#0d0f14}
     img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:saturate(1.1)}
     .shade{position:absolute;inset:0;background:linear-gradient(to top,rgba(13,15,20,.92),rgba(13,15,20,.15) 65%)}
-    h1{position:absolute;left:36px;right:36px;bottom:84px;margin:0;color:#fff;
+    h1{position:absolute;left:36px;right:36px;bottom:120px;margin:0;color:#fff;
       font:700 64px/1 'Chakra Petch',sans-serif;text-shadow:0 2px 12px rgba(0,0,0,.5)}
   </style><img src="${base}/${ART_DIR}/screenshot.png"><div class="shade"></div>${cover ? `<h1>${title}</h1>` : ''}`
 }

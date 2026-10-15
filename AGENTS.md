@@ -78,7 +78,7 @@ Every game needs two images, written as **SVG** (or `.html` for art drawn with c
 
 | File | Size | Where it shows | Rules |
 |---|---|---|---|
-| `art/cover.svg` | 720×500 | Library tile (shown at ~216×150) | **Must include the game's title**, big and bold. Keep the **bottom 80px clear of important content** (the launcher draws badges there). |
+| `art/cover.svg` | 720×500 | Library tile (shown at ~216×150) | **Must include the game's title**, big and bold. Keep the **bottom 110px clear of important content** (the launcher draws badges there). |
 | `art/hero.svg` | 1920×450 | Banner on the game's detail page | **No title text**: the launcher writes the title over the **bottom-left**, so keep that area calm and put the key visual on the **right half**. |
 
 Guidelines:
