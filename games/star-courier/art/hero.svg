@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="450" viewBox="0 0 1920 450">
+  <!-- No title text: the launcher draws the game name over the bottom-left of the hero. -->
+  <rect width="1920" height="450" fill="#0b1024"/>
+  <g fill="#ffffff">
+    <circle cx="120" cy="60" r="2" opacity=".7"/><circle cx="300" cy="140" r="1.5" opacity=".5"/>
+    <circle cx="520" cy="50" r="2.5"/><circle cx="700" cy="120" r="1.5" opacity=".6"/>
+    <circle cx="880" cy="40" r="2" opacity=".7"/><circle cx="1010" cy="160" r="1.5" opacity=".5"/>
+    <circle cx="1160" cy="70" r="2.5"/><circle cx="1320" cy="30" r="2" opacity=".6"/>
+    <circle cx="1450" cy="300" r="1.5" opacity=".5"/><circle cx="1880" cy="390" r="2" opacity=".7"/>
+    <circle cx="640" cy="260" r="1.5" opacity=".5"/><circle cx="960" cy="380" r="2" opacity=".6"/>
+  </g>
+  <!-- big planet, right side -->
+  <circle cx="1620" cy="120" r="330" fill="#2e5bff"/>
+  <circle cx="1720" cy="40" r="330" fill="#0b1024" opacity=".35"/>
+  <ellipse cx="1620" cy="140" rx="460" ry="60" fill="none" stroke="#ffb547" stroke-width="10" opacity=".7" transform="rotate(-12 1620 140)"/>
+  <!-- asteroids -->
+  <polygon points="980,250 1030,228 1070,258 1060,305 1012,322 972,296" fill="#6d6a80"/>
+  <polygon points="760,90 785,80 800,100 790,122 765,125 750,106" fill="#6d6a80"/>
+  <!-- parcel and ship racing right -->
+  <g transform="translate(1250 240) rotate(10)">
+    <rect x="-30" y="-26" width="60" height="52" rx="5" fill="#ffb547"/>
+    <rect x="-6" y="-26" width="12" height="52" fill="#7a4a10"/>
+  </g>
+  <g transform="translate(1100 200) rotate(-8)">
+    <path d="M-320 0 L-50 -12 L-50 12 Z" fill="#ffb547" opacity=".45"/>
+    <path d="M-110 0 L-34 -11 L-34 11 Z" fill="#ffe2a8"/>
+    <path d="M76 0 L-46 -46 L-26 0 L-46 46 Z" fill="#5cc8ff"/>
+    <path d="M24 -10 L-8 -20 L-3 0 L-8 20 L24 10 Z" fill="#dff5ff" opacity=".9"/>
+  </g>
+</svg>

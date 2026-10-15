@@ -1,0 +1,28 @@
+{
+  "name": "pushplay-games",
+  "private": true,
+  "type": "module",
+  "description": "Games that build themselves and show up in PushPlay on your handheld.",
+  "workspaces": [
+    "games/*"
+  ],
+  "scripts": {
+    "new-game": "node tools/new-game.mjs",
+    "check": "node tools/check.mjs",
+    "dev": "node tools/dev.mjs",
+    "test": "node --test tools/*.test.mjs"
+  },
+  "engines": {
+    "node": ">=20.19"
+  },
+  "devDependencies": {
+    "@fontsource/bungee": "^5.3.0",
+    "@fontsource/chakra-petch": "^5.3.0",
+    "@fontsource/lilita-one": "^5.3.0",
+    "@fontsource/press-start-2p": "^5.3.0",
+    "@fontsource/rubik": "^5.3.0",
+    "ajv": "^8.20.0",
+    "playwright": "1.64.1",
+    "vite": "^7.3.7"
+  }
+}
