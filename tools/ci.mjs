@@ -104,6 +104,7 @@ if (branch === defaultBranch) {
   for (const id of Object.keys(index.games)) if (!games.includes(id)) delete index.games[id]
 }
 
+index.repo = repo // stays correct if the repo is renamed or transferred
 index.updatedAt = new Date().toISOString()
 const indexPath = join(scratch, INDEX_ASSET)
 writeFileSync(indexPath, JSON.stringify(index, null, 2) + '\n')
