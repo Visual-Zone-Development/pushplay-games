@@ -1,7 +1,7 @@
 import { createReadStream, existsSync, statSync } from 'node:fs'
 import { createServer } from 'node:http'
 import { extname, join } from 'node:path'
-import { inside } from './lib.mjs'
+import { inside } from './repo.mjs'
 
 const TYPES = {
   '.html': 'text/html; charset=utf-8',

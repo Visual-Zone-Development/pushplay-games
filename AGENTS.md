@@ -5,14 +5,14 @@ This repo is a collection of small games. Each folder in `games/` is one game. W
 ## Workflow (follow it every time)
 
 1. **New game:** `npm run new-game <game-id>` (add `--vite` if you need npm packages like three.js). The id is lowercase-with-dashes and becomes the folder name. This creates a working, controller-ready starter: `game.js`, `input.js`, `pushplay.json` and placeholder art.
-2. **Build the game** in that folder. Only touch other games, `tools/` or root files if the user asked you to.
+2. **Build the game** in that folder. Only touch other games, `.github/` or root files if the user asked you to.
 3. **Fill in `pushplay.json`:** a real `description`, `players`, and anything else that applies (see *Manifest*).
 4. **Make the art:** replace `art/cover.svg` and `art/hero.svg` (see *Art*). This is required; the check fails on placeholder art.
 5. **Run `npm run check <game-id>` and fix everything it reports.** It builds the game, plays it headlessly at Steam Deck resolution with a virtual gamepad, and renders the art to PNG.
-6. **Look at the output images** it prints (`.pushplay/out/<id>/__art/cover.png`, `hero.png`, `screenshot.png`). If you can view images, check that the art reads well at small size and that the screenshot shows the game, not an error or empty screen. Iterate until they look good.
+6. **Look at the output images** it prints (`.github/pushplay/.work/out/<id>/__art/cover.png`, `hero.png`, `screenshot.png`). If you can view images, check that the art reads well at small size and that the screenshot shows the game, not an error or empty screen. Iterate until they look good.
 7. **Commit and push** (one commit per game is fine). Pushing any branch publishes the build.
 
-First time in a fresh checkout: `npm install` then `npx playwright install chromium`.
+First time in a fresh checkout: `npm run setup` (installs dependencies and the headless browser).
 
 If your environment can't install the browser (some cloud sandboxes block the download), still do every other step. Then push: GitHub Actions runs the same check, and the run's summary page lists any problems to fix.
 
@@ -53,7 +53,7 @@ If your environment can't install the browser (some cloud sandboxes block the do
 
 ```json
 {
-  "$schema": "../../tools/manifest.schema.json",
+  "$schema": "../../.github/pushplay/manifest.schema.json",
   "id": "star-courier",
   "name": "Star Courier",
   "description": "Pilot a tiny courier ship through an asteroid field, grabbing parcels before the clock runs out.",
@@ -101,6 +101,6 @@ If you're truly unable to make art, remove the `art` field: the check will gener
 
 ## Don'ts
 
-- Don't edit `tools/` or `.github/` unless asked; they're shared by every game.
-- Don't commit `node_modules/`, `.pushplay/` or `dist/`.
+- Don't edit `.github/` unless asked: it holds the build kit and workflow shared by every game.
+- Don't commit `node_modules/` or `dist/`.
 - Don't delete or rewrite other games.

@@ -1,4 +1,4 @@
-// npm run new-game <game-id> [--vite] [--name "Display Name"]
+// npm run new-game <game-id> [--vite] [--name "Display Name"]   (collection repos only)
 // Creates games/<game-id>/ from the starter template: a controller-ready game loop,
 // a manifest, and placeholder art to replace.
 //   default: plain HTML + ES modules, no build step (best for most 2D games)
@@ -6,8 +6,10 @@
 import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { spawnSync } from 'node:child_process'
 import { join } from 'node:path'
-import { MANIFEST_FILE } from './config.mjs'
-import { gamesRoot, log, ROOT } from './lib.mjs'
+import { GAMES_DIR, KIT_DIR, MANIFEST_FILE } from './config.mjs'
+import { layout, log, ROOT } from './repo.mjs'
+
+const gamesRoot = join(ROOT, GAMES_DIR)
 
 const args = process.argv.slice(2)
 const vite = args.includes('--vite')
@@ -18,6 +20,10 @@ const id = args.find((a, i) => !a.startsWith('--') && (nameIndex < 0 || i !== na
 if (!id || !/^[a-z0-9][a-z0-9-]{0,63}$/.test(id)) {
   log('Usage: npm run new-game <game-id> [--vite] [--name "Display Name"]')
   log('  game-id: lowercase letters, digits and dashes, e.g. tower-panic')
+  process.exit(1)
+}
+if (layout() === 'single') {
+  log(`This repo is a single game (${MANIFEST_FILE} at the root), so it can't hold more games.`)
   process.exit(1)
 }
 const dir = join(gamesRoot, id)
@@ -47,7 +53,7 @@ cpSync(join(templates, 'shared/input.js'), join(codeDir, 'input.js'))
 copyTemplate(join(templates, 'shared/art'), join(dir, 'art'))
 
 const manifest = {
-  $schema: '../../tools/manifest.schema.json',
+  $schema: `../../${KIT_DIR}/manifest.schema.json`,
   id,
   name: title,
   description: '',

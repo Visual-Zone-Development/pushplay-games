@@ -7,22 +7,16 @@
     "games/*"
   ],
   "scripts": {
-    "new-game": "node tools/new-game.mjs",
-    "check": "node tools/check.mjs",
-    "dev": "node tools/dev.mjs",
-    "test": "node --test tools/*.test.mjs"
+    "setup": "npm install && node .github/pushplay/node_modules/playwright/cli.js install chromium",
+    "postinstall": "npm install --prefix .github/pushplay --no-audit --no-fund --no-package-lock",
+    "new-game": "node .github/pushplay/new-game.mjs",
+    "dev": "node .github/pushplay/dev.mjs",
+    "check": "node .github/pushplay/check.mjs"
+  },
+  "devDependencies": {
+    "vite": "^7.3.7"
   },
   "engines": {
     "node": ">=20.19"
-  },
-  "devDependencies": {
-    "@fontsource/bungee": "^5.3.0",
-    "@fontsource/chakra-petch": "^5.3.0",
-    "@fontsource/lilita-one": "^5.3.0",
-    "@fontsource/press-start-2p": "^5.3.0",
-    "@fontsource/rubik": "^5.3.0",
-    "ajv": "^8.20.0",
-    "playwright": "1.64.1",
-    "vite": "^7.3.7"
   }
 }

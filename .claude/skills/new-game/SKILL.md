@@ -8,7 +8,7 @@ description: Create a new game in this repo that plays on a Steam Deck through t
 Follow AGENTS.md; this is the step-by-step version.
 
 1. **Pin down the idea in one line** (genre, core verb, win/lose). If the request is vague, pick something fun and achievable in one sitting rather than asking. Choose a short, catchy name and a `kebab-case` id.
-2. `npm install` (if `node_modules/` is missing) and `npx playwright install chromium`.
+2. `npm run setup` if `node_modules/` is missing.
 3. `npm run new-game <id> --name "<Name>"`. Add `--vite` only if you need npm packages.
 4. **Build the core loop first.** Get moving, the main action and fail/score working in `game.js`. Then add title, pause (Start) and game-over screens, juice (particles, screen shake, sound with WebAudio), difficulty ramp and a saved best score.
 5. **Controller check:** everything works with `input.js` (stick/d-pad, A, B, Start), prompts use `input.label()`, nothing needs a mouse or keyboard text entry, and Start+Select isn't used.

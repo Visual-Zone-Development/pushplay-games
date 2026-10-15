@@ -1,0 +1,18 @@
+{
+  "name": "PushPlay",
+  "slug": "pushplay",
+  "appId": "gg.pushplay.launcher",
+  "scheme": "pushplay",
+  "assetScheme": "pushplay-asset",
+  "manifestFiles": [
+    "pushplay.json"
+  ],
+  "releaseTag": "pushplay-latest",
+  "indexAsset": "pushplay-index.json",
+  "legacyReleaseTags": [],
+  "assetPrefix": "pushplay-",
+  "topic": "pushplay-game",
+  "legacyTopics": [],
+  "action": "pushplay/build",
+  "domain": "pushplay.gg"
+}

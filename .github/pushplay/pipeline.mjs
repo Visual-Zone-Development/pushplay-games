@@ -1,16 +1,19 @@
 import { spawnSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
-import { copyFileSync, cpSync, existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
-import { basename, join } from 'node:path'
+import { copyFileSync, cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { createRequire } from 'node:module'
+import { basename, dirname, join } from 'node:path'
 import { chromium } from 'playwright'
 import { ART, ART_FONTS, CHECK_RUN_MS, MANIFEST_FILE, VIEWPORT } from './config.mjs'
-import { distDir, gamesRoot, GameError, outDir, presetFor, readManifest, ROOT, validateManifest } from './lib.mjs'
+import { buildMode, display, distDir, GameError, outDir, readManifest, ROOT, validateManifest } from './repo.mjs'
 import { serve } from './server.mjs'
 
 /** Generated art lives here inside each build, away from the game's own asset folders. */
 export const ART_DIR = '__art'
-const FONTSOURCE = join(ROOT, 'node_modules/@fontsource')
-const SKIP = new Set(['node_modules', 'dist', '.git', '.vite', MANIFEST_FILE, 'package.json', 'package-lock.json'])
+/** Folder holding the @fontsource packages, wherever npm put them. */
+const FONTSOURCE = dirname(dirname(createRequire(import.meta.url).resolve('@fontsource/rubik/package.json')))
+/** Never shipped: tooling, dependencies, VCS, and the kit itself (dot-folders are skipped too). */
+const SKIP = new Set(['node_modules', 'dist', 'package.json', 'package-lock.json', 'README.md', 'LICENSE', MANIFEST_FILE])
 
 export function launchBrowser() {
   // SwiftShader gives headless Chromium software WebGL, so three.js/WebGL games can be checked in CI.
@@ -23,39 +26,32 @@ export function launchBrowser() {
  * Build one game end to end: validate → build → headless play check → art → package.
  * Throws GameError listing every problem if the game isn't shippable.
  */
-export async function buildGame(id, browser, { pack = true } = {}) {
-  const manifest = readManifest(id)
-  const { errors, warnings } = validateManifest(id, manifest)
+export async function buildGame(game, browser, { pack = true } = {}) {
+  const { id } = game
+  const manifest = readManifest(game)
+  const { errors, warnings } = validateManifest(game, manifest)
   if (errors.length) throw new GameError(id, errors.join('\n'))
 
-  const gameDir = join(gamesRoot, id)
   const out = outDir(id)
   rmSync(out, { recursive: true, force: true })
   mkdirSync(out, { recursive: true })
 
   // 1. Build
   let webEntry
-  if (presetFor(id, manifest) === 'vite') {
-    const result = spawnSync('npm', ['run', 'build', '--workspace', `games/${id}`], { cwd: ROOT, encoding: 'utf8' })
-    if (result.status !== 0) {
-      const output = `${result.stdout}\n${result.stderr}`.trim().split('\n').slice(-25).join('\n')
-      throw new GameError(id, `npm run build failed in games/${id}:\n${output}`)
-    }
-    const built = join(gameDir, manifest.build?.output ?? 'dist')
-    if (!existsSync(join(built, 'index.html'))) throw new GameError(id, `the build didn't produce ${basename(built)}/index.html`)
+  if (buildMode(game, manifest) === 'npm') {
+    runBuild(game)
+    const built = join(game.dir, manifest.build?.output ?? 'dist')
+    if (!existsSync(join(built, 'index.html'))) throw new GameError(id, `the build didn't produce ${display(built)}/index.html`)
     cpSync(built, out, { recursive: true })
     webEntry = 'index.html'
   } else {
-    cpSync(gameDir, out, {
-      recursive: true,
-      filter: (src) => src === gameDir || !(SKIP.has(basename(src)) || basename(src).startsWith('.'))
-    })
+    copyGameFiles(game.dir, out)
     webEntry = manifest.entry.web
   }
 
   // 2. Play it headlessly, 3. render art
   mkdirSync(join(out, ART_DIR), { recursive: true })
-  const server = await serve({ '/': out, '/__src/': gameDir, '/__fonts/': FONTSOURCE })
+  const server = await serve({ '/': out, '/__src/': game.dir, '/__fonts/': FONTSOURCE })
   try {
     const play = await playCheck(browser, server, out, webEntry, manifest)
     warnings.push(...play.warnings)
@@ -76,6 +72,43 @@ export async function buildGame(id, browser, { pack = true } = {}) {
 
   return { id, manifest: shipped, out, files: pack ? packageGame(id, out) : {}, warnings }
 }
+
+/**
+ * Copy a game without a build step. Hand-rolled because in a single-game repo the output folder
+ * sits inside the game folder (under the hidden kit dir), which cpSync refuses even with a filter.
+ */
+function copyGameFiles(from, to) {
+  mkdirSync(to, { recursive: true })
+  for (const entry of readdirSync(from, { withFileTypes: true })) {
+    if (entry.name.startsWith('.') || SKIP.has(entry.name)) continue
+    const src = join(from, entry.name)
+    if (entry.isDirectory()) copyGameFiles(src, join(to, entry.name))
+    else if (entry.isFile()) copyFileSync(src, join(to, entry.name))
+  }
+}
+
+/**
+ * Run the game's npm "build" script. Games inside a workspace-enabled repo (the template) build
+ * through the workspace; anything else installs its own dependencies first if needed.
+ */
+function runBuild(game) {
+  const run = (args, cwd) => spawnSync('npm', args, { cwd, encoding: 'utf8', env: { ...process.env, CI: 'true' } })
+  let result
+  const rootPkg = existsSync(join(ROOT, 'package.json')) ? JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8')) : null
+  if (game.rel && rootPkg?.workspaces) {
+    result = run(['run', 'build', '--workspace', game.rel], ROOT)
+  } else {
+    if (!existsSync(join(game.dir, 'node_modules'))) {
+      const install = existsSync(join(game.dir, 'package-lock.json')) ? ['ci', '--no-audit', '--no-fund'] : ['install', '--no-audit', '--no-fund']
+      const installed = run(install, game.dir)
+      if (installed.status !== 0) throw new GameError(game.id, `npm ${install[0]} failed:\n${tail(installed)}`)
+    }
+    result = run(['run', 'build'], game.dir)
+  }
+  if (result.status !== 0) throw new GameError(game.id, `npm run build failed in ${display(game.dir)}:\n${tail(result)}`)
+}
+
+const tail = (result) => `${result.stdout}\n${result.stderr}`.trim().split('\n').slice(-25).join('\n')
 
 /** Load the game like the Deck would, and watch for crashes, missing files and internet use. */
 async function playCheck(browser, server, out, entry, manifest) {
@@ -184,9 +217,10 @@ async function renderArt(browser, server, manifest, kind, target) {
       await page.goto(`${server.url}/__src/${encodeURI(source)}`, { waitUntil: 'load' })
       await page.evaluate(async (css) => {
         const doc = document.documentElement
-        const style = doc.namespaceURI === 'http://www.w3.org/2000/svg'
-          ? document.createElementNS('http://www.w3.org/2000/svg', 'style')
-          : document.createElement('style')
+        const style =
+          doc.namespaceURI === 'http://www.w3.org/2000/svg'
+            ? document.createElementNS('http://www.w3.org/2000/svg', 'style')
+            : document.createElement('style')
         style.textContent = css
         ;(document.head ?? doc).appendChild(style)
         await Promise.all([...document.fonts].map((f) => f.load().catch(() => {})))
@@ -214,16 +248,14 @@ const escapeHtml = (s) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt
 
 /** Screenshot + title. Used only when a game ships no art. */
 function fallbackArt(kind, name, base, size) {
-  const title = escapeHtml(name)
-  const font = fontFaces(base)
   const cover = kind === 'cover'
-  return `<style>${font}
+  return `<style>${fontFaces(base)}
     html,body{margin:0;width:${size.width}px;height:${size.height}px;overflow:hidden;background:#0d0f14}
     img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:saturate(1.1)}
     .shade{position:absolute;inset:0;background:linear-gradient(to top,rgba(13,15,20,.92),rgba(13,15,20,.15) 65%)}
     h1{position:absolute;left:36px;right:36px;bottom:120px;margin:0;color:#fff;
       font:700 64px/1 'Chakra Petch',sans-serif;text-shadow:0 2px 12px rgba(0,0,0,.5)}
-  </style><img src="${base}/${ART_DIR}/screenshot.png"><div class="shade"></div>${cover ? `<h1>${title}</h1>` : ''}`
+  </style><img src="${base}/${ART_DIR}/screenshot.png"><div class="shade"></div>${cover ? `<h1>${escapeHtml(name)}</h1>` : ''}`
 }
 
 /** Zip the build and copy art next to it under release-asset names. */
