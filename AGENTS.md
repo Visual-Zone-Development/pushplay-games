@@ -4,6 +4,7 @@ This repo is a collection of small games. Each folder in `games/` is one game. W
 
 ## Workflow (follow it every time)
 
+0. **Design brief first.** A complete, fun game beats a quick tech demo. Before writing code, settle with the user (or decide and record as assumptions): the gameplay loop, 2D or 3D, art direction, whether they have assets, how it should *feel*, and any games it should feel like. Once step 1 has created the folder, write `games/<id>/DESIGN.md` from [`docs/game-design/DESIGN.template.md`](docs/game-design/DESIGN.template.md). The design guides in [`docs/game-design/`](docs/game-design/) cover the 8 formal elements and 8 kinds of fun ([framework](docs/game-design/framework.md)), genre loops, art styles, researching inspiration, and the [definition of done](docs/game-design/complete-game.md) every game should meet.
 1. **New game:** `npm run new-game <game-id>` (add `--vite` if you need npm packages like three.js). The id is lowercase-with-dashes and becomes the folder name. This creates a working, controller-ready starter: `game.js`, `input.js`, `pushplay.json` and placeholder art.
 2. **Build the game** in that folder. Only touch other games, `.github/` or root files if the user asked you to.
 3. **Fill in `pushplay.json`:** a real `description`, `players`, `tags`, and anything else that applies (see *Manifest*).
@@ -11,6 +12,8 @@ This repo is a collection of small games. Each folder in `games/` is one game. W
 5. **Run `npm run check <game-id>` and fix everything it reports.** It builds the game, plays it headlessly at Steam Deck resolution with a virtual gamepad, and renders the art to PNG.
 6. **Look at the output images** it prints (`.github/pushplay/.work/out/<id>/__art/cover.png`, `hero.png`, `screenshot.png`). If you can view images, check that the art reads well at small size and that the screenshot shows the game, not an error or empty screen. Iterate until they look good.
 7. **Commit and push** (one commit per game is fine). Pushing any branch publishes the build.
+
+**Changing an existing game:** read its `DESIGN.md` first and keep changes consistent with it. Bump `version`, add a line to its Changelog, and run the check. For bugs, see [`docs/game-design/debugging.md`](docs/game-design/debugging.md).
 
 First time in a fresh checkout: `npm run setup` (installs dependencies and the headless browser).
 
@@ -48,6 +51,12 @@ If your environment can't install the browser (some cloud sandboxes block the do
 - Default: plain HTML + ES modules (`<script type="module">`) and canvas.
 - Use `--vite` when you need npm packages (three.js, Phaser, physics engines). Install with `npm install <pkg> --workspace games/<id>` and commit `package-lock.json`.
 - Keep a game self-contained in its folder.
+- For 3D games (three.js), follow the Deck budgets in [`docs/game-design/3d.md`](docs/game-design/3d.md).
+- Put all gameplay numbers in a `TUNING` object at the top of `game.js`, so tuning later is quick.
+
+## Assets
+
+Games can be fully procedural, or use the user's own sprites, audio, models and fonts. Copy them into `games/<id>/assets/` (never link outside the folder or to the internet), record where each came from and its license in `assets/CREDITS.md`, and keep files small (sprite sheets ≤ 2048px, music ≤ ~3 MB, < 30 MB total). Details: [`docs/game-design/assets.md`](docs/game-design/assets.md).
 
 ## Manifest (`games/<id>/pushplay.json`)
 

@@ -18,7 +18,7 @@ Use any coding agent that can push to GitHub. The rules live in [`AGENTS.md`](AG
 
 > Make a game where you defend a breakroom from paper airplanes.
 
-The agent scaffolds the game, writes it, designs its cover and banner art, runs the check, and pushes.
+The agent asks a few quick questions (how it should feel, 2D or 3D, art style, any assets or games you love), writes a one-page design brief for you to approve, then builds the game, designs its cover and banner art, runs the check, and pushes. Later, ask it to *improve* a game ("it gets boring after a minute") or *fix* one, and it works from the same brief. The design guides live in [`docs/game-design/`](docs/game-design/).
 
 | Where you are | How |
 |---|---|
