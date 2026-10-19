@@ -151,6 +151,13 @@ export function validateManifest(game, manifest) {
   return { errors, warnings }
 }
 
+/**
+ * Options for spawning npm/npx. On Windows they're .cmd scripts, which Node only runs through a
+ * shell; `quote` the arguments then (paths there often have spaces, and can't contain quotes).
+ */
+export const npmSpawn = process.platform === 'win32' ? { shell: true } : {}
+export const quote = (args) => (process.platform === 'win32' ? args.map((a) => (/\s/.test(a) ? `"${a}"` : a)) : args)
+
 export function log(message = '') {
   process.stdout.write(message + '\n')
 }

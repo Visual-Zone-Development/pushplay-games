@@ -1,7 +1,8 @@
 // Star Courier: grab parcels, dodge asteroids, beat the clock.
 // The sample game for this repo; it shows the conventions in AGENTS.md
-// (title screen, Start to pause, controller prompts, saved best score, 1280×800 space).
+// (title screen, menus for every input, pause three ways, input prompts, saved best score, 1280×800 space).
 import { input } from './input.js'
+import { createMenu } from './menu.js'
 
 const canvas = document.getElementById('game')
 const ctx = canvas.getContext('2d')
@@ -20,6 +21,28 @@ function resize() {
 }
 addEventListener('resize', resize)
 resize()
+input.attach(canvas, W, H)
+
+// Menus work with a controller, keyboard, mouse and touch (menu.js).
+const titleMenu = createMenu([{ id: 'launch', label: 'Launch' }], { y: H / 2 + 140 })
+const pauseMenu = createMenu(
+  [
+    { id: 'resume', label: 'Resume' },
+    { id: 'restart', label: 'Restart' },
+    { id: 'title', label: 'Quit to title' }
+  ],
+  { y: H / 2 + 20 }
+)
+const overMenu = createMenu(
+  [
+    { id: 'again', label: 'Play again' },
+    { id: 'title', label: 'Title' }
+  ],
+  { y: H / 2 + 90 }
+)
+// Pause button for mouse and touch, top centre, clear of the score and clock.
+const PAUSE_BUTTON = { x: W / 2 - 28, y: 24, w: 56, h: 56 }
+const inside = (p, r) => p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h
 
 const rand = (min, max) => min + Math.random() * (max - min)
 const stars = Array.from({ length: 140 }, () => ({ x: rand(0, W), y: rand(0, H), z: rand(0.2, 1) }))
@@ -74,13 +97,26 @@ function update(dt) {
     s.y += 30 * s.z * dt
     if (s.y > H) s.y -= H
   }
-  if (state.screen === 'title' || state.screen === 'over') {
-    if (input.pressed('a') || input.pressed('start')) reset()
+  if (state.screen === 'title') {
+    if (titleMenu.update(input, dt) === 'launch' || input.pressed('start')) reset()
     return
   }
-  if (input.pressed('start')) state.screen = state.screen === 'paused' ? 'playing' : 'paused'
+  if (state.screen === 'over') {
+    const choice = overMenu.update(input, dt)
+    if (choice === 'again' || input.pressed('start')) reset()
+    if (choice === 'title' || choice === 'back') state.screen = 'title'
+    return
+  }
   if (state.screen === 'paused') {
-    if (input.pressed('b')) state.screen = 'title'
+    const choice = pauseMenu.update(input, dt)
+    if (choice === 'resume' || choice === 'back' || input.pressed('start')) state.screen = 'playing'
+    if (choice === 'restart') reset()
+    if (choice === 'title') state.screen = 'title'
+    return
+  }
+  if (input.pressed('start') || input.pressed('b') || (input.pointer.pressed && inside(input.pointer, PAUSE_BUTTON))) {
+    pauseMenu.select('resume')
+    state.screen = 'paused'
     return
   }
 
@@ -96,6 +132,7 @@ function update(dt) {
   if (state.time <= 0) {
     state.time = 0
     state.screen = 'over'
+    overMenu.select('again')
     if (state.score > state.best) {
       state.best = state.score
       localStorage.setItem('star-courier-best', String(state.best))
@@ -203,6 +240,15 @@ function draw() {
     ctx.textAlign = 'right'
     ctx.fillStyle = state.time < 10 ? '#ff7a6b' : '#eef0f5'
     ctx.fillText(`${Math.ceil(state.time)}s`, W - 32, 52)
+    if (state.screen === 'playing') {
+      ctx.fillStyle = 'rgba(255,255,255,0.12)'
+      ctx.beginPath()
+      ctx.roundRect(PAUSE_BUTTON.x, PAUSE_BUTTON.y, PAUSE_BUTTON.w, PAUSE_BUTTON.h, 12)
+      ctx.fill()
+      ctx.fillStyle = '#eef0f5'
+      ctx.fillRect(PAUSE_BUTTON.x + 18, PAUSE_BUTTON.y + 16, 7, 24)
+      ctx.fillRect(PAUSE_BUTTON.x + 31, PAUSE_BUTTON.y + 16, 7, 24)
+    }
   }
 
   ctx.textAlign = 'center'
@@ -214,27 +260,25 @@ function draw() {
     ctx.font = '500 28px system-ui, sans-serif'
     ctx.fillStyle = '#c9cfdb'
     ctx.fillText('Grab parcels. Dodge rocks. 60 seconds on the clock.', W / 2, H / 2 + 100)
-    ctx.fillStyle = '#ffb547'
-    ctx.fillText(`Press ${input.label('a')} to launch`, W / 2, H / 2 + 180)
-    if (state.best) {
-      ctx.fillStyle = '#9aa3b5'
-      ctx.fillText(`Best: ${state.best} parcels`, W / 2, H / 2 + 230)
-    }
+    titleMenu.draw(ctx)
+    ctx.font = '500 24px system-ui, sans-serif'
+    ctx.fillStyle = '#9aa3b5'
+    ctx.fillText(`Press ${input.label('a')} to launch${state.best ? ` · Best: ${state.best} parcels` : ''}`, W / 2, H / 2 + 250)
   } else if (state.screen === 'paused' || state.screen === 'over') {
     ctx.fillStyle = 'rgba(5,7,15,0.7)'
     ctx.fillRect(0, 0, W, H)
     ctx.fillStyle = '#eef0f5'
     ctx.font = '800 72px system-ui, sans-serif'
-    ctx.fillText(state.screen === 'paused' ? 'Paused' : `${state.score} parcels delivered`, W / 2, H / 2 - 20)
-    ctx.font = '500 28px system-ui, sans-serif'
-    ctx.fillStyle = '#c9cfdb'
-    ctx.fillText(
-      state.screen === 'paused'
-        ? `${input.label('start')} resume · ${input.label('b')} quit to title`
-        : `Best ${state.best} · ${input.label('a')} play again`,
-      W / 2,
-      H / 2 + 50
-    )
+    if (state.screen === 'paused') {
+      ctx.fillText('Paused', W / 2, H / 2 - 70)
+      pauseMenu.draw(ctx)
+    } else {
+      ctx.fillText(`${state.score} parcels delivered`, W / 2, H / 2 - 70)
+      ctx.font = '500 28px system-ui, sans-serif'
+      ctx.fillStyle = '#c9cfdb'
+      ctx.fillText(`Best ${state.best}`, W / 2, H / 2 + 10)
+      overMenu.draw(ctx)
+    }
   }
 }
 

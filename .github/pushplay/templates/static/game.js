@@ -1,5 +1,7 @@
 // {{NAME}}: starter game loop. Replace the contents of update() and draw() with the real game.
+// Menus use menu.js, so they work with a controller, a keyboard, a mouse and touch alike.
 import { input } from './input.js'
+import { createMenu } from './menu.js'
 
 const canvas = document.getElementById('game')
 const ctx = canvas.getContext('2d')
@@ -18,6 +20,19 @@ function resize() {
 }
 addEventListener('resize', resize)
 resize()
+input.attach(canvas, W, H)
+
+const titleMenu = createMenu([{ id: 'play', label: 'Play' }], { y: H / 2 + 60 })
+const pauseMenu = createMenu(
+  [
+    { id: 'resume', label: 'Resume' },
+    { id: 'title', label: 'Quit to title' }
+  ],
+  { y: H / 2 }
+)
+// A pause button for mouse and touch players (a controller uses Start, a keyboard Esc or P).
+const PAUSE_BUTTON = { x: W - 88, y: 32, w: 56, h: 56 }
+const inside = (p, r) => p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h
 
 const state = {
   screen: 'title', // title | playing | paused
@@ -27,12 +42,19 @@ const state = {
 
 function update(dt) {
   if (state.screen === 'title') {
-    if (input.pressed('a') || input.pressed('start')) state.screen = 'playing'
+    if (titleMenu.update(input, dt) === 'play' || input.pressed('start')) state.screen = 'playing'
     return
   }
-  if (input.pressed('start')) state.screen = state.screen === 'paused' ? 'playing' : 'paused'
   if (state.screen === 'paused') {
-    if (input.pressed('b')) state.screen = 'title'
+    const choice = pauseMenu.update(input, dt)
+    if (choice === 'resume' || choice === 'back' || input.pressed('start')) state.screen = 'playing'
+    if (choice === 'title') state.screen = 'title'
+    return
+  }
+  const clickedPause = input.pointer.pressed && inside(input.pointer, PAUSE_BUTTON)
+  if (input.pressed('start') || input.pressed('b') || clickedPause) {
+    pauseMenu.select('resume')
+    state.screen = 'paused'
     return
   }
   state.player.x = Math.max(24, Math.min(W - 24, state.player.x + input.x * 420 * dt))
@@ -52,16 +74,25 @@ function draw() {
   if (state.screen === 'title') {
     ctx.font = '700 72px system-ui, sans-serif'
     ctx.fillText('{{NAME}}', W / 2, H / 2 - 80)
-    ctx.font = '500 28px system-ui, sans-serif'
-    ctx.fillText(`Press ${input.label('a')} to start`, W / 2, H / 2 + 120)
+    titleMenu.draw(ctx)
+    ctx.font = '500 24px system-ui, sans-serif'
+    ctx.fillText(`Press ${input.label('a')} to start`, W / 2, H / 2 + 180)
+  } else if (state.screen === 'playing') {
+    // Pause button: two bars, top-right, clear of the outermost 32px.
+    ctx.fillStyle = 'rgba(255,255,255,0.12)'
+    ctx.beginPath()
+    ctx.roundRect(PAUSE_BUTTON.x, PAUSE_BUTTON.y, PAUSE_BUTTON.w, PAUSE_BUTTON.h, 12)
+    ctx.fill()
+    ctx.fillStyle = '#eef0f5'
+    ctx.fillRect(PAUSE_BUTTON.x + 18, PAUSE_BUTTON.y + 16, 7, 24)
+    ctx.fillRect(PAUSE_BUTTON.x + 31, PAUSE_BUTTON.y + 16, 7, 24)
   } else if (state.screen === 'paused') {
     ctx.fillStyle = 'rgba(0,0,0,0.6)'
     ctx.fillRect(0, 0, W, H)
     ctx.fillStyle = '#eef0f5'
     ctx.font = '700 56px system-ui, sans-serif'
-    ctx.fillText('Paused', W / 2, H / 2)
-    ctx.font = '500 24px system-ui, sans-serif'
-    ctx.fillText(`${input.label('start')} resume · ${input.label('b')} quit to title`, W / 2, H / 2 + 60)
+    ctx.fillText('Paused', W / 2, H / 2 - 80)
+    pauseMenu.draw(ctx)
   }
 }
 

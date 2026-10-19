@@ -5,7 +5,7 @@ import { createRequire } from 'node:module'
 import { basename, dirname, join } from 'node:path'
 import { chromium } from 'playwright'
 import { ART, ART_FONTS, CHECK_RUN_MS, MANIFEST_FILE, VIEWPORT } from './config.mjs'
-import { buildMode, display, distDir, GameError, outDir, readManifest, ROOT, validateManifest } from './repo.mjs'
+import { buildMode, display, distDir, GameError, npmSpawn, outDir, quote, readManifest, ROOT, validateManifest } from './repo.mjs'
 import { serve } from './server.mjs'
 
 /** Generated art lives here inside each build, away from the game's own asset folders. */
@@ -92,7 +92,7 @@ function copyGameFiles(from, to) {
  * through the workspace; anything else installs its own dependencies first if needed.
  */
 function runBuild(game) {
-  const run = (args, cwd) => spawnSync('npm', args, { cwd, encoding: 'utf8', env: { ...process.env, CI: 'true' } })
+  const run = (args, cwd) => spawnSync('npm', quote(args), { ...npmSpawn, cwd, encoding: 'utf8', env: { ...process.env, CI: 'true' } })
   let result
   const rootPkg = existsSync(join(ROOT, 'package.json')) ? JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8')) : null
   if (game.rel && rootPkg?.workspaces) {

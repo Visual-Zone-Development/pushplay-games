@@ -7,7 +7,7 @@ import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statS
 import { spawnSync } from 'node:child_process'
 import { join } from 'node:path'
 import { GAMES_DIR, KIT_DIR, MANIFEST_FILE } from './config.mjs'
-import { layout, log, ROOT } from './repo.mjs'
+import { layout, log, npmSpawn, ROOT } from './repo.mjs'
 
 const gamesRoot = join(ROOT, GAMES_DIR)
 
@@ -50,6 +50,7 @@ function copyTemplate(from, to) {
 const codeDir = vite ? join(dir, 'src') : dir
 copyTemplate(join(templates, 'static'), codeDir)
 cpSync(join(templates, 'shared/input.js'), join(codeDir, 'input.js'))
+cpSync(join(templates, 'shared/menu.js'), join(codeDir, 'menu.js'))
 copyTemplate(join(templates, 'shared/art'), join(dir, 'art'))
 
 const manifest = {
@@ -81,11 +82,11 @@ if (vite) {
 writeFileSync(join(dir, MANIFEST_FILE), JSON.stringify(manifest, null, 2) + '\n')
 
 // A Vite game is an npm workspace; refresh package-lock.json so CI's install matches. Commit it.
-if (vite) spawnSync('npm', ['install', '--no-audit', '--no-fund'], { cwd: ROOT, stdio: 'inherit' })
+if (vite) spawnSync('npm', ['install', '--no-audit', '--no-fund'], { ...npmSpawn, cwd: ROOT, stdio: 'inherit' })
 
 log(`Created games/${id}/ (${vite ? 'Vite' : 'plain HTML'}).`)
 log('Next:')
-log(`  1. Write the game in games/${id}/${vite ? 'src/' : ''}game.js (input.js handles controller + keyboard).`)
+log(`  1. Write the game in games/${id}/${vite ? 'src/' : ''}game.js (input.js handles controller, keyboard, mouse and touch; menu.js does menus for all of them).`)
 log(`  2. Fill in "description" in games/${id}/${MANIFEST_FILE}.`)
 log(`  3. Replace games/${id}/art/cover.svg and hero.svg with real art.`)
 log(`  4. npm run dev ${id}   → play it in a browser`)

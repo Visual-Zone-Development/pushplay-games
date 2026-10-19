@@ -26,10 +26,11 @@ What separates a complete game from a toy. Copy the items that apply into the ga
 
 ## Screens and flow
 
-- [ ] **Title screen** with the name, a clear `Press A to start`, and the best score.
-- [ ] **Pause** on Start: resume, restart, quit to title. The game is fully frozen while paused.
+- [ ] **Title screen** with the name, a clear `Press ${input.label('a')} to start`, and the best score.
+- [ ] **Pause** on Start, Esc/P, and an on-screen pause button for mouse and touch: resume, restart, quit to title. The game is fully frozen while paused.
+- [ ] **Every menu works with every input**: controller, keyboard, mouse and touch, via `menu.js` (move, choose, back, hover, click, tap).
 - [ ] **Game over / results** screen that's satisfying to look at (tally animation, stats).
-- [ ] **Settings** reachable from title and pause: volume, plus difficulty or reduced shake where relevant. Navigable with the d-pad + A/B.
+- [ ] **Settings** reachable from title and pause: volume, plus difficulty or reduced shake where relevant. Navigable with the d-pad + A/B, the keyboard and the mouse.
 - [ ] **Saves**: best score, unlocks, settings and (for longer games) progress in `localStorage`, under a versioned key (`<id>-save-v1`).
 
 ## Accessibility

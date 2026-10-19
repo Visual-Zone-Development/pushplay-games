@@ -59,10 +59,11 @@ Run `npm run check <id>` after each milestone and fix every ✗.
 **Self-review** before moving on to art: re-read DESIGN.md and tick off every Definition of done item. Build anything missing, or list it as a known gap.
 
 ## 6. Controls, manifest, art
-- **Controller check:**
-  - Everything works with `input.js` (stick/d-pad, A, B, Start).
+- **Controls check, every platform:**
+  - Play it with a controller, then a keyboard, then a mouse: every menu and screen works with each alone (`npm run dev` in a browser covers keyboard and mouse; a pad plugged in covers the controller).
+  - Menus use `menu.js`. Pause works with Start, Esc/P and the on-screen pause button.
   - Prompts use `input.label()`.
-  - Nothing needs a mouse or text entry.
+  - Nothing needs hover, a double-click, a scroll wheel or text entry.
   - Start+Select is never used.
 - **Manifest:**
   - `description`: what you do and why it's fun, 1–3 sentences.

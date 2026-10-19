@@ -21,13 +21,15 @@ If your environment can't install the browser (some cloud sandboxes block the do
 
 ## Game rules
 
-**Controls: controller first.**
-- Use the provided `input.js`: `input.update()` once per frame, then `input.x`, `input.y` (-1..1, left stick + d-pad + WASD/arrows), `input.held('a')`, `input.pressed('a')`.
-- Standard mapping: **A** confirm/jump/action, **B** back/cancel, **X/Y** secondary actions, **LB/RB** cycle, **Start** pause.
+**Controls: controller first, and every platform.** Games are played on a Steam Deck with its controls, and on Linux, Windows and Mac PCs with a controller, a keyboard or a mouse (sometimes a touchscreen). Every action, menu and screen must work with **each** of those alone.
+- Use the provided `input.js`: `input.update()` once per frame, then `input.x`, `input.y` (-1..1, left stick + d-pad + WASD/arrows), `input.held('a')`, `input.pressed('a')`. Call `input.attach(canvas)` once so `input.pointer` (mouse and touch, in 1280×800 game space) works.
+- Standard mapping: **A** confirm/jump/action, **B** back/cancel, **X/Y** secondary actions, **LB/RB** cycle, **Start** pause. On a keyboard (already in `input.js`): Space/Enter = A, Esc/Backspace = B, Shift = X, E = Y, P = Start.
 - **Never require Start + Select together.** The launcher reserves that for its own menu.
-- Everything must be playable with a controller alone: menus navigable with d-pad + A/B, no mouse-only or hover-only interactions, no text entry.
-- Also support keyboard (`input.js` already does).
-- Show button prompts with `input.label('a')`, which shows "A" on a controller and "Space" on a keyboard.
+- **Menus use `menu.js`**: `createMenu(items)`, then `menu.update(input)` each frame and `menu.draw(ctx)`. It moves with the d-pad, stick, arrows and WASD, chooses with A, Space, Enter, a click or a tap, goes back with B, Esc or right-click, and highlights on hover. Use it for title, pause, game over, level select and options screens. A custom menu must do all of the same.
+- **Pause works three ways:** Start on a controller, Esc or P on a keyboard, and an on-screen pause button for mouse and touch (the starter has one). The pause menu always offers Resume and Quit to title.
+- Gameplay must work with a controller and with a keyboard. If the game is naturally pointer-driven (aiming, dragging, placing), also make it fully playable with the stick or d-pad: a cursor the stick moves, or snapping between targets.
+- Nothing may need hover, a double-click, a scroll wheel or typed text: a controller has none of them.
+- Show prompts with `input.label('a')`: "A" on a controller, "Space" on a keyboard or mouse. Never hard-code button names in text.
 
 **Screen.**
 - The Steam Deck is **1280×800**. Lay out in that fixed space and scale to fit the window (the starter already does this).

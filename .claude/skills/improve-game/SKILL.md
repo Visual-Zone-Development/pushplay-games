@@ -57,7 +57,7 @@ Follow AGENTS.md. Design material lives in `docs/game-design/`.
    - [complete-game.md](../../../docs/game-design/complete-game.md): missing items are usually the biggest, cheapest wins (no retry hook, silent actions, no ramp, no best score)
    - game feel: response time, acceleration, hit-stop, shake, sound
    - the difficulty curve, read from `TUNING` and the spawn and ramp code
-   - controller rules, screen rules (24px text, 32px margins) and performance
+   - control rules (controller, keyboard and mouse all work everywhere; menus use `menu.js`), screen rules (24px text, 32px margins) and performance
 
    If it helps, research how the DESIGN.md reference games, or similar games, solved the same problem ([inspiration.md](../../../docs/game-design/inspiration.md)).
 4. **Propose.** Offer 3–5 improvements in one `AskUserQuestion` (multiSelect). Each option gives the problem → the fix, its expected effect on feel, and its size (S/M/L).
