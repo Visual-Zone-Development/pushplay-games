@@ -1,16 +1,22 @@
 # PushPlay games
 
-Ask an AI for a game, and it shows up on your Steam Deck.
+Ask an AI for a game, and it shows up on your Steam Deck, or in PushPlay on a Linux, Windows or Mac PC.
 
-Every folder in `games/` is a game. Push to any branch and GitHub Actions builds the games that changed: it plays each one headlessly to catch crashes, renders its cover art, and publishes it to this repo's **pushplay-latest** release. The [PushPlay](https://pushplay.gg) launcher on your Deck watches that release, so new games and updates appear on their own.
+**One repo holds as many games as you like.** Every folder in `games/` is a game, and each one gets its own tile, art and updates in the library. Push to any branch and GitHub Actions builds the games that changed: it plays each one headlessly to catch crashes, renders its cover art, and publishes it to this repo's **pushplay-latest** release. The [PushPlay](https://pushplay.gg) launcher watches that release, so new games and updates appear on their own: watch the repo once and every game you add later shows up too.
 
-Comes with one sample game, **Star Courier**.
+Comes with one sample game, **Star Courier**. Keep it, change it, or delete its folder once you have your own.
+
+Good for prototypes, playtests, and games made just for you.
 
 ## Set up your own
 
 1. Click **Use this template → Create a new repository**. Private is fine. (Use the template rather than forking: forks have Actions turned off and can't be private.)
 2. Open the new repo's **Actions** tab and run **Build games** once (or just push anything) to publish the sample.
-3. In PushPlay on your Deck: **Add game → GitHub → watch this repo**.
+3. In PushPlay (Steam Deck, Linux, Windows or Mac): **Add game → My repositories**, sign in with your phone, and watch this repo. [Install PushPlay](https://pushplay.gg/download) first if you haven't.
+
+## One repo, many games
+
+Add a game by asking for one, or with `npm run new-game <id>`; either way it gets its own folder in `games/`. There's no limit and nothing to register: the next build adds it to the release, and PushPlay adds it to the library. A build only rebuilds the games that changed, and one broken game never blocks the others. Delete a folder on the default branch and the game leaves the library (players who installed it keep their copy).
 
 ## Make a game with AI
 
@@ -25,17 +31,19 @@ The agent asks a few quick questions (how it should feel, 2D or 3D, art style, a
 | Phone or browser | **Claude Code**: Claude app → Code (or claude.ai/code), pick this repo. **Codex**: chatgpt.com/codex, pick this repo. **Copilot**: open an issue describing the game and assign it to Copilot. |
 | Computer | Any agent CLI or IDE in a clone of this repo. |
 
-Cloud agents usually push to a branch or open a pull request. That's fine: every branch is built, and the Deck gets the newest build. Merge when you want the game on `main`.
+Cloud agents usually push to a branch or open a pull request. That's fine: every branch is built, and PushPlay gets the newest build. Merge when you want the game on `main`.
 
 Tip: some cloud sandboxes can't download the headless browser that `npm run check` uses. The agent can still push, and the Actions run will report any problems. For Claude Code on the web you can add `npm run setup` to the environment's setup script.
 
 ## Already have a game in its own repo?
 
-You don't have to use this template. Any repo works with PushPlay:
+You don't need this template, an AI, or anything made for PushPlay. Any repo works ([details](https://pushplay.gg/guide/your-repo)):
 
-- **Plain HTML game** (an `index.html` at the root or in `dist/`): works as-is. PushPlay plays it straight from the repo.
-- **Anything else:** add a `pushplay.json` at the repo root (see [AGENTS.md](AGENTS.md#manifest-gamesidpushplayjson)) and the build kit: copy `.github/pushplay/` and `.github/workflows/pushplay.yml` from this repo, or use **Set up auto-builds** in PushPlay, which opens a pull request for you. If the repo has a `package.json` with a `build` script, the kit runs it and ships the output (`dist/` by default).
-- **Native builds** (Godot etc.): attach `pushplay-linux-x64.zip` to a GitHub release.
+- **GitHub releases:** if you attach zipped builds to releases, you're done. PushPlay reads the platform from the file name (`Game-Windows.zip`, `Game-Linux.zip`, `Game-macOS.zip`, `Game-HTML5.zip`), or looks inside a single zip, and uses the newest published release that has a build. Godot, Unity and anything else that exports a program work this way.
+- **Plain HTML game** (an `index.html` at the root or in `dist/`, `docs/` or `build/`): add the topic `pushplay-game` to the repo, or a `pushplay.json`, and PushPlay plays it straight from the latest commit.
+- **A web game with a build step:** add the build kit. Copy `.github/pushplay/` and `.github/workflows/pushplay.yml` from this repo, or use **Set up auto-builds** in PushPlay, which opens a pull request for you. If the repo has a `package.json` with a `build` script, the kit runs it and ships the output (`dist/` by default).
+
+A `pushplay.json` ([fields](AGENTS.md#manifest-gamesidpushplayjson)) is optional everywhere except the template: it sets the name, art and controls.
 
 ## Make a game by hand
 
@@ -54,7 +62,7 @@ The build kit in `.github/pushplay/` does everything; the workflow (`.github/wor
 2. **Build:** copy plain-HTML games as-is, or run `vite build` for `--vite` games.
 3. **Play check:** open the game at 1280×800 in headless Chromium with a virtual gamepad that presses A and moves the stick. Fail on crashes, missing files, internet requests, `alert()` dialogs or a blank screen. Save a screenshot.
 4. **Art:** render `art/cover.svg` (720×500) and `art/hero.svg` (1920×450) to PNG with bundled fonts, or generate them from the screenshot if the game has none.
-5. **Publish** `<id>-web.zip`, the PNGs and `pushplay-index.json` to the `pushplay-latest` release. A failed build keeps the last good version and records the error, so the Deck can show "build failed" instead of losing the game.
+5. **Publish** `<id>-web.zip`, the PNGs and `pushplay-index.json` to the `pushplay-latest` release. It's a prerelease that's updated in place, not a versioned release, so it never becomes your repo's "Latest". A failed build keeps the last good version and records the error, so PushPlay can show "build failed" instead of losing the game.
 
 ## Notes
 

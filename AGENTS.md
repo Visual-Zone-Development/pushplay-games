@@ -1,6 +1,6 @@
 # Making games in this repo
 
-This repo is a collection of small games. Each folder in `games/` is one game. When you push, GitHub Actions builds every game that changed and publishes it, and the **PushPlay** launcher on the owner's Steam Deck picks it up automatically. Whatever you make here gets played **on a handheld, with a controller, on the couch**. Design for that.
+This repo is a collection of small games. Each folder in `games/` is one game, and there can be as many as the owner likes: a new game is a new folder, never a new repo. When you push, GitHub Actions builds every game that changed and publishes it, and the **PushPlay** launcher on the owner's Steam Deck (or PC) picks it up automatically. Whatever you make here gets played **on a handheld, with a controller, on the couch**. Design for that.
 
 ## Workflow (follow it every time)
 
