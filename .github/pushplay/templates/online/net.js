@@ -3,8 +3,10 @@
 // build check warns when a copy is out of date).
 //
 // The host's game runs the rules: it reads everyone's inputs and writes `net.state`. net.js
-// sends only what changed, about 20 times a second, and players draw from `net.view`, which
-// is smoothed between updates. Nothing changed means nothing is sent.
+// sends only what changed, about 30 times a second, stamped with the host's clock. Players draw
+// from `net.view`: a moment slightly in the past (INTERP_MS), blended between the two updates
+// around it, so uneven network timing never shows as stutter. Host events (net.event) play at
+// the same moment, in step with what's on screen. Nothing changed means nothing is sent.
 //
 //   const net = createNet({ maxPlayers: 4 })
 //   each frame:  net.update()
@@ -16,10 +18,15 @@
 // that come and go by id (`ships: { p2: {...} }`), not by array position: removing the first
 // item of an array changes every index after it, and all of them get resent.
 
-export const NET_VERSION = 1
+export const NET_VERSION = 2
 
-/** State updates per second, and the delay players see (one update, smoothed). */
-const TICK_MS = 50
+/** Time between state updates from the host (about 30 a second). */
+const TICK_MS = 33
+/**
+ * How far in the past players see the game, so there's always a next update to blend toward:
+ * enough to ride out one late update and normal network wobble.
+ */
+const INTERP_MS = 80
 /** Numbers are rounded to this many decimal places, so tiny jitter isn't a change. */
 const DECIMALS = 2
 /** Dev and the build check run their own relay next to the game. */
@@ -38,8 +45,9 @@ export function createNet({ maxPlayers = 2, minPlayers = 2 } = {}) {
   let connecting = null
   let lastTick = 0
   let lastSent = {} // host: the snapshot players have
-  let prev = {} // player: the two newest states, for smoothing
-  let latestAt = 0
+  let snaps = [] // player: recent states as { t: host time, s: state }, oldest first
+  let events = [] // player: host events waiting for their moment on screen
+  let clockOffset = null // player: local time minus host time, at the lowest latency seen
   let myInput = {}
   let sentInput = '{}'
   const listeners = {}
@@ -107,7 +115,7 @@ export function createNet({ maxPlayers = 2, minPlayers = 2 } = {}) {
 
     /** A one-off moment (a goal, an explosion) for everyone, including yourself. */
     event(name, data) {
-      send({ t: 'send', d: { k: 'e', n: name, d: data } })
+      send({ t: 'send', d: { k: 'e', n: name, d: data, t: Math.round(performance.now()) } })
       emit('event', { name, data, from: net.me })
     },
 
@@ -117,11 +125,12 @@ export function createNet({ maxPlayers = 2, minPlayers = 2 } = {}) {
       if (net.isHost) {
         net.view = net.state
         if (now - lastTick >= TICK_MS) {
-          lastTick = now
+          // Keep to the beat instead of drifting a frame late each time.
+          lastTick = now - lastTick > TICK_MS * 2 ? now : lastTick + TICK_MS
           const snap = snapshot(net.state, round)
           const ops = diff(lastSent, snap)
           if (ops.length) {
-            send({ t: 'send', d: { k: 'p', p: ops } })
+            send({ t: 'send', d: { k: 'p', p: ops, t: Math.round(now) } })
             net.stats.patches++
           }
           lastSent = snap
@@ -132,7 +141,14 @@ export function createNet({ maxPlayers = 2, minPlayers = 2 } = {}) {
           sentInput = text
           send({ t: 'send', to: net.hostId, d: { k: 'i', i: JSON.parse(text) } })
         }
-        net.view = lerp(prev, net.state, Math.min(1, (now - latestAt) / TICK_MS))
+        // Draw the host's world as it was INTERP_MS ago, blended between the updates around then.
+        const at = clockOffset === null ? 0 : now - clockOffset - INTERP_MS
+        net.view = sample(snaps, at)
+        while (snaps.length > 2 && snaps[1].t <= at) snaps.shift()
+        while (events.length && events[0].t <= at) {
+          const e = events.shift()
+          emit('event', { name: e.n, data: e.d, from: net.hostId })
+        }
       }
     }
   }
@@ -231,7 +247,10 @@ export function createNet({ maxPlayers = 2, minPlayers = 2 } = {}) {
           lastSent = {}
           net.state = {}
         } else {
-          net.state = prev = {}
+          net.state = {}
+          snaps = []
+          events = []
+          clockOffset = null
         }
         net.view = net.state
         emit('joined', msg)
@@ -241,7 +260,7 @@ export function createNet({ maxPlayers = 2, minPlayers = 2 } = {}) {
         net.inputs[msg.id] = {}
         // Newcomers get everything once; after that, the same changes as everyone else.
         if (net.isHost) {
-          send({ t: 'send', to: msg.id, d: { k: 'f', s: lastSent } })
+          send({ t: 'send', to: msg.id, d: { k: 'f', s: lastSent, t: Math.round(performance.now()) } })
           net.stats.fulls++
         }
         emit('join', msg.id)
@@ -274,13 +293,22 @@ export function createNet({ maxPlayers = 2, minPlayers = 2 } = {}) {
     if (!d || typeof d !== 'object') return
     const now = performance.now()
     if (d.k === 'i' && net.isHost) net.inputs[from] = d.i
-    else if (d.k === 'f' && from === net.hostId) {
-      net.state = prev = d.s
-      latestAt = now
-    } else if (d.k === 'p' && from === net.hostId) {
-      prev = net.view
-      net.state = applyPatch(structuredClone(net.state), d.p)
-      latestAt = now
+    else if (from === net.hostId && typeof d.t === 'number') {
+      // Track the host's clock. The lowest offset seen is the fastest delivery; drift up slowly
+      // so a clock that wanders, or a one-off fast packet, doesn't freeze the view.
+      const offset = now - d.t
+      clockOffset = clockOffset === null || offset < clockOffset ? offset : clockOffset + (offset - clockOffset) * 0.002
+      if (d.k === 'f') {
+        net.state = d.s
+        snaps = [{ t: d.t, s: d.s }]
+      } else if (d.k === 'p') {
+        const last = snaps.at(-1)
+        // Nothing was sent while nothing changed: the old state held until just before this one.
+        if (last && d.t - last.t > TICK_MS * 1.5) snaps.push({ t: d.t - TICK_MS, s: last.s })
+        net.state = applyPatch(structuredClone(net.state), d.p)
+        snaps.push({ t: d.t, s: net.state })
+        if (snaps.length > 60) snaps.splice(0, snaps.length - 60)
+      } else if (d.k === 'e') events.push(d)
     } else if (d.k === 'e') emit('event', { name: d.n, data: d.d, from })
   }
 
@@ -336,6 +364,20 @@ export function applyPatch(root, ops) {
     else node[key] = isObject(value) ? structuredClone(value) : value
   }
   return root
+}
+
+/** The state at host time t, blended between the updates on either side of it. */
+export function sample(snaps, t) {
+  if (!snaps.length) return {}
+  if (t <= snaps[0].t) return snaps[0].s
+  for (let i = 1; i < snaps.length; i++) {
+    const b = snaps[i]
+    if (t < b.t) {
+      const a = snaps[i - 1]
+      return lerp(a.s, b.s, (t - a.t) / (b.t - a.t))
+    }
+  }
+  return snaps.at(-1).s
 }
 
 /** Blend numbers from a toward b (t = 0..1); everything else comes from b. */

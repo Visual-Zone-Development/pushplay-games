@@ -53,7 +53,7 @@ function hostUpdate(dt) {
 
 ## Only changes are sent
 
-You never call "send" for state. About 20 times a second `net.js` compares `net.state` with
+You never call "send" for state. About 30 times a second `net.js` compares `net.state` with
 what players already have and sends only the fields that changed. Nothing changed means nothing
 is sent. Numbers are rounded to 2 decimals first, so jitter doesn't count as a change. A player
 who joins gets everything once, then the same changes as everyone else. To keep games cheap:
@@ -79,7 +79,9 @@ The check warns above about 20 KB/s for two players.
 
 ## Design for latency
 
-Players see the world one update (about 50 ms) plus network delay behind the host. Pick
+Players see the world about 80 ms plus network delay behind the host: `net.view` is drawn a
+moment in the past and blended between updates, so motion stays smooth even when the network
+wobbles. Host events (`net.event`) play at that same moment, in step with the picture. Pick
 mechanics that tolerate that:
 
 - **Good fits:** co-op, party games, racing, arena brawlers, sports, turn-based and card games.
