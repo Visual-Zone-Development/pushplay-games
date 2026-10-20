@@ -25,7 +25,7 @@ Use `AskUserQuestion` (otherwise ask in chat). Tailor every option to this idea 
 - **Round 2** (only if still unclear):
   - **Feel** (multiSelect, up to 2): e.g. "Tense, one-more-try" / "Crunchy and explosive" / "Calm and cozy" / "Clever aha moments" / "Exploring and secrets" / "Laughing with friends".
   - **Like which game?**: suggest 2–3 references; Other for their own.
-  - **Players**: solo / local 2–4.
+  - **Players**: solo / local 2–4 on one Deck / online 2–N across Decks (see [multiplayer.md](../../../docs/game-design/multiplayer.md) for what plays well online).
   - **Session**: quick 2–5 min runs / 10–15 min levels / long game with saves.
 
 Two rounds maximum. Fill any remaining gaps with sensible defaults and list them as assumptions.
@@ -36,7 +36,7 @@ Follow [inspiration.md](../../../docs/game-design/inspiration.md): 2–3 referen
 ## 4. Write the brief and get approval
 Pick a short, catchy name and a `kebab-case` id. Then:
 1. `npm run setup` if `node_modules/` is missing.
-2. `npm run new-game <id> --name "<Name>"`, adding `--vite` for 3D or npm packages.
+2. `npm run new-game <id> --name "<Name>"`, adding `--vite` for 3D or npm packages, and `--online --players <min>-<max>` for online multiplayer.
 3. Copy [DESIGN.template.md](../../../docs/game-design/DESIGN.template.md) to `games/<id>/DESIGN.md` and fill it in:
    - Every one of the 8 formal elements is decided.
    - Each fun target maps to concrete mechanics and juice.
@@ -52,6 +52,7 @@ Run `npm run check <id>` after each milestone and fix every ✗.
    - Put all gameplay numbers in a `TUNING` object at the top of `game.js` (`src/game.js` for `--vite`).
    - Add the `?debug` overlay and `window.__game` hooks ([debugging.md](../../../docs/game-design/debugging.md)).
    - Get the core verb feeling good: pass the **30-second fun test** in framework.md before adding content.
+   - **Online:** read [multiplayer.md](../../../docs/game-design/multiplayer.md) first. The host runs the rules in `hostUpdate()` and writes `net.state`; everyone draws `net.view`. Keep the template's title → lobby → play flow, and never edit `net.js` or `lobby.js`.
    - If the user supplied assets, import them per [assets.md](../../../docs/game-design/assets.md). For 3D, follow [3d.md](../../../docs/game-design/3d.md).
 2. **Complete game.** Work through the Definition of done: onboarding by doing, difficulty ramp with something new every 30–60s, retry in one press, best score, progression or variety, title/pause/game-over/settings screens, SFX + music + volume, saves.
 3. **Polish.** Add juice aimed at the fun targets: the biggest effects on the biggest moments, with capped particles.
@@ -68,7 +69,7 @@ Run `npm run check <id>` after each milestone and fix every ✗.
   - `description`: what you do and why it's fun, 1–3 sentences.
   - `players`, `version`.
   - `tags`: 2–5 lowercase genre/style words, reusing tags other games already use.
-  - `online` if the game is networked.
+  - `online` (the `--online` scaffold sets it), and the `online multiplayer` tag for online games.
 - **Art:**
   - `art/cover.svg`: 720×500, big title, bottom 110px clear.
   - `art/hero.svg`: 1920×450, no text, key visual on the right.

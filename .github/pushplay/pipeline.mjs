@@ -4,8 +4,9 @@ import { copyFileSync, cpSync, existsSync, mkdirSync, readdirSync, readFileSync,
 import { createRequire } from 'node:module'
 import { basename, dirname, join } from 'node:path'
 import { chromium } from 'playwright'
-import { ART, ART_FONTS, CHECK_RUN_MS, MANIFEST_FILE, VIEWPORT } from './config.mjs'
-import { buildMode, display, distDir, GameError, outDir, readManifest, ROOT, validateManifest } from './repo.mjs'
+import { ART, ART_FONTS, CHECK_RUN_MS, MANIFEST_FILE, NET_MEET_MS, NET_PLAY_MS, NET_WARN_BYTES_PER_SEC, VIEWPORT } from './config.mjs'
+import { startLocalRelay } from './local-relay.mjs'
+import { buildMode, display, distDir, GameError, npmSpawn, outDir, quote, readManifest, ROOT, validateManifest } from './repo.mjs'
 import { serve } from './server.mjs'
 
 /** Generated art lives here inside each build, away from the game's own asset folders. */
@@ -25,8 +26,9 @@ export function launchBrowser() {
 /**
  * Build one game end to end: validate → build → headless play check → art → package.
  * Throws GameError listing every problem if the game isn't shippable.
+ * `beforePack(out, manifest)` runs on the finished build just before it's zipped; it may return warnings.
  */
-export async function buildGame(game, browser, { pack = true } = {}) {
+export async function buildGame(game, browser, { pack = true, beforePack } = {}) {
   const { id } = game
   const manifest = readManifest(game)
   const { errors, warnings } = validateManifest(game, manifest)
@@ -49,16 +51,25 @@ export async function buildGame(game, browser, { pack = true } = {}) {
     webEntry = manifest.entry.web
   }
 
-  // 2. Play it headlessly, 3. render art
+  // 2. Play it headlessly (online games against a local relay, then two copies together), 3. render art
   mkdirSync(join(out, ART_DIR), { recursive: true })
-  const server = await serve({ '/': out, '/__src/': game.dir, '/__fonts/': FONTSOURCE })
+  const net = manifest.online ? netLibrary(game.dir) : null
+  if (net) warnings.push(...net.warnings)
+  const relay = net ? await startLocalRelay() : null
+  const server = await serve({ '/': out, '/__src/': game.dir, '/__fonts/': FONTSOURCE }, relay ? { '/__net.json': JSON.stringify({ url: relay.url }) } : {})
   try {
     const play = await playCheck(browser, server, out, webEntry, manifest)
+    if (relay && !play.errors.length) {
+      const together = await netCheck(browser, server, webEntry, relay)
+      play.errors.push(...together.errors)
+      play.warnings.push(...together.warnings)
+    }
     warnings.push(...play.warnings)
     if (play.errors.length) throw new GameError(id, play.errors.join('\n'))
     for (const kind of ['cover', 'hero']) await renderArt(browser, server, manifest, kind, join(out, ART_DIR, `${kind}.png`))
   } finally {
     await server.close()
+    await relay?.close()
   }
 
   // 4. The manifest the launcher sees: built entry and generated art.
@@ -69,6 +80,7 @@ export async function buildGame(game, browser, { pack = true } = {}) {
     art: { cover: `${ART_DIR}/cover.png`, hero: `${ART_DIR}/hero.png`, screenshots: [`${ART_DIR}/screenshot.png`] }
   }
   writeFileSync(join(out, MANIFEST_FILE), JSON.stringify(shipped, null, 2) + '\n')
+  if (beforePack) warnings.push(...((await beforePack(out, shipped)) ?? []))
 
   return { id, manifest: shipped, out, files: pack ? packageGame(id, out) : {}, warnings }
 }
@@ -92,7 +104,7 @@ function copyGameFiles(from, to) {
  * through the workspace; anything else installs its own dependencies first if needed.
  */
 function runBuild(game) {
-  const run = (args, cwd) => spawnSync('npm', args, { cwd, encoding: 'utf8', env: { ...process.env, CI: 'true' } })
+  const run = (args, cwd) => spawnSync('npm', quote(args), { ...npmSpawn, cwd, encoding: 'utf8', env: { ...process.env, CI: 'true' } })
   let result
   const rootPkg = existsSync(join(ROOT, 'package.json')) ? JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8')) : null
   if (game.rel && rootPkg?.workspaces) {
@@ -110,16 +122,12 @@ function runBuild(game) {
 
 const tail = (result) => `${result.stdout}\n${result.stderr}`.trim().split('\n').slice(-25).join('\n')
 
-/** Load the game like the Deck would, and watch for crashes, missing files and internet use. */
-async function playCheck(browser, server, out, entry, manifest) {
-  const errors = []
-  const warnings = []
-  const context = await browser.newContext({ viewport: VIEWPORT, deviceScaleFactor: 1 })
-  const page = await context.newPage()
-
-  // A connected standard gamepad, so games take their controller code path. A is tapped once
-  // (most games start on A), then the left stick nudges right for a moment.
-  await page.addInitScript(() => {
+/**
+ * A connected standard gamepad, so games take their controller code path. A is tapped once
+ * (most games start on A), then the left stick nudges right for a moment.
+ */
+function addVirtualGamepad(page) {
+  return page.addInitScript(() => {
     const started = performance.now()
     const button = (pressed) => ({ pressed, touched: pressed, value: pressed ? 1 : 0 })
     const pad = () => {
@@ -140,6 +148,15 @@ async function playCheck(browser, server, out, entry, manifest) {
       setTimeout(() => window.dispatchEvent(Object.assign(new Event('gamepadconnected'), { gamepad: pad() })), 100)
     })
   })
+}
+
+/** Load the game like the Deck would, and watch for crashes, missing files and internet use. */
+async function playCheck(browser, server, out, entry, manifest) {
+  const errors = []
+  const warnings = []
+  const context = await browser.newContext({ viewport: VIEWPORT, deviceScaleFactor: 1 })
+  const page = await context.newPage()
+  await addVirtualGamepad(page)
 
   page.on('pageerror', (err) => errors.push(`the game crashed: ${err.message}`))
   page.on('console', (msg) => {
@@ -171,6 +188,83 @@ async function playCheck(browser, server, out, entry, manifest) {
 
   await context.close()
   return { errors: [...new Set(errors)], warnings: [...new Set(warnings)] }
+}
+
+const NET_VERSION = /export const NET_VERSION = (\d+)/
+
+/**
+ * Online games that use the kit's net.js: find it and warn when the copy is older than the kit's.
+ * Returns null for games that bring their own networking (they skip the two-copy check).
+ */
+function netLibrary(dir) {
+  const find = (d) => {
+    for (const entry of readdirSync(d, { withFileTypes: true })) {
+      if (entry.name.startsWith('.') || entry.name === 'node_modules' || entry.name === 'dist') continue
+      const full = join(d, entry.name)
+      if (entry.isDirectory()) {
+        const found = find(full)
+        if (found) return found
+      } else if (entry.name === 'net.js' && NET_VERSION.test(readFileSync(full, 'utf8'))) return full
+    }
+    return null
+  }
+  const file = find(dir)
+  if (!file) return null
+  const theirs = Number(readFileSync(file, 'utf8').match(NET_VERSION)[1])
+  const ours = Number(readFileSync(join(import.meta.dirname, 'templates/online/net.js'), 'utf8').match(NET_VERSION)[1])
+  return {
+    warnings: theirs < ours ? [`${display(file)} is version ${theirs}; the kit has version ${ours}. Copy ${display(join(import.meta.dirname, 'templates/online'))}/net.js and lobby.js over it`] : []
+  }
+}
+
+/**
+ * Online games: two copies quick-match through the local relay, the host starts, and they play
+ * for a moment. Checks that they met, that the second copy received the host's game state, and
+ * how much the game sends.
+ */
+async function netCheck(browser, server, entry, relay) {
+  const errors = []
+  const warnings = []
+  const context = await browser.newContext({ viewport: VIEWPORT, deviceScaleFactor: 1 })
+  await context.addInitScript(() => (window.__kitNetTest = true))
+  const open = async () => {
+    const page = await context.newPage()
+    await addVirtualGamepad(page)
+    page.on('pageerror', (err) => errors.push(`the game crashed during the two-player online check: ${err.message}`))
+    await page.goto(`${server.url}/${entry}`, { waitUntil: 'load', timeout: 20_000 })
+    return page
+  }
+  try {
+    const host = await open()
+    // The second copy presses A after the first has opened its room.
+    await host.waitForTimeout(1000)
+    const guest = await open()
+    const playing = () => window.__kitNet?.status === 'playing' && window.__kitNet.players.length >= 2
+    const met = await Promise.all([host, guest].map((p) => p.waitForFunction(playing, null, { timeout: NET_MEET_MS }).then(() => true, () => false)))
+    if (!met.every(Boolean)) {
+      const status = await Promise.all([host, guest].map((p) => p.evaluate(() => window.__kitNet && { status: window.__kitNet.status, error: window.__kitNet.error }).catch(() => null)))
+      if (status.some((s) => !s)) errors.push('this online game never created its net (createNet from net.js), so two copies could not meet')
+      else
+        errors.push(
+          `two copies of the game didn't get into a match together within ${NET_MEET_MS / 1000}s (first: ${status[0].status}${status[0].error ? `, "${status[0].error}"` : ''}; second: ${status[1].status}${status[1].error ? `, "${status[1].error}"` : ''}). ` +
+            'Keep the flow from the online template: title → lobby (lobby.update) → play when it returns "start"'
+        )
+      return { errors, warnings }
+    }
+    const before = relay.stats.bytes
+    await guest.waitForTimeout(NET_PLAY_MS)
+    const perSecond = Math.round(((relay.stats.bytes - before) / NET_PLAY_MS) * 1000)
+    const received = await guest.evaluate(() => JSON.stringify(window.__kitNet.state) !== '{}')
+    if (!received) errors.push("the second player never received any game state. On the host, write what players need to see into net.state (net.js sends the changes)")
+    if (perSecond > NET_WARN_BYTES_PER_SEC) {
+      warnings.push(`two players used about ${Math.round(perSecond / 1024)} KB/s through the relay; aim for under ${NET_WARN_BYTES_PER_SEC / 1024} KB/s. Keep net.state to what players must see, and key things by id instead of array position`)
+    }
+  } catch (err) {
+    errors.push(`the two-player online check failed: ${err.message}`)
+  } finally {
+    await context.close()
+  }
+  return { errors, warnings }
 }
 
 /** True when the screen is a single flat color (nothing drawn, or a crash to black). */

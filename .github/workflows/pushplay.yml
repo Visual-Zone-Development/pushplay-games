@@ -16,6 +16,7 @@ on:
 
 permissions:
   contents: write # publish builds to the release
+  id-token: write # online games: prove which repo built them, to get a pass for the online relay
 
 # Builds share one release index, so they run one at a time.
 concurrency:

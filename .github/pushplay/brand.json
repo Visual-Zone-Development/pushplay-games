@@ -16,5 +16,7 @@
   "action": "pushplay/build",
   "domain": "pushplay.gg",
   "githubAppClientId": "Iv23liqLU6Gr3rpf4AWK",
-  "launcherRepo": "Visual-Zone-Development/pushplay"
+  "launcherRepo": "Visual-Zone-Development/pushplay",
+  "releasesRepo": "Visual-Zone-Development/pushplay-releases",
+  "relayUrl": ""
 }

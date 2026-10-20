@@ -28,6 +28,8 @@ Follow AGENTS.md. Design material lives in `docs/game-design/`.
    - pause and restart still reset everything correctly
    - saves: if the save shape changed, bump the key (`-v2`) or migrate
    - local multiplayer, if the game has it
+   - online play, if the game has it: new state goes in `net.state` on the host, and the check's two-copy test still passes ([multiplayer.md](../../../docs/game-design/multiplayer.md)). Bump `version` when the netcode changes: only builds with the same version play together
+   - **adding online play** to a game: copy `net.js` and `lobby.js` from `.github/pushplay/templates/online/`, follow that folder's `game.js` for the screen flow, move what players see into `net.state`, set `"online": true` and add the `online multiplayer` tag
    - title, HUD and help text that mention the old behavior
    - cover and hero art, if the look changed
 4. `npm run check <id>`, fix every ✗, and look at the screenshot.

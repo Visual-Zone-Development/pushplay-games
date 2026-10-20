@@ -5,7 +5,7 @@ This repo is a collection of small games. Each folder in `games/` is one game. W
 ## Workflow (follow it every time)
 
 0. **Design brief first.** A complete, fun game beats a quick tech demo. Before writing code, settle with the user (or decide and record as assumptions): the gameplay loop, 2D or 3D, art direction, whether they have assets, how it should *feel*, and any games it should feel like. Once step 1 has created the folder, write `games/<id>/DESIGN.md` from [`docs/game-design/DESIGN.template.md`](docs/game-design/DESIGN.template.md). The design guides in [`docs/game-design/`](docs/game-design/) cover the 8 formal elements and 8 kinds of fun ([framework](docs/game-design/framework.md)), genre loops, art styles, researching inspiration, and the [definition of done](docs/game-design/complete-game.md) every game should meet.
-1. **New game:** `npm run new-game <game-id>` (add `--vite` if you need npm packages like three.js). The id is lowercase-with-dashes and becomes the folder name. This creates a working, controller-ready starter: `game.js`, `input.js`, `pushplay.json` and placeholder art.
+1. **New game:** `npm run new-game <game-id>` (add `--vite` if you need npm packages like three.js, `--online --players 2-4` for online multiplayer). The id is lowercase-with-dashes and becomes the folder name. This creates a working, controller-ready starter: `game.js`, `input.js`, `pushplay.json` and placeholder art.
 2. **Build the game** in that folder. Only touch other games, `.github/` or root files if the user asked you to.
 3. **Fill in `pushplay.json`:** a real `description`, `players`, `tags`, and anything else that applies (see *Manifest*).
 4. **Make the art:** replace `art/cover.svg` and `art/hero.svg` (see *Art*). This is required; the check fails on placeholder art.
@@ -42,7 +42,7 @@ If your environment can't install the browser (some cloud sandboxes block the do
 
 **Offline and self-contained.**
 - No CDNs, remote fonts, analytics or network calls. Bundle everything inside the game folder (or install it with npm in a `--vite` game). The check fails on internet requests.
-- Exception: real online multiplayer, with `"online": true` in the manifest.
+- Exception: online multiplayer. Scaffold it with `--online`: it plays through the shared relay with no setup. Follow [`docs/game-design/multiplayer.md`](docs/game-design/multiplayer.md) and don't edit the provided `net.js` or `lobby.js`.
 - Save progress and high scores in `localStorage`. Saves persist per game on the Deck.
 
 **Performance.** The Deck has a mid-range integrated GPU. Aim for a steady 60fps. Prefer canvas 2D or modest WebGL scenes, cap particle counts, and avoid huge textures.
@@ -106,8 +106,8 @@ If you're truly unable to make art, remove the `art` field: the check will gener
 
 | Command | What it does |
 |---|---|
-| `npm run new-game <id> [--vite] [--name "Title"]` | Scaffold a game |
-| `npm run dev <id>` | Play it in a browser with live reload (http://localhost:5173) |
+| `npm run new-game <id> [--vite] [--online] [--players 2-4] [--name "Title"]` | Scaffold a game (`--online`: online multiplayer starter) |
+| `npm run dev <id>` | Play it in a browser with live reload (http://localhost:5173). Online games: open two windows |
 | `npm run check [id]` | Validate, build, headless play test, render art. Must pass before pushing. |
 
 ## Don'ts

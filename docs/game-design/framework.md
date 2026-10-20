@@ -10,7 +10,7 @@ From Tracy Fullerton's *Game Design Workshop*. Every game has all eight, whether
 
 | Element | Ask | On the Deck |
 |---|---|---|
-| **Players** | How many, and how do they relate: solo, co-op, versus, one vs. the game? | One Deck, one screen. Local multiplayer means extra controllers on a shared screen, so no hidden information. |
+| **Players** | How many, and how do they relate: solo, co-op, versus, one vs. the game? | One Deck, one screen. Local multiplayer means extra controllers on a shared screen, so no hidden information. Online multiplayer means one Deck each, so hidden information works, but every action lands about 50–150 ms late ([multiplayer.md](multiplayer.md)). |
 | **Objectives** | What is the player trying to do, right now and overall? | One goal on screen at a time. It must be readable at a glance on a 7" display. |
 | **Procedures** | What actions can they take? What does each button do? | Map every action to stick + A/B/X/Y/LB/RB. One action per button and no chorded inputs. Start is pause, and Start+Select is reserved. |
 | **Rules** | What's allowed, what isn't, and what happens when? | Teach rules by letting the player bump into them, not with text. |
