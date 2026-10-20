@@ -132,6 +132,20 @@
     },
     "online": {
       "type": "boolean"
+    },
+    "inputs": {
+      "maxItems": 4,
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "gamepad",
+          "keyboard",
+          "mouse",
+          "touch"
+        ]
+      },
+      "uniqueItems": true
     }
   },
   "required": [

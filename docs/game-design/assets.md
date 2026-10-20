@@ -38,7 +38,7 @@ Only use assets the player owns or that have a license allowing redistribution (
 
 ## Keep them small
 
-The Deck loads games from local storage, but the build is zipped and downloaded. Big files slow everything down.
+The handheld loads games from local storage, but the build is zipped and downloaded. Big files slow everything down.
 
 | Type | Target |
 |---|---|
@@ -66,7 +66,7 @@ const sprites = await load('assets/sprites/hero.png')
 ```
 
 - **Sprite sheets:** `ctx.drawImage(sheet, sx, sy, sw, sh, dx, dy, dw, dh)` with frame `i` at `sx = (i % cols) * fw`, `sy = Math.floor(i / cols) * fh`. For pixel art, set `ctx.imageSmoothingEnabled = false` and scale by whole numbers.
-- **Audio:** `fetch` → `arrayBuffer` → `audioCtx.decodeAudioData`, then play through `AudioBufferSourceNode`s routed via a master `GainNode` (that's your volume setting). Resume the `AudioContext` on the first input in case it starts suspended.
+- **Audio:** load bundled files with `audio.load()` and play them with `audio.play()` on the `sfx` or `music` bus of `audio.js`, so the Settings sliders and pause-mute apply. Don't create your own `AudioContext`: browsers keep it suspended until a user gesture, and `audio.js` already unlocks on the first key, click, tap or button press. Outside the launcher nothing is audible before that first input, so don't rely on title music starting on load.
 - **Models:** `GLTFLoader` from `three/examples/jsm/loaders/GLTFLoader.js` (see [3d.md](3d.md)).
 
 ## Assets in the art

@@ -2,7 +2,7 @@
 
 > Pilot a tiny courier ship through an asteroid field, grabbing parcels before the 60-second clock runs out.
 
-*Status: shipped · Version: 1.0.0*
+*Status: shipped · Version: 1.1.0*
 
 This is the sample game. It is also a worked example of the brief every game gets: see [`docs/game-design/`](../../docs/game-design/).
 
@@ -33,7 +33,8 @@ This is the sample game. It is also a worked example of the brief every game get
 | Left stick / d-pad | Fly |
 | A / RT (hold) | Boost |
 | A | Start / play again |
-| Start | Pause (B in pause quits to title) |
+| Start / Esc / on-screen ‖ button | Pause (Resume, Restart, Settings, Quit to title) |
+| Mouse / touch | Hold to fly towards the pointer; menus by click or tap |
 
 ## Inspirations
 | Game | Borrow | Change / avoid |
@@ -71,14 +72,15 @@ This is the sample game. It is also a worked example of the brief every game get
 - [x] Retry in one press from game over
 - [ ] Progression or variety beyond the best score
 - [x] Visual feedback on pickups and hits
-- [ ] Audio: SFX, music, volume setting
+- [x] Audio: SFX (pickup, hit, time-out) with volume settings; no music yet
 - [x] Title, pause, game over screens
-- [ ] Settings screen
-- [ ] `TUNING` object, `?debug` overlay, `window.__game` hooks
+- [x] Settings screen (volumes, reduced shake, text size), from title and pause
+- [x] `TUNING` object, `?debug` overlay, `window.__game` hooks
 - [x] Text ≥ 24px, steady 60fps
 
 ## Open questions / assumptions
 - Kept deliberately small as the template's sample. The unchecked items are good first tasks for `improve-game`.
 
 ## Changelog
+- 1.1.0: Runtime v2: settings screen, sound effects, auto-pause, mouse and touch flight, input-aware prompts, versioned save.
 - 1.0.0: First version.

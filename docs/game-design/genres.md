@@ -71,8 +71,8 @@ A great small game is often a **familiar genre + one twist + a theme**: "a Break
 *Overcooked, TowerFall, Gang Beasts, WarioWare.*
 - **Loop:** short round (30s–3min) → chaotic interaction → winner or score → quick results → next round or minigame.
 - **Fun:** Fellowship, Sensation, Challenge.
-- **Controls:** one stick + A (+ B) per player. Keep it simple enough that a guest learns it in 10 seconds.
-- **v1:** 2–4 players on one screen, a join screen ("press A to join" per controller), one arena mode, round wins to 3.
+- **Controls:** one stick + A (+ B) per player, read per controller from `input.pads[i]` (`pads[i].x`, `pads[i].pressed('a')`); player 1 may also use the keyboard. Menus and pause use the merged `input` as usual. Keep it simple enough that a guest learns it in 10 seconds.
+- **v1:** 2–4 players on one screen, a join screen (each slot says `${input.label('a')} to join` and fills when that pad presses it), one arena mode, round wins to 3, `players: "2-4"` and the `"local multiplayer"` tag. A disconnected pad pauses the game (`input.onPause`) and its slot shows "reconnect".
 - **Stretch:** several modes or arenas, handicaps, solo practice vs. simple bots.
 
 ---

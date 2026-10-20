@@ -1,136 +1,168 @@
-// Runs in GitHub Actions: builds the games a push changed and publishes them to the rolling
-// release the launcher watches, using the `gh` CLI with the workflow's token.
+// Runs in GitHub Actions in two stages, so game code never runs with a token in reach:
+//   STAGE=build    builds and checks the games a push changed; writes zips, art and
+//                  build-results.json to the work folder (uploaded as a workflow artifact).
+//   STAGE=publish  (default branch only) uploads those to the rolling release the launcher
+//                  watches, using the `gh` CLI with the workflow's token, and updates the index.
+// With no STAGE both run in one go (local runs and tests).
 //
 // The release holds one index (INDEX_ASSET) plus, per game: <id>-web.zip, <id>-cover.png,
 // <id>-hero.png and <id>-screenshot.png. A failed build keeps the game's last good build
-// and records the error, so the Deck can show "build failed" instead of losing the game.
+// and records the error, so the launcher can show "build failed" instead of losing the game.
 //
 // DRY_RUN=1 skips GitHub entirely and writes the index to the work folder (used by tests).
 import { execFileSync, spawnSync } from 'node:child_process'
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { INDEX_ASSET, KIT_DIR, KIT_VERSION, RELEASE_TAG } from './config.mjs'
-import { layout, listGames, log, ROOT, WORK_DIR } from './repo.mjs'
-import { buildGame, launchBrowser } from './pipeline.mjs'
+import { distDir, layout, listGames, log, ROOT, validateIndex, WORK_DIR } from './repo.mjs'
 
 const env = process.env
 const dryRun = Boolean(env.DRY_RUN)
+const stage = env.STAGE || 'all'
 const repo = env.GITHUB_REPOSITORY ?? 'local/dry-run'
-const sha = env.GITHUB_SHA ?? spawnSync('git', ['rev-parse', 'HEAD'], { cwd: ROOT, encoding: 'utf8' }).stdout.trim()
-const branch = env.GITHUB_REF_NAME ?? 'local'
 const defaultBranch = env.DEFAULT_BRANCH || 'main'
-const runUrl = env.GITHUB_RUN_ID ? `${env.GITHUB_SERVER_URL}/${repo}/actions/runs/${env.GITHUB_RUN_ID}` : null
-const buildNumber = Number(env.GITHUB_RUN_NUMBER ?? 0)
+const resultsPath = join(distDir, 'build-results.json')
 
 const gh = (...args) => execFileSync('gh', args, { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] })
 const ghOk = (...args) => spawnSync('gh', args, { cwd: ROOT }).status === 0
 const git = (...args) => execFileSync('git', args, { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim()
 
-// --- Current index from the release (created on first run) ---
-const scratch = join(WORK_DIR, 'release')
-mkdirSync(scratch, { recursive: true })
-const indexPath = join(scratch, INDEX_ASSET)
-let index = { version: 1, games: {} }
-if (dryRun) {
-  if (existsSync(indexPath)) index = JSON.parse(readFileSync(indexPath, 'utf8'))
-} else if (!ghOk('release', 'view', RELEASE_TAG)) {
-  gh('release', 'create', RELEASE_TAG, '--prerelease', '--target', sha, '--title', 'Game builds', '--notes',
-    'Rolling game builds, updated automatically on every push. Not a versioned release.')
-  log(`Created release ${RELEASE_TAG}`)
-} else if (ghOk('release', 'download', RELEASE_TAG, '--pattern', INDEX_ASSET, '--dir', scratch, '--clobber')) {
-  index = JSON.parse(readFileSync(indexPath, 'utf8'))
-}
+let results
+if (stage === 'build' || stage === 'all') results = await build()
+else results = JSON.parse(readFileSync(resultsPath, 'utf8'))
+if (stage === 'publish' || stage === 'all') await publish(results)
+summary(results)
+process.exit(results.games.some((r) => !r.ok) ? 1 : 0)
 
-// --- Which games to build ---
-const games = listGames()
-function changedFiles() {
-  const before = env.BEFORE_SHA
-  try {
-    if (before && !/^0+$/.test(before)) return git('diff', '--name-only', before, sha).split('\n').filter(Boolean)
-    // New branch: compare with where it left the default branch.
-    return git('diff', '--name-only', git('merge-base', `origin/${defaultBranch}`, sha), sha).split('\n').filter(Boolean)
-  } catch {
-    return null // unknown history → build everything
-  }
-}
-const changed = changedFiles()
-const relevant = (file) => !file.endsWith('.md')
-const kitChanged = changed?.some((f) => f.startsWith(`${KIT_DIR}/`) || f.startsWith('.github/workflows/') || f === 'package.json' || f === 'package-lock.json')
-const buildAll = env.BUILD_ALL === 'true' || changed === null || kitChanged
-const targets = games.filter((game) => {
-  if (buildAll || !index.games[game.id] || index.games[game.id].error) return true
-  return changed.some((f) => relevant(f) && (game.rel ? f.startsWith(`${game.rel}/`) : !f.startsWith('.github/')))
-})
-log(`${repo} · ${layout()} repo · branch ${branch} @ ${sha.slice(0, 7)} · build #${buildNumber}`)
-log(targets.length ? `Building: ${targets.map((g) => g.id).join(', ')}` : 'No game changes to build.')
+// --- Stage 1: build the games a push changed ---
+async function build() {
+  const { buildGame, launchBrowser } = await import('./pipeline.mjs')
+  const sha = env.GITHUB_SHA ?? spawnSync('git', ['rev-parse', 'HEAD'], { cwd: ROOT, encoding: 'utf8' }).stdout.trim()
+  const branch = env.GITHUB_REF_NAME ?? 'local'
+  const runUrl = env.GITHUB_RUN_ID ? `${env.GITHUB_SERVER_URL}/${repo}/actions/runs/${env.GITHUB_RUN_ID}` : null
+  const buildNumber = Number(env.GITHUB_RUN_NUMBER ?? 0)
+  const games = listGames()
 
-// --- Build and upload ---
-const results = []
-if (targets.length) {
-  const browser = await launchBrowser()
-  for (const game of targets) {
-    const { id } = game
-    log(`\n▶ ${id}`)
+  function changedFiles() {
+    const before = env.BEFORE_SHA
     try {
-      const built = await buildGame(game, browser)
-      for (const w of built.warnings) log(`  ⚠ ${w}`)
-      if (!dryRun) gh('release', 'upload', RELEASE_TAG, '--clobber', ...Object.values(built.files).map((f) => f.path))
-      const m = built.manifest
-      index.games[id] = {
-        id,
-        name: m.name,
-        description: m.description,
-        version: m.version ?? null,
-        players: m.players ?? null,
-        controls: m.controls ?? null,
-        tags: m.tags ?? [],
-        online: m.online ?? false,
-        platform: 'web',
-        build: buildNumber,
-        commit: sha,
-        branch,
-        builtAt: new Date().toISOString(),
-        assets: Object.fromEntries(Object.entries(built.files).map(([k, f]) => [k, { name: f.name, size: f.size, sha256: f.sha256 }])),
-        error: null
-      }
-      results.push({ id, ok: true, warnings: built.warnings })
-      log(`  ✓ ${dryRun ? 'built (dry run)' : 'published'}`)
-    } catch (err) {
-      const message = String(err.message)
-      log(`  ✗ ${message.replaceAll('\n', '\n  ✗ ')}`)
-      // Keep the last good build playable; just flag the failure.
-      index.games[id] = {
-        ...(index.games[id] ?? { id, name: id, assets: null }),
-        error: { message, commit: sha, branch, at: new Date().toISOString(), logUrl: runUrl }
-      }
-      results.push({ id, ok: false, message })
+      if (before && !/^0+$/.test(before)) return git('diff', '--name-only', before, sha).split('\n').filter(Boolean)
+      // New branch: compare with where it left the default branch.
+      return git('diff', '--name-only', git('merge-base', `origin/${defaultBranch}`, sha), sha).split('\n').filter(Boolean)
+    } catch {
+      return null // unknown history → build everything
     }
   }
-  await browser.close()
+  const changed = changedFiles()
+  const relevant = (file) => !file.endsWith('.md')
+  const kitChanged = changed?.some((f) => f.startsWith(`${KIT_DIR}/`) || f.startsWith('.github/workflows/') || f === 'package.json' || f === 'package-lock.json')
+  const buildAll = env.BUILD_ALL === 'true' || changed === null || kitChanged
+  const targets = games.filter((game) => buildAll || changed.some((f) => relevant(f) && (game.rel ? f.startsWith(`${game.rel}/`) : !f.startsWith('.github/'))))
+  log(`${repo} · ${layout()} repo · branch ${branch} @ ${sha.slice(0, 7)} · build #${buildNumber}`)
+  log(targets.length ? `Building: ${targets.map((g) => g.id).join(', ')}` : 'No game changes to build.')
+
+  const out = { sha, branch, buildNumber, runUrl, games: [] }
+  if (targets.length) {
+    const browser = await launchBrowser()
+    for (const game of targets) {
+      const { id } = game
+      log(`\n▶ ${id}`)
+      try {
+        const built = await buildGame(game, browser)
+        for (const w of built.warnings) log(`  ⚠ ${w}`)
+        const m = built.manifest
+        out.games.push({
+          id,
+          ok: true,
+          warnings: built.warnings,
+          entry: {
+            id,
+            name: m.name,
+            description: m.description,
+            version: m.version ?? null,
+            players: m.players ?? null,
+            controls: m.controls ?? null,
+            tags: m.tags ?? [],
+            inputs: m.inputs ?? null,
+            online: m.online ?? false,
+            platform: 'web',
+            build: buildNumber,
+            commit: sha,
+            branch,
+            builtAt: new Date().toISOString(),
+            assets: Object.fromEntries(Object.entries(built.files).map(([k, f]) => [k, { name: f.name, size: f.size, sha256: f.sha256 }])),
+            error: null
+          },
+          files: Object.values(built.files).map((f) => f.name)
+        })
+        log(`  ✓ built`)
+      } catch (err) {
+        const message = String(err.message)
+        log(`  ✗ ${message.replaceAll('\n', '\n  ✗ ')}`)
+        out.games.push({ id, ok: false, message, error: { message, commit: sha, branch, at: new Date().toISOString(), logUrl: runUrl } })
+      }
+    }
+    await browser.close()
+  }
+  mkdirSync(distDir, { recursive: true })
+  writeFileSync(resultsPath, JSON.stringify(out, null, 2) + '\n')
+  return out
 }
 
-// Games deleted on the default branch disappear from the launcher.
-if (branch === defaultBranch) {
-  for (const id of Object.keys(index.games)) if (!games.some((g) => g.id === id)) delete index.games[id]
-}
+// --- Stage 2: merge into the release index and upload ---
+async function publish(results) {
+  const scratch = join(WORK_DIR, 'release')
+  mkdirSync(scratch, { recursive: true })
+  const indexPath = join(scratch, INDEX_ASSET)
+  let index = { version: 1, games: {} }
+  if (dryRun) {
+    if (existsSync(indexPath)) index = JSON.parse(readFileSync(indexPath, 'utf8'))
+  } else if (!ghOk('release', 'view', RELEASE_TAG)) {
+    gh('release', 'create', RELEASE_TAG, '--prerelease', '--target', results.sha, '--title', 'Game builds', '--notes',
+      'Rolling game builds, updated automatically on every push. Not a versioned release.')
+    log(`Created release ${RELEASE_TAG}`)
+  } else if (ghOk('release', 'download', RELEASE_TAG, '--pattern', INDEX_ASSET, '--dir', scratch, '--clobber')) {
+    index = JSON.parse(readFileSync(indexPath, 'utf8'))
+  }
 
-index.repo = repo // stays correct if the repo is renamed or transferred
-index.layout = layout()
-index.kit = KIT_VERSION
-index.updatedAt = new Date().toISOString()
-writeFileSync(indexPath, JSON.stringify(index, null, 2) + '\n')
-if (!dryRun) gh('release', 'upload', RELEASE_TAG, '--clobber', indexPath)
+  for (const r of results.games) {
+    if (r.ok) {
+      if (!dryRun) gh('release', 'upload', RELEASE_TAG, '--clobber', ...r.files.map((f) => join(distDir, f)))
+      index.games[r.id] = r.entry
+      log(`✓ ${r.id} ${dryRun ? 'built (dry run)' : 'published'}`)
+    } else {
+      // Keep the last good build playable; just flag the failure.
+      index.games[r.id] = { ...(index.games[r.id] ?? { id: r.id, name: r.id, assets: null }), error: r.error }
+      log(`✗ ${r.id} failed`)
+    }
+  }
+
+  // Games deleted on the default branch disappear from the launcher.
+  const games = listGames()
+  if (results.branch === defaultBranch || stage === 'publish') {
+    for (const id of Object.keys(index.games)) if (!games.some((g) => g.id === id)) delete index.games[id]
+  }
+
+  index.repo = repo // stays correct if the repo is renamed or transferred
+  index.layout = layout()
+  index.kit = KIT_VERSION
+  index.updatedAt = new Date().toISOString()
+  const problems = validateIndex(index)
+  if (problems.length) throw new Error(`the index the kit produced is invalid (a kit bug, please report it):\n${problems.join('\n')}`)
+  writeFileSync(indexPath, JSON.stringify(index, null, 2) + '\n')
+  if (!dryRun) gh('release', 'upload', RELEASE_TAG, '--clobber', indexPath)
+}
 
 // --- Summary on the workflow run page ---
-if (env.GITHUB_STEP_SUMMARY && existsSync(env.GITHUB_STEP_SUMMARY)) {
-  const rows = results.map((r) =>
-    r.ok ? `| ${r.id} | ✅ published | ${r.warnings.join('<br>')} |` : `| ${r.id} | ❌ failed | ${r.message.replaceAll('\n', '<br>')} |`
+function summary(results) {
+  if (!env.GITHUB_STEP_SUMMARY || !existsSync(env.GITHUB_STEP_SUMMARY)) return
+  const verb = stage === 'build' ? 'built' : 'published'
+  const rows = results.games.map((r) =>
+    r.ok ? `| ${r.id} | ✅ ${verb} | ${r.warnings.join('<br>')} |` : `| ${r.id} | ❌ failed | ${r.message.replaceAll('\n', '<br>')} |`
   )
   appendFileSync(
     env.GITHUB_STEP_SUMMARY,
-    `## Game builds (#${buildNumber}, ${branch})\n\n` +
+    `## Game builds (#${results.buildNumber}, ${results.branch})\n\n` +
       (rows.length ? `| Game | Result | Notes |\n|---|---|---|\n${rows.join('\n')}\n` : 'No game changes in this push.\n')
   )
 }
-
-process.exit(results.some((r) => !r.ok) ? 1 : 0)

@@ -9,6 +9,16 @@
   ],
   "releaseTag": "pushplay-latest",
   "indexAsset": "pushplay-index.json",
+  "art": {
+    "cover": {
+      "width": 720,
+      "height": 500
+    },
+    "hero": {
+      "width": 1920,
+      "height": 450
+    }
+  },
   "legacyReleaseTags": [],
   "assetPrefix": "pushplay-",
   "topic": "pushplay-game",
@@ -17,5 +27,6 @@
   "domain": "pushplay.gg",
   "githubAppClientId": "Iv23liqLU6Gr3rpf4AWK",
   "launcherRepo": "Visual-Zone-Development/pushplay",
-  "releasesRepo": "Visual-Zone-Development/pushplay-releases"
+  "releasesRepo": "Visual-Zone-Development/pushplay-releases",
+  "updateSigningKey": ""
 }

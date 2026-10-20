@@ -1,17 +1,18 @@
 # Making games in this repo
 
-This repo is a collection of small games. Each folder in `games/` is one game, and there can be as many as the owner likes: a new game is a new folder, never a new repo. When you push, GitHub Actions builds every game that changed and publishes it, and the **PushPlay** launcher on the owner's Steam Deck (or PC) picks it up automatically. Whatever you make here gets played **on a handheld, with a controller, on the couch**. Design for that.
+This repo is a collection of small games. Each folder in `games/` is one game, and there can be as many as the owner likes: a new game is a new folder, never a new repo. When you push, GitHub Actions builds every game that changed and publishes it, and the **PushPlay** launcher on the owner's handheld (a Steam Deck or a Lenovo Legion Go running SteamOS) or PC picks it up automatically. Whatever you make here gets played **on a handheld, with a controller, on the couch**, and sometimes on a PC with a keyboard, a mouse or a touchscreen. Design for that.
 
 ## Workflow (follow it every time)
 
 0. **Design brief first.** A complete, fun game beats a quick tech demo. Before writing code, settle with the user (or decide and record as assumptions): the gameplay loop, 2D or 3D, art direction, whether they have assets, how it should *feel*, and any games it should feel like. Once step 1 has created the folder, write `games/<id>/DESIGN.md` from [`docs/game-design/DESIGN.template.md`](docs/game-design/DESIGN.template.md). The design guides in [`docs/game-design/`](docs/game-design/) cover the 8 formal elements and 8 kinds of fun ([framework](docs/game-design/framework.md)), genre loops, art styles, researching inspiration, and the [definition of done](docs/game-design/complete-game.md) every game should meet.
-1. **New game:** `npm run new-game <game-id>` (add `--vite` if you need npm packages like three.js). The id is lowercase-with-dashes and becomes the folder name. This creates a working, controller-ready starter: `game.js`, `input.js`, `pushplay.json` and placeholder art.
-2. **Build the game** in that folder. Only touch other games, `.github/` or root files if the user asked you to.
-3. **Fill in `pushplay.json`:** a real `description`, `players`, `tags`, and anything else that applies (see *Manifest*).
+1. **New game:** `npm run new-game <game-id>` (add `--vite` if you need npm packages like three.js). The id is lowercase-with-dashes and becomes the folder name. This creates a working starter with title, pause and settings screens that already work on controller, keyboard, mouse and touch: `game.js`, the runtime files (`input.js`, `menu.js`, `fit.js`, `audio.js`, `save.js`, `settings.js`, `prompts.js`), `pushplay.json` and placeholder art.
+2. **Build the game** in that folder. Only touch other games, `.github/` or root files if the user asked you to. Never edit the runtime files (see *Runtime files*).
+3. **Fill in `pushplay.json`:** a real `description`, `players`, `tags`, `inputs`, and anything else that applies (see *Manifest*).
 4. **Make the art:** replace `art/cover.svg` and `art/hero.svg` (see *Art*). This is required; the check fails on placeholder art.
-5. **Run `npm run check <game-id>` and fix everything it reports.** It builds the game, plays it headlessly at Steam Deck resolution with a virtual gamepad, and renders the art to PNG.
+5. **Run `npm run check <game-id>` and fix everything it reports.** It builds the game, plays it headlessly at 1280×800 with a virtual gamepad, then keyboard-only (Enter, then Esc must pause), then touch (taps the title menu), presses Start and expects `window.__game.state.screen === 'paused'`, renders it again at 1920×1080 with DPR 2, and renders the art to PNG. It fails on crashes, network requests, dialogs, blank screens, placeholder art, missing `tags` or `inputs`, an F10 binding and a pause that doesn't happen; it warns on console errors, save keys that don't start with the game id, and when `menu.js` isn't imported or `input.attach` isn't called. The touch pass taps the title menu through `window.__game.titleMenu` (the starter exposes it), so keep that getter if you move the title menu.
 6. **Look at the output images** it prints (`.github/pushplay/.work/out/<id>/__art/cover.png`, `hero.png`, `screenshot.png`). If you can view images, check that the art reads well at small size and that the screenshot shows the game, not an error or empty screen. Iterate until they look good.
-7. **Commit and push** (one commit per game is fine). Pushing any branch publishes the build.
+7. **Verify by hand** against the matrix in *Verification* below (controller, keyboard only, mouse only, touch, resize).
+8. **Commit and push** (one commit per game is fine). Pushing the default branch publishes the build; other branches only run the check.
 
 **Changing an existing game:** read its `DESIGN.md` first and keep changes consistent with it. Bump `version`, add a line to its Changelog, and run the check. For bugs, see [`docs/game-design/debugging.md`](docs/game-design/debugging.md).
 
@@ -21,40 +22,127 @@ If your environment can't install the browser (some cloud sandboxes block the do
 
 ## Game rules
 
-**Controls: controller first, and every platform.** Games are played on a Steam Deck with its controls, and on Linux, Windows and Mac PCs with a controller, a keyboard or a mouse (sometimes a touchscreen). Every action, menu and screen must work with **each** of those alone.
-- Use the provided `input.js`: `input.update()` once per frame, then `input.x`, `input.y` (-1..1, left stick + d-pad + WASD/arrows), `input.held('a')`, `input.pressed('a')`. Call `input.attach(canvas)` once so `input.pointer` (mouse and touch, in 1280×800 game space) works.
-- Standard mapping: **A** confirm/jump/action, **B** back/cancel, **X/Y** secondary actions, **LB/RB** cycle, **Start** pause. On a keyboard (already in `input.js`): Space/Enter = A, Esc/Backspace = B, Shift = X, E = Y, P = Start.
-- **Never require Start + Select together.** The launcher reserves that for its own menu.
-- **Menus use `menu.js`**: `createMenu(items)`, then `menu.update(input)` each frame and `menu.draw(ctx)`. It moves with the d-pad, stick, arrows and WASD, chooses with A, Space, Enter, a click or a tap, goes back with B, Esc or right-click, and highlights on hover. Use it for title, pause, game over, level select and options screens. A custom menu must do all of the same.
-- **Pause works three ways:** Start on a controller, Esc or P on a keyboard, and an on-screen pause button for mouse and touch (the starter has one). The pause menu always offers Resume and Quit to title.
-- Gameplay must work with a controller and with a keyboard. If the game is naturally pointer-driven (aiming, dragging, placing), also make it fully playable with the stick or d-pad: a cursor the stick moves, or snapping between targets.
-- Nothing may need hover, a double-click, a scroll wheel or typed text: a controller has none of them.
-- Show prompts with `input.label('a')`: "A" on a controller, "Space" on a keyboard or mouse. Never hard-code button names in text.
+### Runtime files (don't edit)
 
-**Screen.**
-- The Steam Deck is **1280×800**. Lay out in that fixed space and scale to fit the window (the starter already does this).
-- Text at least **24px** in that space (it's a 7" screen at arm's length).
-- Keep important HUD away from the outermost ~32px.
+`input.js`, `menu.js`, `fit.js`, `audio.js`, `save.js`, `settings.js` and `prompts.js` in each game folder start with the header `pushplay runtime v2 — replaced by npm run update-kit; don't edit`. They are shared code: `npm run update-kit` overwrites them in every game, so any edit is lost. Import them; never change them. Game-specific key aliases go through `input.extendKeys({ KeyR: 'y' })` in `game.js`.
 
-**Flow.**
-- Start on a title screen that says how to start (`Press A to start`).
-- **Start** pauses, with resume and quit-to-title options.
-- Never use `alert()`, `confirm()`, `prompt()`, `window.open()` or new tabs; they block the controller.
-- Don't wait for a click before drawing. Audio may start without a user gesture.
+### Controls: every input, alone
 
-**Offline and self-contained.**
-- No CDNs, remote fonts, analytics or network calls. Bundle everything inside the game folder (or install it with npm in a `--vite` game). The check fails on internet requests.
+Games are played on a Steam Deck or Legion Go with their built-in controls, and on Linux, Windows and Mac PCs with a controller, a keyboard, a mouse or a touchscreen. **Every menu and screen must work with each of those alone.** Gameplay must work with a controller and with a keyboard; mouse and touch gameplay are expected too, unless the genre genuinely can't (then omit them from the manifest's `inputs` and say so on the title screen).
+
+`input.js`: call `input.update()` once at the top of every frame, and `input.attach(canvas, 1280, 800)` once at startup (it maps mouse and touch into game space; the check warns if it's missing).
+
+| `input` button | Controller | Keyboard | Mouse / touch | Use it for |
+|---|---|---|---|---|
+| `a` | A | Space, Enter | click, tap | confirm, jump, main action |
+| `b` | B | Backspace | right-click | back in menus; **free for gameplay** (dash, cancel, secondary) |
+| `x` | X | Shift | | secondary action |
+| `y` | Y | F | | secondary action |
+| `lb` / `rb` | LB / RB | Q / E | | cycle, tabs, rotate |
+| `lt` / `rt` | LT / RT | Z / C | | hold actions, triggers |
+| `select` | Select / View | Tab | | map, scoreboard, extra info |
+| `up` `down` `left` `right` | d-pad | arrows, WASD | | discrete steps |
+| `menu` (virtual) | Start | Esc, P | on-screen pause button → `input.requestMenu()` | **pause and menu only** |
+
+- `input.x`, `input.y` (−1..1): left stick + d-pad + WASD/arrows. `input.aimX`, `input.aimY`: right stick. `input.navX`, `input.navY`: stepped with key repeat, for menus and grids. `input.pointer` (mouse or primary touch, in 1280×800 game space) and `input.pointers` for multitouch.
+- `input.held(b)`, `input.pressed(b)`, `input.released(b)`. Use `pressed()` for one-shot actions.
+- **Pause is `menu`, back is `b`. They are different buttons.** Esc always pauses and never acts as B; B/Backspace never pauses. So B is a normal gameplay button and a stray Esc can't cancel a run.
+- **Never bind F10, Start+Select, or a held Esc.** The launcher uses them to quit the game (see *Exit and pause*). Nothing in the game may depend on a chord of two buttons.
+- Nothing may need hover, a double-click, a scroll wheel, a modifier chord or typed text: a controller has none of them. Pointer-driven ideas (aiming, dragging, placing) also need a stick-driven cursor or snapping between targets.
+- **Local multiplayer** uses `input.pads[i]` (`{ index, connected, x, y, aimX, aimY, held(), pressed() }`), one per controller; player 1 may also use the keyboard. Join screen: `${input.label('a')} to join`, one slot per pad that pressed. The merged `input.*` view is for menus only in a multiplayer game. Tag it `"local multiplayer"` and set `players` to e.g. `"2-4"`.
+
+### Menus (`menu.js`)
+
+- `createMenu(items, opts)`; items are `{ id, label, disabled? }` or value items `{ id, label, type: 'toggle' | 'range' | 'choice', value, min, max, step, options, onChange }`.
+- Each frame: `const action = menu.update(input, dt)` returns the chosen item id, `'back'` (B or `menu`) or `null`; then `menu.draw(ctx)`. Read values with `menu.value(id)`; `menu.select(id)`, `menu.selected`, `menu.items` for custom drawing.
+- It moves with d-pad, stick, arrows and WASD; chooses with A, Space, Enter, click or tap; goes back with B, Backspace, Esc/Start or right-click; highlights on hover; left/right, LB/RB, the arrow buttons and taps change values.
+- Use it for **every** menu: title, pause, settings, game over, level select. A custom menu must do all of the above, including touch.
+
+### Exit and pause
+
+- **The launcher owns quitting.** The player leaves a game with hold Start+Select, F10, holding Esc for 1 s, or the on-screen ≡ button the launcher draws. The game never needs its own "exit to launcher" and never binds those. `window.pushplay?.quit()` is allowed only behind an explicit "Quit game" menu item, always with `?.` (outside the launcher `window.pushplay` is undefined and the item should be hidden).
+- **Launcher contract:** `window.pushplay?.{ version, gamingMode, inputMode, quit(), restart(), onPause(cb), onResume(cb) }` plus window events `pushplay:pause` / `pushplay:resume`. `input.js` already wires these: use `input.onPause(cb)` and `input.paused`.
+- **Auto-pause:** `input.onPause(cb)` fires when the launcher overlay opens, the window loses focus or is hidden, or all controllers disconnect. The callback must switch to the pause screen and save (see *Saves*); `audio.js` mutes on its own. Never auto-resume: the player presses Resume.
+- **Pause menu = Resume, Restart, Settings, Quit to title**, in that order, built with `menu.js`. `menu` (Start / Esc / P / on-screen button) opens it from gameplay and `'back'` resumes. Quit to title goes to the title screen, not out of the game. The game is fully frozen while paused (no timers, physics or spawns advance).
+- **On-screen pause button:** a ≥ 56×56 px button in a corner during gameplay that calls `input.requestMenu()`; it's how mouse and touch players pause. The starter has one; keep it.
+- Never use `alert()`, `confirm()`, `prompt()`, `window.open()` or new tabs; they block every input. Draw confirmations in-game.
+
+### Screens and scaling
+
+- **Logical space is 1280×800** (the Steam Deck's screen). Lay out every screen in it, text ≥ **24px** and important HUD ≥ **32px** from the edges. Everything else is handled by `fit.js`.
+- Call `fitCanvas(canvas, { w: 1280, h: 800, maxDpr: 2, integer: false, letterbox: '#000' })` once; it resizes on every window change, letterboxes, caps the device pixel ratio at `maxDpr` and keeps drawing coordinates at 1280×800. Don't write your own resize code.
+- Targets it must look right on: Steam Deck **1280×800** at DPR 1; Legion Go **1920×1200** and **2560×1600** (the launcher zooms the window, so DPR reaches 1.5–2 in the same 1280×800 space); desktop **16:9** windows such as 1920×1080 (bars left and right); any resizable window, including smaller than 1280×800.
+- `letterbox`: use the game's background colour so bars disappear, or black. Never white, never transparent.
+- `maxDpr: 2` is the cap; don't read `devicePixelRatio` in 2D code. Text, lines and vector shapes stay crisp at DPR 2 automatically. Pre-rendered bitmaps (glow sprites, cached text) made at 1× look soft at DPR 2: render them at 2× or keep them small.
+- Pixel art: `integer: true` plus `ctx.imageSmoothingEnabled = false`, and draw sprites at whole-number scales.
+- 3D: render to a fixed 1280×800 surface with `renderer.setPixelRatio(Math.min(devicePixelRatio, 1))` and let `fitCanvas` scale it; see [`docs/game-design/3d.md`](docs/game-design/3d.md).
+- Cursor: hide it (`canvas.style.cursor = 'none'`) **only during gameplay** in mouse mode, and show it again on every menu (title, pause, settings, game over). Never hide it in a menu.
+
+### Settings (`settings.js`)
+
+Every game has a Settings screen, **reachable from the title and from the pause menu**, built with `createSettingsScreen({ settings, audio, extra })` → `{ update, draw }` (same calling pattern as a menu: `update(input, dt)` returns `'back'` when the player leaves). It provides:
+- **Master, Music and SFX** volume (0–100).
+- **Reduced shake / flash** toggle: when on, skip screen shake, white flashes and strobing. Every game that shakes or flashes must honour `settings.data.reducedShake`.
+- **Text size** (`settings.data.textScale`, 1 = normal): multiply HUD and menu font sizes by it.
+- `extra`: game-specific items such as difficulty, colourblind palette or rumble, as `menu.js` value items.
+
+`const settings = createSettings(id, defaults)` stores them under `<id>-settings-v1` with defaults `{ master, music, sfx, reducedShake, textScale }`. Pass the same object to `createAudio({ settings })` so the buses follow the sliders.
+
+### Input hints
+
+- Prompts come from the runtime, never from hard-coded names: `input.label('a')` → "A" on a controller, "Space" on a keyboard, "Tap" on touch (and a click label with a mouse); `input.label('menu')` → "START" / "Esc" / the pause button; `input.stickLabel()` and `input.dpadLabel()` name the movement input for the current mode.
+- HUD legends: `drawPrompts(ctx, input, [['a', 'Jump'], ['x', 'Dash'], ['menu', 'Pause']], opts)` draws icons for the current mode.
+- `input.mode` is `'gamepad' | 'keyboard' | 'mouse' | 'touch'`, follows the last device used, and starts as `'gamepad'` inside the launcher's gaming mode (`input.gamingMode`, `input.usingGamepad`). Build prompt strings every frame, not once at load, so they switch when the player changes device.
+- Title screen: `Press ${input.label('a')} to start` (on touch that reads "Press Tap to start", so phrase it as `${input.label('a')} to start` or use `drawPrompts`), plus a pause hint built from `input.label('menu')`. If gameplay doesn't support mouse or touch, say so there ("Needs a controller or keyboard").
+- Never write "Press A", "Space", "LB/RB", "Click" or "Tap" as literal text in the game.
+
+### Saves (`save.js`)
+
+- `const save = createSave(id, 1, defaults, migrate?)` → `{ data, load, save, reset }`, stored under `<id>-save-v1`. Keep best scores, unlocks and progress in `save.data` and call `save.save()` after every change that matters, **on pause and in `input.onPause`**. Bump the version and pass `migrate(old)` when the shape changes.
+- All `localStorage` keys must start with the game id (the check fails otherwise). Only `save.js` and `createSettings` should touch `localStorage`.
+
+### Audio (`audio.js`)
+
+- `const audio = createAudio({ settings })`: buses `master`, `music`, `sfx`; `audio.tone()`, `audio.noise()` for generated SFX, `audio.load()` + `audio.play()` for bundled files, `audio.setVolume()`.
+- Browsers only start audio after a user gesture. `audio.js` unlocks itself on the first key, click, tap or gamepad press and mutes on pause; the launcher allows autoplay, a normal browser doesn't, so never assume sound is running before the first input and don't rely on music playing on the title screen before a press. Draw the first frame immediately; never wait for a click or for audio before drawing.
+- Every action has a sound; a music loop fits the mood; both obey the Settings sliders.
+
+### Flow
+
+- Screens: `title` → `playing` ↔ `paused` → `gameover`, plus `settings`. Keep the current one in `state.screen` with exactly those names, and expose `window.__game = { state, TUNING }` (the check presses Start and expects `'paused'`).
+- The title screen is the first thing drawn and says how to start and how to pause. Game over shows score, best and retries in one press.
+- Restart (from pause or game over) resets everything the run touched: timers, particles, audio loops, RNG seed if seeded.
+
+### Offline and self-contained
+
+- No CDNs, remote fonts, analytics or network calls. Bundle everything inside the game folder (or install it with npm in a `--vite` game). The check fails on internet requests and on WebSockets.
 - Exception: real online multiplayer, with `"online": true` in the manifest.
-- Save progress and high scores in `localStorage`. Saves persist per game on the Deck.
+- Saves persist per game on the handheld via `localStorage` (see *Saves*).
 
-**Performance.** The Deck has a mid-range integrated GPU. Aim for a steady 60fps. Prefer canvas 2D or modest WebGL scenes, cap particle counts, and avoid huge textures.
+### Performance
 
-**Tech.**
+The Deck and the Legion Go have mid-range integrated GPUs. Aim for a steady 60fps at 1280×800 and no drops at DPR 2. Prefer canvas 2D or modest WebGL scenes, cap particle counts, avoid `shadowBlur` and huge textures.
+
+### Tech
+
 - Default: plain HTML + ES modules (`<script type="module">`) and canvas.
 - Use `--vite` when you need npm packages (three.js, Phaser, physics engines). Install with `npm install <pkg> --workspace games/<id>` and commit `package-lock.json`.
-- Keep a game self-contained in its folder.
-- For 3D games (three.js), follow the Deck budgets in [`docs/game-design/3d.md`](docs/game-design/3d.md).
-- Put all gameplay numbers in a `TUNING` object at the top of `game.js`, so tuning later is quick.
+- Keep a game self-contained in its folder. Don't commit or ship working files: `tools/`, `mockups/`, `*.py`, `__pycache__/`, reference images. The build skips those plus `DESIGN.md`; list anything else to skip in a `.pushplayignore` in the game folder.
+- For 3D games (three.js), follow the budgets in [`docs/game-design/3d.md`](docs/game-design/3d.md).
+- Put all gameplay numbers in a `TUNING` object at the top of `game.js`, so tuning later is quick. Clamp `dt` (`Math.min(1/20, …)`).
+
+### Verification
+
+Do all of these before pushing; `npm run check` covers them headlessly, you cover them for real:
+
+| Pass | How | Must be true |
+|---|---|---|
+| Controller | pad plugged into `npm run dev`, or on the Deck / Legion Go | every screen; Start pauses; B never quits anything without a menu |
+| Keyboard only | hands off the mouse, no pad | Enter starts, Esc pauses, Backspace backs, every action reachable, prompts show key names |
+| Mouse only | hands off the keyboard | every menu by click; pause button works; gameplay if `inputs` includes `"mouse"` |
+| Touch | DevTools device mode (touch emulation) | every menu by tap; pause button; prompts say "Tap"; gameplay if `inputs` includes `"touch"` |
+| Scaling | resize the window to 1920×1080, then DevTools device mode at DPR 2 | centred, letterboxed in the right colour, crisp text, no blur or clipping |
+| `npm run check <id>` | | passes, screenshot shows real content, `window.__game.state.screen` exposed |
 
 ## Assets
 
@@ -72,6 +160,7 @@ Games can be fully procedural, or use the user's own sprites, audio, models and 
   "entry": { "web": "index.html" },
   "art": { "cover": "art/cover.svg", "hero": "art/hero.svg" },
   "controls": "gamepad",
+  "inputs": ["gamepad", "keyboard", "mouse", "touch"],
   "players": "1",
   "tags": ["arcade", "space", "score attack"],
   "online": false
@@ -81,7 +170,8 @@ Games can be fully procedural, or use the user's own sprites, audio, models and 
 - `id` must equal the folder name.
 - `description`: 1–3 sentences in plain language: what you do and what makes it fun. It's shown in the library.
 - `players`: like `"1"` or `"1-4"`.
-- `tags`: 2–5 lowercase words players can filter the library by: genre first (`"racing"`, `"puzzle"`, `"platformer"`, `"shooter"`), then setting or style (`"space"`, `"pixel art"`, `"cozy"`), and `"local multiplayer"` if it supports more than one player. Reuse tags other games in `games/` already use when they fit, so filters group them. Letters, digits, spaces, `-`, `&` and `'`, up to 24 characters each, at most 8.
+- `tags` (**required**; the check fails without it): 2–5 lowercase words players can filter the library by: genre first (`"racing"`, `"puzzle"`, `"platformer"`, `"shooter"`), then setting or style (`"space"`, `"pixel art"`, `"cozy"`), and `"local multiplayer"` if it supports more than one player. Reuse tags other games in `games/` already use when they fit, so filters group them. Letters, digits, spaces, `-`, `&` and `'`, up to 24 characters each, at most 8.
+- `inputs` (**required**): which inputs the whole game, gameplay included, is playable with: any of `"gamepad"`, `"keyboard"`, `"mouse"`, `"touch"`. Menus must always support all four regardless; only drop `"mouse"` or `"touch"` when gameplay genuinely can't work with them, and say so on the title screen. `"gamepad"` and `"keyboard"` are always present.
 - `version`: bump it when you make a notable change.
 - Vite games also have `"build": { "preset": "vite", "output": "dist" }` (the scaffold adds it).
 
@@ -110,10 +200,13 @@ If you're truly unable to make art, remove the `art` field: the check will gener
 |---|---|
 | `npm run new-game <id> [--vite] [--name "Title"]` | Scaffold a game |
 | `npm run dev <id>` | Play it in a browser with live reload (http://localhost:5173) |
-| `npm run check [id]` | Validate, build, headless play test, render art. Must pass before pushing. |
+| `npm run check [id]` | Validate, build, headless play test (gamepad, keyboard, touch, pause, 1920×1080 at DPR 2), render art. Must pass before pushing. |
+| `npm run update-kit` | Refresh the build kit, these prompts and the runtime files in every game (only when the user asks) |
 
 ## Don'ts
 
 - Don't edit `.github/` unless asked: it holds the build kit and workflow shared by every game.
-- Don't commit `node_modules/` or `dist/`.
+- Don't edit the runtime files in a game folder (`input.js`, `menu.js`, `fit.js`, `audio.js`, `save.js`, `settings.js`, `prompts.js`).
+- Don't bind F10, Start+Select or a held Esc; don't build an "exit to launcher" of your own.
+- Don't commit `node_modules/`, `dist/`, `tools/`, `mockups/`, `*.py` or `__pycache__/`.
 - Don't delete or rewrite other games.

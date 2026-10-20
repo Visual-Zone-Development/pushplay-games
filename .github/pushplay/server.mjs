@@ -35,7 +35,12 @@ export async function serve(mounts) {
   const missing = []
   const prefixes = Object.keys(mounts).sort((a, b) => b.length - a.length)
   const server = createServer((req, res) => {
-    const path = decodeURIComponent(new URL(req.url, 'http://x').pathname)
+    let path
+    try {
+      path = decodeURIComponent(new URL(req.url, 'http://x').pathname)
+    } catch {
+      return res.writeHead(400).end('Bad request')
+    }
     if (path === '/favicon.ico') return res.writeHead(204).end()
     const prefix = prefixes.find((p) => path.startsWith(p))
     let file = prefix ? inside(mounts[prefix], path.slice(prefix.length)) : null

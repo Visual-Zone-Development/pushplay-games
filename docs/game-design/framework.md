@@ -8,15 +8,15 @@ When talking to the player, use plain words (*"tense and twitchy"*, *"calm and c
 
 From Tracy Fullerton's *Game Design Workshop*. Every game has all eight, whether you designed them or not. Decide each one on purpose.
 
-| Element | Ask | On the Deck |
+| Element | Ask | On the handheld |
 |---|---|---|
-| **Players** | How many, and how do they relate: solo, co-op, versus, one vs. the game? | One Deck, one screen. Local multiplayer means extra controllers on a shared screen, so no hidden information. |
-| **Objectives** | What is the player trying to do, right now and overall? | One goal on screen at a time. It must be readable at a glance on a 7" display. |
-| **Procedures** | What actions can they take? What does each button do? | Map every action to stick + A/B/X/Y/LB/RB. One action per button and no chorded inputs. Start is pause, and Start+Select is reserved. |
+| **Players** | How many, and how do they relate: solo, co-op, versus, one vs. the game? | One Deck or Legion Go, one screen. Local multiplayer means extra controllers on a shared screen (`input.pads[i]`, join by press), so no hidden information. |
+| **Objectives** | What is the player trying to do, right now and overall? | One goal on screen at a time. It must be readable at a glance on a 7–8" display. |
+| **Procedures** | What actions can they take? What does each button do? | Map every action to stick + A/B/X/Y/LB/RB/LT/RT (keyboard, mouse and touch equivalents come with `input.js`). One action per button and no chorded inputs. `menu` (Start / Esc) is pause only; B is free for gameplay; F10 and Start+Select belong to the launcher. |
 | **Rules** | What's allowed, what isn't, and what happens when? | Teach rules by letting the player bump into them, not with text. |
 | **Resources** | What do they spend, collect or manage: health, time, ammo, coins, space? | Show the important ones in the HUD, at least 24px and away from the outer 32px. |
 | **Conflict** | What stands in the way: enemies, the clock, the puzzle, other players? | Conflict should scale. Plan how it grows over 1, 5 and 15 minutes. |
-| **Boundaries** | Where does the game happen? What's the play space? | 1280×800 fixed space. Decide whether the camera scrolls or everything fits on one screen. One screen is easier to read on a handheld. |
+| **Boundaries** | Where does the game happen? What's the play space? | 1280×800 fixed space, letterboxed by `fit.js` on other screens. Decide whether the camera scrolls or everything fits on one screen. One screen is easier to read on a handheld. |
 | **Outcome** | How does it end: win, lose, score, ongoing? | Make the ending feel like a moment: score tally, "new best!", and retry with one press. |
 
 ## The 8 kinds of fun

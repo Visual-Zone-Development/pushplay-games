@@ -20,30 +20,44 @@ What separates a complete game from a toy. Copy the items that apply into the ga
 
 ## Audio
 
-- [ ] **SFX for every action**, generated with WebAudio or bundled files.
-- [ ] **Music**: a simple generated loop or a bundled track that fits the mood.
-- [ ] **Volume / mute** setting, saved in `localStorage`.
+- [ ] **SFX for every action**, generated with `audio.tone()` / `audio.noise()` or bundled files via `audio.load()` + `audio.play()`.
+- [ ] **Music**: a simple generated loop or a bundled track that fits the mood, on the `music` bus.
+- [ ] **Audio unlock**: `audio.js` starts the context on the first input and mutes on pause; nothing in the game assumes sound is running before the first key, click, tap or button press (browsers outside the launcher block it).
 
 ## Screens and flow
 
-- [ ] **Title screen** with the name, a clear `Press ${input.label('a')} to start`, and the best score.
-- [ ] **Pause** on Start, Esc/P, and an on-screen pause button for mouse and touch: resume, restart, quit to title. The game is fully frozen while paused.
-- [ ] **Every menu works with every input**: controller, keyboard, mouse and touch, via `menu.js` (move, choose, back, hover, click, tap).
-- [ ] **Game over / results** screen that's satisfying to look at (tally animation, stats).
-- [ ] **Settings** reachable from title and pause: volume, plus difficulty or reduced shake where relevant. Navigable with the d-pad + A/B, the keyboard and the mouse.
-- [ ] **Saves**: best score, unlocks, settings and (for longer games) progress in `localStorage`, under a versioned key (`<id>-save-v1`).
+- [ ] **Title screen** with the name, a start prompt built from `input.label('a')` (it reads "Tap" on touch), a pause hint from `input.label('menu')`, and the best score. If gameplay needs a controller or keyboard, the title says so.
+- [ ] **Pause** on `menu` (Start, Esc, P, and the on-screen pause button for mouse and touch), with exactly **Resume, Restart, Settings, Quit to title**. The game is fully frozen while paused.
+- [ ] **Auto-pause** via `input.onPause` (launcher overlay, lost focus, hidden tab, all controllers gone) lands on the pause screen and saves.
+- [ ] **No exit of its own**: nothing bound to F10, Start+Select or a held Esc (the launcher quits the game); `window.pushplay?.quit()` only behind an explicit "Quit game" item, if at all.
+- [ ] **Every menu works with every input**: controller, keyboard, mouse and touch, via `menu.js` (move, choose, back, hover, click, tap; left/right for values). `b` is back, `menu` pauses; they are never swapped.
+- [ ] **Game over / results** screen that's satisfying to look at (tally animation, stats), with retry in one press.
+- [ ] **Settings** from `settings.js`, reachable from title and pause: master / music / SFX volume, reduced shake / flash, text size, plus difficulty or other game items as `extra`. Saved under `<id>-settings-v1`.
+- [ ] **Saves** via `save.js` under `<id>-save-v1`: best score, unlocks and (for longer games) progress. Saved on every change that matters, on pause, and in `input.onPause`; versioned with `migrate` when the shape changes.
+- [ ] **Cursor** hidden only during gameplay in mouse mode, visible in every menu.
+- [ ] **`state.screen`** is one of `title | playing | paused | settings | gameover` and `window.__game = { state, TUNING }` is exposed.
 
 ## Accessibility
 
 - [ ] **Colorblind-safe**: don't rely on hue alone. Pair color with shape, icon or pattern.
 - [ ] **No required button mashing** or long holds without an alternative.
-- [ ] **Reduced shake / flash** option if the game shakes or flashes a lot.
-- [ ] **Text ≥ 24px**, high contrast against the background.
+- [ ] **Reduced shake / flash** honoured: when `settings.data.reducedShake` is on, no screen shake, white flashes or strobing.
+- [ ] **Text ≥ 24px** at 1280×800, high contrast, scaled by `settings.data.textScale`.
+- [ ] **Prompts never hard-coded**: every button name comes from `input.label`, `input.stickLabel`, `input.dpadLabel` or `drawPrompts`, and switches when the player changes device.
+
+## Scaling and inputs
+
+- [ ] **`fitCanvas`** handles the window: letterbox in the game's colour, DPR capped at 2, `integer: true` for pixel art. Looks right at 1280×800 (Deck), 1920×1200 / 2560×1600 at DPR 2 (Legion Go), 1920×1080 and small resizable windows.
+- [ ] **Manifest** has `tags` and `inputs`; `inputs` lists only what gameplay really supports (menus support all four regardless).
+- [ ] **Verification matrix** done by hand: controller, keyboard only, mouse only, touch (DevTools device mode), 1920×1080 at DPR 2 (see AGENTS.md).
+- [ ] **Local multiplayer** (if any) joins by press per controller through `input.pads[i]`.
 
 ## Under the hood
 
 - [ ] **`TUNING` object** at the top of `game.js` holds every gameplay number (speeds, timings, spawn rates, ramp). Later changes are then one-line edits.
 - [ ] **Delta-time movement**, clamped (`dt = Math.min(1/20, …)`), so it plays the same at 60, 90 or 120 Hz.
-- [ ] **Debug overlay** behind `?debug`, plus `window.__game` hooks (see [`debugging.md`](debugging.md)).
-- [ ] **Steady 60fps** on the Deck: no per-frame allocations in hot loops, capped particles.
-- [ ] `npm run check` passes and the screenshot shows real gameplay or a real title screen.
+- [ ] **Debug overlay** behind `?debug` (see [`debugging.md`](debugging.md)).
+- [ ] **Runtime files unedited** (`input.js`, `menu.js`, `fit.js`, `audio.js`, `save.js`, `settings.js`, `prompts.js` keep their header); game keys added with `input.extendKeys`.
+- [ ] **Steady 60fps** on the Deck and Legion Go, DPR 2 included: no per-frame allocations in hot loops, capped particles.
+- [ ] **Nothing shipped but the game**: no `tools/`, `mockups/`, `*.py`, `__pycache__/` in the folder.
+- [ ] `npm run check` passes (gamepad, keyboard-only, touch, Start → `paused`, 1920×1080 at DPR 2) and the screenshot shows real gameplay or a real title screen.

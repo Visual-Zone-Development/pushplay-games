@@ -1,6 +1,6 @@
 ---
 name: new-game
-description: Create a new game in this repo that plays on a Steam Deck through the PushPlay launcher. It interviews the user about the idea, writes a design brief, then builds the game and its cover and hero art. Use whenever the user asks to make, prototype or add a game.
+description: Create a new game in this repo that plays on a Steam Deck or Legion Go through the PushPlay launcher, and on PCs with keyboard, mouse or touch. It interviews the user about the idea, writes a design brief, then builds the game and its cover and hero art. Use whenever the user asks to make, prototype or add a game.
 ---
 
 # New game
@@ -36,7 +36,7 @@ Follow [inspiration.md](../../../docs/game-design/inspiration.md): 2–3 referen
 ## 4. Write the brief and get approval
 Pick a short, catchy name and a `kebab-case` id. Then:
 1. `npm run setup` if `node_modules/` is missing.
-2. `npm run new-game <id> --name "<Name>"`, adding `--vite` for 3D or npm packages.
+2. `npm run new-game <id> --name "<Name>"`, adding `--vite` for 3D or npm packages. The starter already has title, pause and settings screens that work on every input; keep them and build the game around them. The runtime files it copies (`input.js`, `menu.js`, `fit.js`, `audio.js`, `save.js`, `settings.js`, `prompts.js`) are never edited.
 3. Copy [DESIGN.template.md](../../../docs/game-design/DESIGN.template.md) to `games/<id>/DESIGN.md` and fill it in:
    - Every one of the 8 formal elements is decided.
    - Each fun target maps to concrete mechanics and juice.
@@ -50,25 +50,34 @@ Run `npm run check <id>` after each milestone and fix every ✗.
 
 1. **Core loop.**
    - Put all gameplay numbers in a `TUNING` object at the top of `game.js` (`src/game.js` for `--vite`).
-   - Add the `?debug` overlay and `window.__game` hooks ([debugging.md](../../../docs/game-design/debugging.md)).
+   - Keep the starter's skeleton: `fitCanvas(...)`, `input.attach(canvas, 1280, 800)`, `input.update()` first in the frame, `state.screen` with the names `title | playing | paused | settings | gameover`, `window.__game = { state, TUNING }`, and `input.onPause(...)` switching to `paused`.
+   - Add the `?debug` overlay ([debugging.md](../../../docs/game-design/debugging.md)).
+   - Map gameplay to buttons from the AGENTS.md table: `b` is a normal action button; `menu` is only pause. Game-specific key aliases via `input.extendKeys`.
    - Get the core verb feeling good: pass the **30-second fun test** in framework.md before adding content.
    - If the user supplied assets, import them per [assets.md](../../../docs/game-design/assets.md). For 3D, follow [3d.md](../../../docs/game-design/3d.md).
-2. **Complete game.** Work through the Definition of done: onboarding by doing, difficulty ramp with something new every 30–60s, retry in one press, best score, progression or variety, title/pause/game-over/settings screens, SFX + music + volume, saves.
-3. **Polish.** Add juice aimed at the fun targets: the biggest effects on the biggest moments, with capped particles.
+2. **Complete game.** Work through the Definition of done: onboarding by doing, difficulty ramp with something new every 30–60s, retry in one press, best score, progression or variety; title / pause (Resume, Restart, Settings, Quit to title) / game-over / settings screens on `menu.js` and `settings.js`; SFX + music through `audio.js` obeying the sliders; `save.js` under `<id>-save-v1`, saved on pause and in `input.onPause`; reduced shake and text size honoured.
+3. **Polish.** Add juice aimed at the fun targets: the biggest effects on the biggest moments, with capped particles, all skipped when `reducedShake` is on.
 
 **Self-review** before moving on to art: re-read DESIGN.md and tick off every Definition of done item. Build anything missing, or list it as a known gap.
 
 ## 6. Controls, manifest, art
-- **Controls check, every platform:**
-  - Play it with a controller, then a keyboard, then a mouse: every menu and screen works with each alone (`npm run dev` in a browser covers keyboard and mouse; a pad plugged in covers the controller).
-  - Menus use `menu.js`. Pause works with Start, Esc/P and the on-screen pause button.
-  - Prompts use `input.label()`.
-  - Nothing needs hover, a double-click, a scroll wheel or text entry.
-  - Start+Select is never used.
+- **Verification matrix.** Run `npm run dev <id>` and do each pass with only that input; every one must pass:
+
+  | Pass | How | Must be true |
+  |---|---|---|
+  | Controller | pad plugged in, or on the Deck / Legion Go | every screen works; Start pauses; B never quits anything without a menu; prompts show button names |
+  | Keyboard only | no pad, hands off the mouse | Enter starts, Esc pauses, Backspace backs, every action reachable; prompts show key names |
+  | Mouse only | hands off the keyboard | every menu by click; the on-screen pause button pauses; gameplay too if `inputs` includes `"mouse"`; cursor visible in every menu |
+  | Touch | Chrome DevTools → device toolbar with touch emulation | every menu by tap; pause button; prompts say "Tap"; gameplay too if `inputs` includes `"touch"` |
+  | Scaling | resize the window to 1920×1080, then device mode at DPR 2 | centred and letterboxed in the game's colour, text crisp, nothing clipped or blurry |
+  | `npm run check <id>` | | passes: gamepad, keyboard-only, touch, Start → `__game.state.screen === 'paused'`, 1920×1080 at DPR 2 |
+
+  Also confirm: menus use `menu.js`; pause menu is Resume / Restart / Settings / Quit to title; Settings is reachable from title and pause; no `F10`, Start+Select or held-Esc binding; no hard-coded button names (`input.label`, `drawPrompts`); nothing needs hover, a double-click, a scroll wheel or text entry; `window.__game.state.screen` is exposed.
 - **Manifest:**
   - `description`: what you do and why it's fun, 1–3 sentences.
   - `players`, `version`.
-  - `tags`: 2–5 lowercase genre/style words, reusing tags other games already use.
+  - `tags` (required): 2–5 lowercase genre/style words, reusing tags other games already use.
+  - `inputs` (required): the inputs the whole game is playable with; drop `"mouse"` or `"touch"` only when gameplay genuinely can't, and say so on the title screen.
   - `online` if the game is networked.
 - **Art:**
   - `art/cover.svg`: 720×500, big title, bottom 110px clear.
@@ -87,6 +96,6 @@ Update DESIGN.md if the design drifted (set Status to shipped, add a Changelog e
 Tell the user:
 - the name, the pitch and the controls
 - what feel the game aims for, and any known gaps
-- that it will appear in PushPlay on their Deck once the GitHub Action finishes (a couple of minutes)
+- that it will appear in PushPlay on their Deck or Legion Go once the GitHub Action finishes (a couple of minutes)
 
 Then suggest they play it and come back with feedback, or with "improve <name>". Give 2–3 specific things to notice while playing, e.g. "does minute two get boring?" or "is the dash satisfying?".

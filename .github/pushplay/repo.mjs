@@ -1,7 +1,7 @@
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { basename, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import Ajv from 'ajv/dist/2020.js'
-import { GAMES_DIR, KIT_DIR, MANIFEST_FILES, MIN_DESCRIPTION } from './config.mjs'
+import { GAMES_DIR, IGNORE_FILE, KIT_DIR, MANIFEST_FILES, MIN_DESCRIPTION } from './config.mjs'
 
 /** The game repo being built: where commands run from (CI and npm scripts both use the root). */
 export const ROOT = resolve(process.env.KIT_REPO_ROOT ?? process.cwd())
@@ -10,12 +10,19 @@ export const WORK_DIR = join(ROOT, KIT_DIR, '.work')
 export const outDir = (id) => join(WORK_DIR, 'out', id)
 export const distDir = join(WORK_DIR, 'dist')
 
-// Exported kits carry a copy of the schema; in the launcher monorepo it comes from the shared package.
-const schemaFile = [join(import.meta.dirname, 'manifest.schema.json'), join(import.meta.dirname, '../../shared/schema/manifest.schema.json')].find((f) =>
-  existsSync(f)
-)
-const schema = JSON.parse(readFileSync(schemaFile, 'utf8'))
-const validateSchema = new Ajv({ allErrors: true, strict: false }).compile(schema)
+// Exported kits carry copies of the schemas; in the launcher monorepo they come from the shared package.
+function loadSchema(name) {
+  const file = [join(import.meta.dirname, name), join(import.meta.dirname, '../../shared/schema', name)].find((f) => existsSync(f))
+  return new Ajv({ allErrors: true, strict: false }).compile(JSON.parse(readFileSync(file, 'utf8')))
+}
+const validateSchema = loadSchema('manifest.schema.json')
+const validateIndexSchema = loadSchema('kit-index.schema.json')
+
+/** Problems with a release index the kit is about to publish (empty when it's valid). */
+export function validateIndex(index) {
+  if (validateIndexSchema(index)) return []
+  return (validateIndexSchema.errors ?? []).map((e) => `${e.instancePath || '(root)'} ${e.message}`)
+}
 
 export class GameError extends Error {
   constructor(id, message) {
@@ -56,6 +63,38 @@ export function listGames(root = ROOT) {
     .map((d) => ({ id: d.name, dir: join(gamesRoot, d.name), rel: `${GAMES_DIR}/${d.name}`, manifestPath: manifestIn(join(gamesRoot, d.name)) }))
     .filter((g) => g.manifestPath)
     .sort((a, b) => a.id.localeCompare(b.id))
+}
+
+/** Never shipped from a game folder: tooling, notes and anything in the game's ignore file. */
+const DEFAULT_IGNORES = ['tools', 'mockups', '*.py', '__pycache__', 'DESIGN.md', '*.psd', '*.ase', '*.aseprite', '*.blend', '*.kra']
+
+/**
+ * Patterns for files to leave out of a game's build: the defaults plus one glob per line in
+ * the game's ignore file (`#` comments; a trailing `/` matches a folder). Globs match a file or
+ * folder name, or a path relative to the game folder when they contain a `/`.
+ */
+export function ignorePatterns(game) {
+  const patterns = [...DEFAULT_IGNORES]
+  const file = join(game.dir, IGNORE_FILE)
+  if (existsSync(file)) {
+    for (const raw of readFileSync(file, 'utf8').split('\n')) {
+      const line = raw.trim()
+      if (line && !line.startsWith('#')) patterns.push(line.replace(/^\.?\//, ''))
+    }
+  }
+  return patterns
+}
+
+/** True when a file or folder (path relative to the game folder, forward slashes) matches a pattern. */
+export function ignored(rel, patterns, isDir = false) {
+  const name = rel.split('/').pop()
+  return patterns.some((p) => {
+    const dirOnly = p.endsWith('/')
+    const pattern = dirOnly ? p.slice(0, -1) : p
+    if (dirOnly && !isDir) return false
+    const re = new RegExp('^' + pattern.split('*').map((s) => s.replace(/[.+?^${}()|[\]\\]/g, '\\$&')).join('.*') + '$')
+    return re.test(pattern.includes('/') ? rel : name)
+  })
 }
 
 export function findGame(id, root = ROOT) {
@@ -147,6 +186,8 @@ export function validateManifest(game, manifest) {
     }
   }
   if (!manifest.controls) warnings.push(`set "controls": "gamepad" once the game works with a controller`)
+  if (!manifest.tags?.length) errors.push(`${where}: add "tags" (1–8 lowercase genre and style words, e.g. ["arcade", "space"]) so players can filter the library`)
+  if (!manifest.inputs?.length) errors.push(`${where}: add "inputs": ["gamepad", "keyboard", "mouse", "touch"] (drop the ones gameplay can't support; menus must work with all four)`)
 
   return { errors, warnings }
 }

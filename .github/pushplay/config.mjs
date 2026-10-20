@@ -7,7 +7,18 @@ const vendored = join(import.meta.dirname, 'brand.json')
 const source = join(import.meta.dirname, '../../shared/src/brand.json')
 export const brand = JSON.parse(readFileSync(existsSync(vendored) ? vendored : source, 'utf8'))
 
-export const KIT_VERSION = 1
+/**
+ * Bumped whenever the kit's files change (kit-lock.json holds their hash; a test enforces the bump).
+ * ci.mjs writes it into the release index, so the launcher can tell a repo its kit is outdated.
+ */
+export const KIT_VERSION = 2
+/** Runtime modules copied into every game; `update-kit` replaces them by this header. */
+export const RUNTIME_HEADER = `// ${brand.slug} runtime v`
+/** Matches the header whatever the product was called when the file was written. */
+export const RUNTIME_HEADER_RE = /^\/\/ \S+ runtime v/
+export const RUNTIME_FILES = ['input.js', 'menu.js', 'fit.js', 'audio.js', 'save.js', 'settings.js', 'prompts.js']
+/** Per-game ignore list (one glob per line) for files that are never shipped. */
+export const IGNORE_FILE = `.${brand.slug}ignore`
 
 /** Current manifest name first, then names from before any rename. */
 export const MANIFEST_FILES = brand.manifestFiles
@@ -25,14 +36,13 @@ export const GAMES_DIR = 'games'
 /** The Steam Deck's screen. Games are checked (and screenshotted) at this size. */
 export const VIEWPORT = { width: 1280, height: 800 }
 
-/** Art sizes in px. The launcher shows the cover at about 216×150 and the hero at 1280×300. */
-export const ART = {
-  cover: { width: 720, height: 500 },
-  hero: { width: 1920, height: 450 }
-}
+/** Art sizes in px, from brand.json (the launcher shows the cover at about 216×150 and the hero at 1280×300). */
+export const ART = brand.art
 
 /** How long the headless check lets a game run before judging it. */
 export const CHECK_RUN_MS = 3000
+/** A second, denser window the check also opens (Legion Go class screens and launcher zoom). */
+export const VIEWPORT_DENSE = { width: 1920, height: 1080, deviceScaleFactor: 2 }
 
 /** Minimum description length, so the library always has something useful to show. */
 export const MIN_DESCRIPTION = 20

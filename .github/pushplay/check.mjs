@@ -1,7 +1,9 @@
 // node <kit>/check.mjs [game-id ...]
-// Validates, builds, plays (headless, at Steam Deck size) and renders art for games.
-// With no ids, checks every game. Exit code 1 if any game has errors.
+// Validates, builds, plays (headless: controller, keyboard-only, touch-only, and a denser
+// 1920×1080 screen) and renders art for games. With no ids, checks every game.
+// Exit code 1 if any game has errors.
 import { join } from 'node:path'
+import { ART, CHECK_RUN_MS, VIEWPORT } from './config.mjs'
 import { display, listGames, log, layout } from './repo.mjs'
 import { ART_DIR, buildGame, launchBrowser } from './pipeline.mjs'
 
@@ -27,9 +29,9 @@ for (const game of selected) {
     for (const w of result.warnings) log(`  ⚠ ${w}`)
     const art = (name) => display(join(result.out, ART_DIR, `${name}.png`))
     log(`  ✓ playable. Look at the art and screenshot to make sure they look right:`)
-    log(`    ${art('cover')}  (library tile, 720×500)`)
-    log(`    ${art('hero')}  (detail banner, 1920×450)`)
-    log(`    ${art('screenshot')}  (the game after 3s at 1280×800)`)
+    log(`    ${art('cover')}  (library tile, ${ART.cover.width}×${ART.cover.height})`)
+    log(`    ${art('hero')}  (detail banner, ${ART.hero.width}×${ART.hero.height})`)
+    log(`    ${art('screenshot')}  (the game after ${CHECK_RUN_MS / 1000}s at ${VIEWPORT.width}×${VIEWPORT.height})`)
   } catch (err) {
     failed++
     log(`  ✗ ${String(err.message).replaceAll('\n', '\n  ✗ ')}`)

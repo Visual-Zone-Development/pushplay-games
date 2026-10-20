@@ -1,30 +1,39 @@
 # Debugging
 
-Reproduce first, then fix the root cause. `npm run check <id>` is the first tool. It reports crashes, console errors, 404s, network requests, dialogs and blank screens, and saves a screenshot. But it only plays for **3 seconds**: it taps A once around 1.2s and nudges the stick right around 1.5–2.2s. For anything deeper, write a repro script (below).
+Reproduce first, then fix the root cause. `npm run check <id>` is the first tool. It reports crashes, console errors, 404s, network requests (WebSockets too), dialogs and blank screens, and saves a screenshot. It plays several short passes: a **gamepad** pass (A around 1.2s, stick right around 1.5–2.2s, then Start, expecting `window.__game.state.screen === 'paused'`), a **keyboard-only** pass (Enter, then Esc must change the screen), a **touch** pass (tap on the title menu) and a render at **1920×1080 with DPR 2**. It also checks the code statically: `menu.js` imported and `input.attach` called (warnings), no F10 binding, `tags` and `inputs` present (failures), `localStorage` keys prefixed with the game id (warning). For anything deeper, write a repro script (below).
 
 ## Common failures
 
 | Symptom | Likely cause | Fix |
 |---|---|---|
 | Controller does nothing | `input.update()` not called each frame, or called after reading input | Call `input.update()` once at the top of the frame, before `update()` |
+| Mouse or touch does nothing | `input.attach(canvas, 1280, 800)` never called, or called on a canvas under another element | Attach once, on the top-most canvas |
 | A press triggers twice, or skips a screen | `held()` used where `pressed()` was meant; or two screens both read the same press in one frame | Use `pressed()` for one-shot actions; `return` after changing screens |
+| Esc quits the run / B pauses | `b` and `menu` confused | Pause only on `input.pressed('menu')`; `b` is back in menus and a gameplay button otherwise |
+| Check: Start didn't pause | `state.screen` isn't `'paused'` after Start, or `window.__game` missing | Set `state.screen = 'paused'` on `menu` and expose `window.__game = { state, TUNING }` |
+| Pauses by itself / stays paused | `input.onPause` fired (blur, hidden tab, overlay, every pad disconnected); Resume doesn't clear the game's own paused flag | Expected on blur; make Resume the only way out and reset `state.screen = 'playing'` |
 | Black or blank screen | Exception in the first frame; drawing before the canvas is sized; waiting on assets or fonts before drawing anything | Look for "the game crashed" in the check; draw a loading screen immediately |
-| Blurry or offset image | Canvas backing size ≠ CSS size × `devicePixelRatio`; smoothing on pixel art | Reuse the starter's `resize()`; `ctx.imageSmoothingEnabled = false` for pixel art |
-| No sound | `AudioContext` suspended | `audioCtx.resume()` on the first input (and on load; the Deck allows autoplay) |
+| Blurry, offset or clipped image; wrong letterbox colour | Hand-written resize code instead of `fitCanvas`; smoothing on pixel art; `devicePixelRatio` read directly | `fitCanvas(canvas, { w: 1280, h: 800, maxDpr: 2, letterbox })`; `integer: true` + `ctx.imageSmoothingEnabled = false` for pixel art |
+| Soft at DPR 2 (Legion Go, DevTools DPR 2) | Bitmaps or cached text pre-rendered at 1× | Render caches at 2×, or draw with vector calls |
+| No sound | `AudioContext` never unlocked (no gesture yet in a plain browser) or muted after pause | Use `audio.js` (unlocks on the first input, mutes on pause); don't play music before the first input and expect to hear it outside the launcher |
+| Sound keeps playing under the launcher overlay | Audio not routed through `audio.js` buses | Route everything through `createAudio({ settings })` |
 | Game runs fast or slow on some screens | Movement per frame instead of per second | Multiply by `dt`; clamp `dt = Math.min(1/20, …)` |
-| Stutters, frame drops | Unbounded particles or entities; allocations in the frame loop; heavy `shadowBlur`; too many draw calls in three.js | Cap arrays; reuse objects; pre-render glows; see [3d.md](3d.md) budgets |
-| Old save breaks after an update | Save shape changed | Version the key (`<id>-save-v2`), migrate or fall back to defaults; wrap `JSON.parse` in try/catch |
-| Check: "loads … from the internet" | CDN script, Google Font, remote image | Bundle the file in the game folder ([assets.md](assets.md)) |
+| Stutters, frame drops | Unbounded particles or entities; allocations in the frame loop; heavy `shadowBlur`; too many draw calls in three.js; DPR 2 doubling fill cost | Cap arrays; reuse objects; pre-render glows; see [3d.md](3d.md) budgets |
+| Old save breaks after an update | Save shape changed | Bump the `createSave` version (`<id>-save-v2`) with a `migrate`; `save.js` already guards `JSON.parse` |
+| Check: save key not prefixed | Raw `localStorage.setItem('best', …)` | Go through `createSave(id, …)` / `createSettings(id, …)` |
+| Check: "loads … from the internet" | CDN script, Google Font, remote image, WebSocket | Bundle the file in the game folder ([assets.md](assets.md)) |
 | Check: "missing file … (404)" | Wrong relative path or filename case | Paths are case-sensitive on Linux; use paths relative to `index.html` |
 | Check: dialog error | `alert()` / `confirm()` / `prompt()` | Draw the message in-game |
-| Text unreadable on the Deck | Under 24px, low contrast, at the screen edge | ≥ 24px, strong contrast, ≥ 32px from the edges |
+| Check: F10 bound / Start+Select used | The game built its own quit | Remove it; the launcher owns quitting |
+| `update-kit` reports a hand-edited runtime file | A fix was patched into `input.js` etc. | Move it into `game.js` (`input.extendKeys` for keys); `npm run update-kit` restores the files |
+| Text unreadable on the handheld | Under 24px, low contrast, at the screen edge | ≥ 24px, strong contrast, ≥ 32px from the edges |
 
 ## Debug overlay convention
 
 Every game should have a debug overlay that's **off by default**:
 
-- Enabled by the `?debug` URL parameter (`new URLSearchParams(location.search).has('debug')`), or toggled in-game by **holding Select + Y** for a second. Never use Start + Select: the launcher reserves it.
-- Shows FPS and frame time (ms), entity and particle counts, the current screen/state, and raw input (`input.x`, `input.y`, held buttons).
+- Enabled by the `?debug` URL parameter (`new URLSearchParams(location.search).has('debug')`). Optionally, also toggled at runtime by holding **Tab + F** (`select` + `y`) for a second, which works on keyboard and controller alike. Never Start+Select, F10 or Esc: the launcher owns those.
+- Shows FPS and frame time (ms), entity and particle counts, `state.screen`, `input.mode`, and raw input (`input.x`, `input.y`, held buttons, `input.paused`).
 - Drawn last, top-left inside the 32px safe margin, in small monospace text. This is the one place where text under 24px is fine.
 
 ## Test hooks
@@ -35,12 +44,14 @@ Expose state for scripts and the console:
 const params = new URLSearchParams(location.search)
 const seed = Number(params.get('seed')) || Date.now()   // seeded RNG → reproducible runs
 window.__game = {
-  state,                  // the live state object
+  state,                  // the live state object; state.screen is title | playing | paused | settings | gameover
   TUNING,                 // tweak live: __game.TUNING.enemySpeed = 300
   start: () => reset(),   // skip the title screen
   jumpTo: (level) => { /* load a specific level/wave */ },
 }
 ```
+
+`state` and `TUNING` are required (the check reads `__game.state.screen` after pressing Start); the rest is optional but cheap.
 
 With a seeded RNG (e.g. mulberry32) instead of `Math.random()`, `?seed=123` replays the same layout every time. That makes bugs reproducible.
 
@@ -106,5 +117,5 @@ If the Chromium download isn't available in your environment, fall back to readi
 ## Performance
 
 - Check FPS in the debug overlay during the busiest moment (late waves, max particles).
-- In desktop Chrome DevTools → Performance, enable **4× CPU slowdown** as a rough Deck proxy, and record a few seconds of heavy play. Look for long frames, garbage-collection spikes (allocations in the loop) and expensive draw calls.
+- In desktop Chrome DevTools → Performance, enable **4× CPU slowdown** as a rough Deck / Legion Go proxy (and device mode at DPR 2 for the Legion Go's fill cost), and record a few seconds of heavy play. Look for long frames, garbage-collection spikes (allocations in the loop) and expensive draw calls.
 - three.js: log `renderer.info.render.calls` and `.triangles` against the [3d.md](3d.md) budget.

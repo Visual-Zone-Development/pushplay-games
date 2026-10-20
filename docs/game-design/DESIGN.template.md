@@ -28,14 +28,21 @@ See [framework.md](../../docs/game-design/framework.md). Each target must map to
 | Outcome | |
 
 ## Controls
+Keyboard, mouse and touch equivalents come from `input.js` (see the table in AGENTS.md); list the game's actions by `input` button.
+
 | Input | Action |
 |---|---|
-| Left stick / d-pad | |
-| A | |
-| B | |
-| X / Y | |
-| LB / RB | |
-| Start | Pause |
+| Left stick / d-pad (`x`, `y`) | |
+| `a` | |
+| `b` | <gameplay action, or "back" in menus only> |
+| `x` / `y` | |
+| `lb` / `rb` | |
+| `lt` / `rt` | |
+| Right stick (`aimX`, `aimY`) | |
+| `menu` (Start / Esc / on-screen button) | Pause |
+
+- **Inputs** (`pushplay.json` → `inputs`): gamepad, keyboard, mouse, touch. <Which of mouse / touch cover gameplay? If not, what does the title screen say?>
+- **Players:** <1 / 2–4 local via `input.pads[i]`, join by press>
 
 ## Inspirations
 | Game | Borrow | Change / avoid |
@@ -63,8 +70,36 @@ See [framework.md](../../docs/game-design/framework.md). Each target must map to
 - …
 
 ## Definition of done
-Tailored from [complete-game.md](../../docs/game-design/complete-game.md):
-- [ ] …
+Tailored from [complete-game.md](../../docs/game-design/complete-game.md). Keep the fixed items; add the game's own under *Play* and *Feel*.
+
+**Play**
+- [ ] Onboarding by doing (prompts from `input.label`), clear goal, ending or score to beat, difficulty curve, fair failure, retry in one press, progression or variety
+- [ ] <game-specific>
+
+**Feel**
+- [ ] Feedback for every action; juice on the big moments; rumble where available
+- [ ] <game-specific>
+
+**Audio**
+- [ ] SFX and music through `audio.js`, following the Settings sliders; unlocks on first input
+
+**Screens and flow**
+- [ ] Title (start + pause hints via `input.label`, best score), pause on `menu` with Resume / Restart / Settings / Quit to title, game over with one-press retry
+- [ ] Auto-pause via `input.onPause`; no F10 / Start+Select / held-Esc binding; no quit of its own
+- [ ] Every menu on `menu.js`, works with controller, keyboard, mouse and touch
+- [ ] Settings via `settings.js` from title and pause: master / music / SFX, reduced shake, text size <+ game items>
+- [ ] Saves via `save.js` under `<id>-save-v1`, saved on pause and `onPause`
+- [ ] Cursor hidden only during gameplay; `state.screen` + `window.__game` exposed
+
+**Accessibility**
+- [ ] Colorblind-safe, no mashing, reduced shake honoured, text ≥ 24px scaled by `textScale`, no hard-coded button names
+
+**Scaling and inputs**
+- [ ] `fitCanvas` (letterbox colour, DPR ≤ 2, integer for pixel art); right at 1280×800, 1920×1200 / 2560×1600 at DPR 2, 1920×1080, small windows
+- [ ] Manifest `tags` + `inputs` correct; verification matrix done (controller, keyboard only, mouse only, touch, DPR 2)
+
+**Under the hood**
+- [ ] `TUNING`, clamped `dt`, `?debug` overlay, runtime files unedited, 60fps, no `tools/` / `mockups/` / `*.py` shipped, `npm run check` green
 
 ## Open questions / assumptions
 - …

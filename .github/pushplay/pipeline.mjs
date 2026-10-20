@@ -4,8 +4,8 @@ import { copyFileSync, cpSync, existsSync, mkdirSync, readdirSync, readFileSync,
 import { createRequire } from 'node:module'
 import { basename, dirname, join } from 'node:path'
 import { chromium } from 'playwright'
-import { ART, ART_FONTS, CHECK_RUN_MS, MANIFEST_FILE, VIEWPORT } from './config.mjs'
-import { buildMode, display, distDir, GameError, npmSpawn, outDir, quote, readManifest, ROOT, validateManifest } from './repo.mjs'
+import { ART, ART_FONTS, CHECK_RUN_MS, MANIFEST_FILE, RUNTIME_FILES, RUNTIME_HEADER_RE, VIEWPORT, VIEWPORT_DENSE } from './config.mjs'
+import { buildMode, display, distDir, GameError, ignored, ignorePatterns, npmSpawn, outDir, quote, readManifest, ROOT, validateManifest } from './repo.mjs'
 import { serve } from './server.mjs'
 
 /** Generated art lives here inside each build, away from the game's own asset folders. */
@@ -45,9 +45,12 @@ export async function buildGame(game, browser, { pack = true } = {}) {
     cpSync(built, out, { recursive: true })
     webEntry = 'index.html'
   } else {
-    copyGameFiles(game.dir, out)
+    copyGameFiles(game.dir, out, ignorePatterns(game))
     webEntry = manifest.entry.web
   }
+  const source = sourceChecks(game, manifest)
+  warnings.push(...source.warnings)
+  if (source.errors.length) throw new GameError(id, source.errors.join('\n'))
 
   // 2. Play it headlessly, 3. render art
   mkdirSync(join(out, ART_DIR), { recursive: true })
@@ -77,14 +80,67 @@ export async function buildGame(game, browser, { pack = true } = {}) {
  * Copy a game without a build step. Hand-rolled because in a single-game repo the output folder
  * sits inside the game folder (under the hidden kit dir), which cpSync refuses even with a filter.
  */
-function copyGameFiles(from, to) {
+function copyGameFiles(from, to, patterns = [], rel = '') {
   mkdirSync(to, { recursive: true })
   for (const entry of readdirSync(from, { withFileTypes: true })) {
     if (entry.name.startsWith('.') || SKIP.has(entry.name)) continue
+    const path = rel ? `${rel}/${entry.name}` : entry.name
+    if (ignored(path, patterns, entry.isDirectory())) continue
     const src = join(from, entry.name)
-    if (entry.isDirectory()) copyGameFiles(src, join(to, entry.name))
+    if (entry.isDirectory()) copyGameFiles(src, join(to, entry.name), patterns, path)
     else if (entry.isFile()) copyFileSync(src, join(to, entry.name))
   }
+}
+
+/** Source files of a game (its own code, not the runtime modules, dependencies or build output). */
+function sourceFiles(dir, out = [], rel = '') {
+  if (!existsSync(dir)) return out
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    if (entry.name.startsWith('.') || ['node_modules', 'dist', 'build', 'out', 'vendor', 'lib', 'libs'].includes(entry.name)) continue
+    const path = rel ? `${rel}/${entry.name}` : entry.name
+    const full = join(dir, entry.name)
+    if (entry.isDirectory()) sourceFiles(full, out, path)
+    else if (/\.(m?js|ts|html)$/.test(entry.name)) {
+      const text = readFileSync(full, 'utf8')
+      if (RUNTIME_FILES.includes(entry.name) && RUNTIME_HEADER_RE.test(text)) continue
+      out.push({ path, text })
+    }
+  }
+  return out
+}
+
+/**
+ * Static checks on the game's own code: the conventions that make a game playable on every
+ * device (menu.js for menus, input.attach for mouse/touch, no F10, saves keyed by the game id).
+ */
+function sourceChecks(game, manifest) {
+  const errors = []
+  const warnings = []
+  const files = sourceFiles(game.dir)
+  const code = files.filter((f) => !f.path.endsWith('.html'))
+  const all = files.map((f) => f.text).join('\n')
+  const usesInput = /from\s+['"][^'"]*\/input\.js['"]/.test(all)
+  if (!/from\s+['"][^'"]*\/menu\.js['"]/.test(all) && !/createMenu\(/.test(all)) {
+    warnings.push('nothing imports menu.js: every menu (title, pause, settings, game over) must work with a controller, a keyboard, a mouse and touch, which createMenu does for you')
+  }
+  if (usesInput && !/input\.attach\(/.test(all)) warnings.push('input.js is imported but input.attach(canvas) is never called, so mouse and touch never reach the game')
+  if (!/window\.__game\s*=/.test(all)) {
+    warnings.push("set window.__game = { state, TUNING } with state.screen ('title' | 'playing' | 'paused' | 'settings' | 'gameover'), so the check can verify pausing and the debug overlay can read it")
+  }
+  for (const file of code) {
+    if (/['"`]F10['"`]/.test(file.text)) errors.push(`${file.path} binds F10, which the launcher uses to open its own menu. Pause on input.pressed('menu') instead`)
+    for (const m of file.text.matchAll(/localStorage\.(?:setItem|getItem|removeItem)\(\s*['"`]([^'"`$]+)['"`]/g)) {
+      if (!m[1].startsWith(game.id)) warnings.push(`${file.path} uses the localStorage key "${m[1]}", which other games on the same device can clash with: use createSave('${game.id}', 1, { ... }) from save.js (keys become ${game.id}-save-v1)`)
+    }
+    for (const m of file.text.matchAll(/create(?:Save|Settings)\(\s*['"`]([^'"`$]+)['"`]/g)) {
+      if (m[1] !== game.id) warnings.push(`${file.path} calls createSave/createSettings with "${m[1]}"; use the game id "${game.id}" so saves don't clash`)
+    }
+    if (/new\s+(?:window\.)?(?:webkit)?AudioContext\b/.test(file.text) && !/\.resume\(/.test(all)) {
+      warnings.push(`${file.path} creates an AudioContext but nothing calls resume(): outside the launcher, browsers keep audio silent until the first key, tap or click. createAudio() from audio.js handles it`)
+    }
+  }
+  if (manifest.inputs && !manifest.inputs.includes('gamepad')) warnings.push('"inputs" leaves out "gamepad": every kit game should play with a controller')
+  return { errors: [...new Set(errors)], warnings: [...new Set(warnings)] }
 }
 
 /**
@@ -110,66 +166,190 @@ function runBuild(game) {
 
 const tail = (result) => `${result.stdout}\n${result.stderr}`.trim().split('\n').slice(-25).join('\n')
 
-/** Load the game like the Deck would, and watch for crashes, missing files and internet use. */
+/**
+ * Load the game like the launcher would and watch for crashes, missing files and internet use,
+ * then make sure it can be played and paused with a controller, a keyboard and touch, and that
+ * it fits a denser screen. Games exposing window.__game.state.screen get the strict version.
+ */
 async function playCheck(browser, server, out, entry, manifest) {
   const errors = []
   const warnings = []
-  const context = await browser.newContext({ viewport: VIEWPORT, deviceScaleFactor: 1 })
-  const page = await context.newPage()
-
-  // A connected standard gamepad, so games take their controller code path. A is tapped once
-  // (most games start on A), then the left stick nudges right for a moment.
-  await page.addInitScript(() => {
-    const started = performance.now()
-    const button = (pressed) => ({ pressed, touched: pressed, value: pressed ? 1 : 0 })
-    const pad = () => {
-      const t = performance.now() - started
-      return {
-        id: 'Headless check gamepad (STANDARD GAMEPAD)',
-        index: 0,
-        connected: true,
-        mapping: 'standard',
-        timestamp: t,
-        axes: [t > 1500 && t < 2200 ? 0.8 : 0, 0, 0, 0],
-        buttons: Array.from({ length: 17 }, (_, i) => button(i === 0 && t > 1200 && t < 1400)),
-        vibrationActuator: null
-      }
-    }
-    Object.defineProperty(Navigator.prototype, 'getGamepads', { value: () => [pad(), null, null, null] })
-    window.addEventListener('load', () => {
-      setTimeout(() => window.dispatchEvent(Object.assign(new Event('gamepadconnected'), { gamepad: pad() })), 100)
+  const url = `${server.url}/${entry}`
+  const offline = async (context) => {
+    await context.route('**/*', (route) => {
+      const target = route.request().url()
+      if (target.startsWith(server.url) || target.startsWith('data:') || target.startsWith('blob:') || manifest.online) return route.continue()
+      errors.push(`the game loads ${target} from the internet. Games must work offline: bundle it into the game folder (or set "online": true for multiplayer games)`)
+      return route.abort()
     })
-  })
+    await context.routeWebSocket(() => true, (ws) => {
+      const target = ws.url()
+      if (manifest.online || target.startsWith(server.url.replace('http', 'ws'))) return ws.connectToServer()
+      errors.push(`the game opens a WebSocket to ${target}. Games must work offline (or set "online": true for multiplayer games)`)
+      ws.close()
+    })
+  }
+  const watch = (page) => {
+    page.on('pageerror', (err) => errors.push(`the game crashed: ${err.message}`))
+    page.on('console', (msg) => {
+      if (msg.type() === 'error') warnings.push(`console error: ${msg.text().slice(0, 200)}`)
+    })
+    page.on('dialog', (dialog) => {
+      errors.push(`the game opened a ${dialog.type()}() dialog, which blocks controller input; draw UI in the game instead`)
+      void dialog.dismiss()
+    })
+  }
+  const open = async (page, label) => {
+    await page.goto(url, { waitUntil: 'load', timeout: 20_000 }).catch((err) => errors.push(`the game didn't load${label}: ${err.message}`))
+  }
+  const screen = (page) => page.evaluate(() => (window.__game?.state?.screen === undefined ? null : String(window.__game.state.screen)))
 
-  page.on('pageerror', (err) => errors.push(`the game crashed: ${err.message}`))
-  page.on('console', (msg) => {
-    if (msg.type() === 'error') warnings.push(`console error: ${msg.text().slice(0, 200)}`)
-  })
-  page.on('dialog', (dialog) => {
-    errors.push(`the game opened a ${dialog.type()}() dialog, which blocks controller input; draw UI in the game instead`)
-    void dialog.dismiss()
-  })
-  await page.route('**/*', (route) => {
-    const url = route.request().url()
-    if (url.startsWith(server.url) || url.startsWith('data:') || url.startsWith('blob:') || manifest.online) return route.continue()
-    errors.push(`the game loads ${url} from the internet. Games must work offline: bundle it into the game folder (or set "online": true for multiplayer games)`)
-    return route.abort()
-  })
+  // --- Pass 1: controller. A once (most games start on A), the stick nudges right, then Start must pause.
+  {
+    const context = await browser.newContext({ viewport: VIEWPORT, deviceScaleFactor: 1 })
+    await offline(context)
+    const page = await context.newPage()
+    await page.addInitScript(() => {
+      const started = performance.now()
+      const check = (window.__kitCheck = { start: false, audio: [] })
+      const button = (pressed) => ({ pressed, touched: pressed, value: pressed ? 1 : 0 })
+      const pad = () => {
+        const t = performance.now() - started
+        return {
+          id: 'Headless check gamepad (STANDARD GAMEPAD)',
+          index: 0,
+          connected: true,
+          mapping: 'standard',
+          timestamp: t,
+          axes: [t > 1500 && t < 2200 ? 0.8 : 0, 0, 0, 0],
+          buttons: Array.from({ length: 17 }, (_, i) => button((i === 0 && t > 1200 && t < 1400) || (i === 9 && check.start))),
+          vibrationActuator: null
+        }
+      }
+      Object.defineProperty(Navigator.prototype, 'getGamepads', { value: () => [pad(), null, null, null] })
+      window.addEventListener('load', () => {
+        setTimeout(() => window.dispatchEvent(Object.assign(new Event('gamepadconnected'), { gamepad: pad() })), 100)
+      })
+      for (const name of ['AudioContext', 'webkitAudioContext']) {
+        const Original = window[name]
+        if (!Original) continue
+        window[name] = class extends Original {
+          constructor(...args) {
+            super(...args)
+            check.audio.push(this)
+          }
+        }
+      }
+    })
+    watch(page)
+    await open(page, '')
+    await page.waitForTimeout(CHECK_RUN_MS)
+    for (const path of server.missing) if (!path.startsWith('/__')) errors.push(`missing file: ${path} (404)`)
 
-  await page
-    .goto(`${server.url}/${entry}`, { waitUntil: 'load', timeout: 20_000 })
-    .catch((err) => errors.push(`the game didn't load: ${err.message}`))
-  await page.waitForTimeout(CHECK_RUN_MS)
+    const shot = await page.screenshot({ type: 'png' })
+    writeFileSync(join(out, ART_DIR, 'screenshot.png'), shot)
+    if (await looksBlank(page, shot)) {
+      errors.push(`after ${CHECK_RUN_MS / 1000}s the screen is one flat color. The game should draw something right away (a title screen counts)`)
+    }
 
-  for (const path of server.missing) if (!path.startsWith('/__')) errors.push(`missing file: ${path} (404)`)
-
-  const shot = await page.screenshot({ type: 'png' })
-  writeFileSync(join(out, ART_DIR, 'screenshot.png'), shot)
-  if (await looksBlank(page, shot)) {
-    errors.push(`after ${CHECK_RUN_MS / 1000}s the screen is one flat color. The game should draw something right away (a title screen counts)`)
+    const before = await screen(page)
+    if (before === null) {
+      warnings.push("window.__game.state.screen is missing, so the check can't verify that Start / Esc pause the game. Expose it: window.__game = { state, TUNING }")
+    } else if (before !== 'playing') {
+      errors.push(`pressing A on the title didn't start the game: after ${CHECK_RUN_MS / 1000}s state.screen is "${before}", not "playing". The title menu's first item must start play`)
+    } else {
+      await page.evaluate(() => (window.__kitCheck.start = true))
+      await page.waitForTimeout(150)
+      await page.evaluate(() => (window.__kitCheck.start = false))
+      await page.waitForTimeout(400)
+      const after = await screen(page)
+      if (after !== 'paused') errors.push(`pressing Start during play didn't pause: state.screen is "${after}", not "paused". Open the pause menu on input.pressed('menu')`)
+    }
+    const audio = await page.evaluate(() => {
+      const list = window.__kitCheck?.audio ?? []
+      return { created: list.length, running: list.some((c) => c.state === 'running') }
+    })
+    if (audio.created && !audio.running) warnings.push('an AudioContext was created but never started running after input: resume it on the first key, tap or button press (createAudio from audio.js does this)')
+    await context.close()
   }
 
-  await context.close()
+  // --- Pass 2: keyboard only, no controller. Enter starts, Escape must pause.
+  {
+    const context = await browser.newContext({ viewport: VIEWPORT, deviceScaleFactor: 1 })
+    await offline(context)
+    const page = await context.newPage()
+    watch(page)
+    await open(page, ' (keyboard pass)')
+    await page.waitForTimeout(1000)
+    const before = await page.screenshot({ type: 'png' })
+    await page.keyboard.press('Enter')
+    await page.waitForTimeout(600)
+    await page.keyboard.press('Escape')
+    await page.waitForTimeout(400)
+    const state = await screen(page)
+    if (state !== null) {
+      if (state !== 'paused') errors.push(`with only a keyboard, Enter then Escape didn't pause the game: state.screen is "${state}", not "paused". Enter chooses (a), Escape opens the pause menu (menu)`)
+    } else if (before.equals(await page.screenshot({ type: 'png' }))) {
+      warnings.push('with only a keyboard, pressing Enter then Escape changed nothing on screen. Menus must work with Enter / arrows and Escape must pause')
+    }
+    await context.close()
+  }
+
+  // --- Pass 3: touch only. Tapping the first title menu item should leave the title.
+  {
+    const context = await browser.newContext({ viewport: VIEWPORT, deviceScaleFactor: 1, hasTouch: true })
+    await offline(context)
+    const page = await context.newPage()
+    watch(page)
+    await open(page, ' (touch pass)')
+    await page.waitForTimeout(1000)
+    const before = await page.screenshot({ type: 'png' })
+    const state = await screen(page)
+    const spot = await page.evaluate(() => {
+      // The title menu's first item if the game exposes it (window.__game.titleMenu, a createMenu),
+      // else where the default menu puts it (640,452 in a 1280×800 space); in CSS pixels.
+      const menu = window.__game?.titleMenu
+      const first = typeof menu?.rect === 'function' ? menu.rect(0) : { x: 430, y: 420, w: 420, h: 64 }
+      const gx = first.x + first.w / 2
+      const gy = first.y + first.h / 2
+      const canvas = document.querySelector('canvas')
+      const r = canvas?.getBoundingClientRect()
+      return r && r.width ? { x: r.left + (gx / 1280) * r.width, y: r.top + (gy / 800) * r.height } : { x: gx, y: gy }
+    })
+    await page.touchscreen.tap(spot.x, spot.y)
+    await page.waitForTimeout(500)
+    const after = await screen(page)
+    if (state !== null) {
+      if (after === state) warnings.push(`with touch only, tapping the first title menu item (at ${Math.round(spot.x)},${Math.round(spot.y)}) changed nothing: state.screen is still "${after}". Menus must be tappable; expose the title menu as window.__game.titleMenu so the check knows where to tap`)
+    } else if (before.equals(await page.screenshot({ type: 'png' }))) {
+      warnings.push('with touch only, tapping the title menu changed nothing on screen. Menus must be tappable')
+    }
+    await context.close()
+  }
+
+  // --- Pass 4: a denser 16:9 screen (Legion Go class, launcher zoom). Not blank, canvas centred.
+  {
+    const { deviceScaleFactor, ...viewport } = VIEWPORT_DENSE
+    const context = await browser.newContext({ viewport, deviceScaleFactor })
+    await offline(context)
+    const page = await context.newPage()
+    watch(page)
+    await open(page, ` (${viewport.width}×${viewport.height} @${deviceScaleFactor}x)`)
+    await page.waitForTimeout(1500)
+    const shot = await page.screenshot({ type: 'png' })
+    if (await looksBlank(page, shot)) errors.push(`at ${viewport.width}×${viewport.height} with ${deviceScaleFactor}× pixels the screen is one flat color. Use fitCanvas from fit.js to size and centre the game`)
+    const placement = await page.evaluate(() => {
+      const canvases = [...document.querySelectorAll('canvas')].map((c) => c.getBoundingClientRect()).filter((r) => r.width > 0)
+      if (!canvases.length) return null
+      const r = canvases.sort((a, b) => b.width * b.height - a.width * a.height)[0]
+      return { dx: r.left + r.width / 2 - innerWidth / 2, dy: r.top + r.height / 2 - innerHeight / 2, w: r.width, h: r.height }
+    })
+    if (placement && (Math.abs(placement.dx) > 2 || Math.abs(placement.dy) > 2)) {
+      warnings.push(`at ${viewport.width}×${viewport.height} the canvas (${Math.round(placement.w)}×${Math.round(placement.h)}) isn't centred (off by ${Math.round(placement.dx)},${Math.round(placement.dy)}px). fitCanvas from fit.js letterboxes and centres it`)
+    }
+    await context.close()
+  }
+
   return { errors: [...new Set(errors)], warnings: [...new Set(warnings)] }
 }
 

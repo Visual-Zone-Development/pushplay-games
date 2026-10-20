@@ -20,17 +20,19 @@ Follow AGENTS.md. Design material lives in `docs/game-design/`.
    - Something is broken → switch to the `debug-game` skill.
 
 ## Direct change
-1. **Sanity-check against the design.** If the change would undermine a fun target, break controller or screen rules, or blow the Deck's performance budget, say so in one line and propose the closest version that works. Otherwise don't ask; just do it.
+1. **Sanity-check against the design.** If the change would undermine a fun target, break the input or screen rules in AGENTS.md, or blow the Deck / Legion Go performance budget, say so in one line and propose the closest version that works. Otherwise don't ask; just do it.
 2. **Implement in the existing style.**
    - Numbers go in `TUNING`. If there isn't a `TUNING` object yet, gather the relevant numbers into one as you go.
-   - A **new mechanic must meet the same bar as the rest of the game**: an onboarding prompt (`input.label()`), visual and audio feedback, a place in the difficulty ramp, and a free button that isn't Start+Select.
+   - A **new mechanic must meet the same bar as the rest of the game**: an onboarding prompt (`input.label()` / `drawPrompts`), visual and audio feedback through `audio.js`, a place in the difficulty ramp, and a free button from the AGENTS.md table (never `menu`, F10 or a chord; `b` is fine).
+   - Never edit the runtime files; add key aliases with `input.extendKeys`.
 3. **Check neighbouring systems:**
-   - pause and restart still reset everything correctly
-   - saves: if the save shape changed, bump the key (`-v2`) or migrate
-   - local multiplayer, if the game has it
-   - title, HUD and help text that mention the old behavior
+   - pause (Resume / Restart / Settings / Quit to title) and restart still reset everything correctly; `input.onPause` still lands on `paused`
+   - saves: if the save shape changed, bump the `createSave` version and pass a `migrate`; keys stay prefixed with the game id
+   - settings: new shake or flash honours `reducedShake`; new text honours `textScale`
+   - local multiplayer via `input.pads[i]`, if the game has it
+   - title, HUD and help text that mention the old behavior; prompts still come from `input.label`, not literals
    - cover and hero art, if the look changed
-4. `npm run check <id>`, fix every ✗, and look at the screenshot.
+4. `npm run check <id>`, fix every ✗, look at the screenshot, and redo the AGENTS.md **Verification** passes that the change touches (at least the input you changed, plus keyboard-only).
 5. **Record it:**
    - bump `version` in `pushplay.json`: patch for tuning or fixes, minor for features or content
    - update DESIGN.md (affected sections plus a Changelog line)
@@ -57,14 +59,23 @@ Follow AGENTS.md. Design material lives in `docs/game-design/`.
    - [complete-game.md](../../../docs/game-design/complete-game.md): missing items are usually the biggest, cheapest wins (no retry hook, silent actions, no ramp, no best score)
    - game feel: response time, acceleration, hit-stop, shake, sound
    - the difficulty curve, read from `TUNING` and the spawn and ramp code
-   - control rules (controller, keyboard and mouse all work everywhere; menus use `menu.js`), screen rules (24px text, 32px margins) and performance
+   - the **AGENTS.md rules checklist** (older games often predate it; each miss is a fix to propose):
+     - menus on `menu.js`, including touch; pause menu = Resume / Restart / Settings / Quit to title; Settings (master/music/SFX, reduced shake, text size via `settings.js`) reachable from title and pause
+     - `menu` pauses (Start / Esc / P / on-screen button), `b` is back and otherwise free; no F10, Start+Select or held-Esc binding; no `pushplay.quit()` outside a "Quit game" item
+     - `input.onPause` → `paused`; `window.__game = { state, TUNING }` with `state.screen`
+     - `fitCanvas` for scaling (no hand-written resize, DPR capped at 2, letterbox colour set); cursor hidden only during gameplay
+     - prompts from `input.label` / `drawPrompts`, no literal "A", "Space", "LB/RB"
+     - `save.js` with `<id>-save-v1` keys, saved on pause; `audio.js` with buses that follow the sliders
+     - manifest has `tags` and `inputs`; `tools/`, `mockups/`, `*.py` not committed; runtime files unedited (header intact)
+     - screen rules (24px text, 32px margins at 1280×800) and performance (60fps, DPR 2 included)
 
    If it helps, research how the DESIGN.md reference games, or similar games, solved the same problem ([inspiration.md](../../../docs/game-design/inspiration.md)).
 4. **Propose.** Offer 3–5 improvements in one `AskUserQuestion` (multiSelect). Each option gives the problem → the fix, its expected effect on feel, and its size (S/M/L).
    - Mix quick wins (tuning, juice, missing feedback) with one bigger idea: a new mechanic, a mode (daily seed, endless, boss rush, co-op) or a meta loop.
    - Put the fix for the **biggest fun problem** first, marked "(Recommended)", even if it isn't the smallest.
 5. **Implement** the chosen items one at a time, using the Direct change steps 2–4 for each.
-6. **Record and hand back.**
+6. **Verify** with the full AGENTS.md **Verification** matrix: controller, keyboard only, mouse only, touch (DevTools device mode), 1920×1080 resize at DPR 2, and `npm run check <id>` (gamepad, keyboard, touch, Start → `paused`, DPR 2 passes all green).
+7. **Record and hand back.**
    - Bump `version`.
    - Update DESIGN.md: tick Definition of done items and add a Changelog entry.
    - Commit and push.
