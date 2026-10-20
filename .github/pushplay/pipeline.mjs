@@ -19,7 +19,15 @@ const SKIP = new Set(['node_modules', 'dist', 'package.json', 'package-lock.json
 export function launchBrowser() {
   // SwiftShader gives headless Chromium software WebGL, so three.js/WebGL games can be checked in CI.
   return chromium.launch({
-    args: ['--autoplay-policy=no-user-gesture-required', '--use-angle=swiftshader', '--enable-unsafe-swiftshader']
+    args: [
+      '--autoplay-policy=no-user-gesture-required',
+      '--use-angle=swiftshader',
+      '--enable-unsafe-swiftshader',
+      // The online check runs two copies at once; neither may be throttled as a background window.
+      '--disable-background-timer-throttling',
+      '--disable-renderer-backgrounding',
+      '--disable-backgrounding-occluded-windows'
+    ]
   })
 }
 
@@ -225,29 +233,49 @@ function netLibrary(dir) {
 async function netCheck(browser, server, entry, relay) {
   const errors = []
   const warnings = []
-  const context = await browser.newContext({ viewport: VIEWPORT, deviceScaleFactor: 1 })
-  await context.addInitScript(() => (window.__kitNetTest = true))
+  const contexts = []
+  const status = (p) => p.evaluate(() => window.__kitNet && { status: window.__kitNet.status, error: window.__kitNet.error, room: window.__kitNet.room }).catch(() => null)
+  // Each copy in its own window, as on two Decks.
   const open = async () => {
+    const context = await browser.newContext({ viewport: VIEWPORT, deviceScaleFactor: 1 })
+    contexts.push(context)
+    await context.addInitScript(() => (window.__kitNetTest = true))
     const page = await context.newPage()
-    await addVirtualGamepad(page)
     page.on('pageerror', (err) => errors.push(`the game crashed during the two-player online check: ${err.message}`))
     await page.goto(`${server.url}/${entry}`, { waitUntil: 'load', timeout: 20_000 })
     return page
   }
+  // Press A (Space) until the copy leaves the title; in the check, the lobby then quick-matches by itself.
+  const enterRoom = async (page) => {
+    const deadline = Date.now() + NET_MEET_MS
+    while (Date.now() < deadline) {
+      const s = await status(page)
+      if (s?.room) return true
+      if (!s || s.status === 'idle') {
+        await page.keyboard.down('Space')
+        await page.waitForTimeout(120)
+        await page.keyboard.up('Space')
+      }
+      await page.waitForTimeout(400)
+    }
+    return false
+  }
+  const describe = (s) => (s ? `${s.status}${s.error ? `, "${s.error}"` : ''}` : 'no net')
   try {
+    // The first copy opens a room before the second looks for one.
     const host = await open()
-    // The second copy presses A after the first has opened its room.
-    await host.waitForTimeout(1000)
+    await enterRoom(host)
     const guest = await open()
+    await enterRoom(guest)
     const playing = () => window.__kitNet?.status === 'playing' && window.__kitNet.players.length >= 2
     const met = await Promise.all([host, guest].map((p) => p.waitForFunction(playing, null, { timeout: NET_MEET_MS }).then(() => true, () => false)))
     if (!met.every(Boolean)) {
-      const status = await Promise.all([host, guest].map((p) => p.evaluate(() => window.__kitNet && { status: window.__kitNet.status, error: window.__kitNet.error }).catch(() => null)))
-      if (status.some((s) => !s)) errors.push('this online game never created its net (createNet from net.js), so two copies could not meet')
+      const s = await Promise.all([host, guest].map(status))
+      if (s.some((x) => !x)) errors.push('this online game never created its net (createNet from net.js), so two copies could not meet')
       else
         errors.push(
-          `two copies of the game didn't get into a match together within ${NET_MEET_MS / 1000}s (first: ${status[0].status}${status[0].error ? `, "${status[0].error}"` : ''}; second: ${status[1].status}${status[1].error ? `, "${status[1].error}"` : ''}). ` +
-            'Keep the flow from the online template: title → lobby (lobby.update) → play when it returns "start"'
+          `two copies of the game didn't get into a match together within ${NET_MEET_MS / 1000}s (first: ${describe(s[0])}; second: ${describe(s[1])}). ` +
+            `Keep the flow from the online template: title (A starts) → lobby (lobby.update) → play when it returns "start"`
         )
       return { errors, warnings }
     }
@@ -262,7 +290,7 @@ async function netCheck(browser, server, entry, relay) {
   } catch (err) {
     errors.push(`the two-player online check failed: ${err.message}`)
   } finally {
-    await context.close()
+    await Promise.all(contexts.map((c) => c.close()))
   }
   return { errors, warnings }
 }
