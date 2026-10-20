@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="500" viewBox="0 0 720 500">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="62%" r="70%">
+      <stop offset="0" stop-color="#1b2442"/>
+      <stop offset="1" stop-color="#0d1222"/>
+    </radialGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="6" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <rect width="720" height="500" fill="url(#bg)"/>
+  <!-- the ring, seen at an angle -->
+  <ellipse cx="360" cy="300" rx="330" ry="150" fill="#1b2442"/>
+  <ellipse cx="360" cy="300" rx="250" ry="112" fill="none" stroke="#5ad1ff" stroke-opacity="0.15" stroke-width="3"/>
+  <ellipse cx="360" cy="300" rx="170" ry="76" fill="none" stroke="#5ad1ff" stroke-opacity="0.15" stroke-width="3"/>
+  <ellipse cx="360" cy="300" rx="330" ry="150" fill="none" stroke="#5ad1ff" stroke-width="8" filter="url(#glow)"/>
+  <!-- impact sparks -->
+  <g stroke="#ffffff" stroke-width="7" stroke-linecap="round" filter="url(#glow)">
+    <line x1="360" y1="230" x2="360" y2="196"/>
+    <line x1="392" y1="244" x2="420" y2="222"/>
+    <line x1="328" y1="244" x2="300" y2="222"/>
+    <line x1="402" y1="282" x2="436" y2="290"/>
+    <line x1="318" y1="282" x2="284" y2="290"/>
+  </g>
+  <!-- two pucks colliding -->
+  <g filter="url(#glow)">
+    <ellipse cx="270" cy="282" rx="86" ry="56" fill="#0d1222" stroke="#ffb547" stroke-width="16"/>
+    <ellipse cx="450" cy="282" rx="86" ry="56" fill="#0d1222" stroke="#5ad1ff" stroke-width="16"/>
+  </g>
+  <text x="270" y="300" text-anchor="middle" font-family="Bungee" font-size="48" fill="#ffb547">1</text>
+  <text x="450" y="300" text-anchor="middle" font-family="Bungee" font-size="48" fill="#5ad1ff">2</text>
+  <!-- speed streaks -->
+  <g stroke="#ffb547" stroke-width="8" stroke-linecap="round" opacity="0.7">
+    <line x1="120" y1="260" x2="170" y2="262"/>
+    <line x1="100" y1="290" x2="165" y2="292"/>
+  </g>
+  <text x="360" y="112" text-anchor="middle" font-family="Bungee" font-size="84" fill="#ffb547" stroke="#0d1222" stroke-width="10" paint-order="stroke">BUMPER RING</text>
+</svg>

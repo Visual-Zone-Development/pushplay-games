@@ -1,0 +1,22 @@
+{
+  "$schema": "../../.github/pushplay/manifest.schema.json",
+  "id": "bumper-ring",
+  "name": "Bumper Ring",
+  "description": "Online sumo for 2–4 Decks: dash into your friends and knock them off a shrinking ring. Last puck standing takes the round, and the first to 3 wins the match.",
+  "version": "1.0.0",
+  "entry": {
+    "web": "index.html"
+  },
+  "art": {
+    "cover": "art/cover.svg",
+    "hero": "art/hero.svg"
+  },
+  "controls": "gamepad",
+  "players": "2-4",
+  "tags": [
+    "party",
+    "arcade",
+    "online multiplayer"
+  ],
+  "online": true
+}
