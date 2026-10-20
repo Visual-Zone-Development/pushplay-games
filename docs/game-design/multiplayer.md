@@ -60,6 +60,9 @@ who joins gets everything once, then the same changes as everyone else. To keep 
 
 - **Put only what players must see in `net.state`.** Timers, AI internals and particles stay
   in local variables. Particles and screen shake come from `net.event` on each copy.
+- **Whole numbers jump, fractions glide.** `net.view` blends fractional numbers (positions,
+  angles) between updates, but takes whole numbers (scores, countdowns, lives) as they are. Keep
+  counters whole (`Math.ceil(timeLeft)`), and positions fractional, as physics makes them.
 - **Key things by id, not array position:** `bullets: { b17: {...} }`, not `bullets: [...]`.
   Removing the first item of an array shifts every index after it, and all of them get resent.
 - **Don't write a value just to write it.** Setting `x = x` costs nothing; recomputing a

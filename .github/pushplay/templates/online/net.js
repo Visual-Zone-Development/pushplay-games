@@ -14,11 +14,14 @@
 //   everyone:    net.setInput({ x: input.x, fire: input.held('a') }); draw from net.view
 //   events:      net.on('join' | 'leave' | 'start' | 'end' | 'event' | 'disconnect', fn)
 //
+// Fractional numbers (positions, angles) are blended between updates; whole numbers (counts,
+// scores, countdowns) jump straight to the newest value.
+//
 // Keep state small and JSON-shaped (numbers, strings, booleans, objects, arrays). Key things
 // that come and go by id (`ships: { p2: {...} }`), not by array position: removing the first
 // item of an array changes every index after it, and all of them get resent.
 
-export const NET_VERSION = 2
+export const NET_VERSION = 3
 
 /** Time between state updates from the host (about 30 a second). */
 const TICK_MS = 33
@@ -380,9 +383,12 @@ export function sample(snaps, t) {
   return snaps.at(-1).s
 }
 
-/** Blend numbers from a toward b (t = 0..1); everything else comes from b. */
+/**
+ * Blend numbers from a toward b (t = 0..1); everything else comes from b. Whole numbers on both
+ * sides (counts, scores, countdowns, lives) aren't blended: a countdown never shows 1.37.
+ */
 export function lerp(a, b, t) {
-  if (typeof a === 'number' && typeof b === 'number') return a + (b - a) * t
+  if (typeof a === 'number' && typeof b === 'number') return Number.isInteger(a) && Number.isInteger(b) ? b : a + (b - a) * t
   if (isObject(a) && isObject(b) && Array.isArray(a) === Array.isArray(b)) {
     const out = Array.isArray(b) ? [] : {}
     for (const k of Object.keys(b)) out[k] = lerp(a[k], b[k], t)
