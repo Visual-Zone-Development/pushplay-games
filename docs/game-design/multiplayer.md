@@ -50,6 +50,8 @@ function hostUpdate(dt) {
 | `net.event(name, data)` | One-off moments everyone should see or hear (goal, explosion, round over) |
 | `net.on(type, fn)` | `join`, `leave`, `start`, `end` (host left), `event`, `disconnect` |
 | `net.leave()`, `net.disconnect()` | Back to the lobby, or hang up entirely |
+| `net.privateView(id)` | Host: one player's private view (their hand, their role). Only that player gets it |
+| `net.mine` | This player's private view, from the host |
 
 ## Only changes are sent
 
@@ -69,6 +71,15 @@ who joins gets everything once, then the same changes as everyone else. To keep 
   float that wobbles at the 3rd decimal place does.
 
 The check warns above about 20 KB/s for two players.
+
+## Secrets
+
+Everything in `net.state` reaches every copy, and anyone can read it in the browser's developer
+tools. Hidden information (a hand of cards, a secret role, the answer) goes in a private view
+instead: the host writes `net.privateView(id).hand = [...]`, and only that player's copy gets it,
+as `net.mine.hand`. Same rules as `net.state`: changes only, keyed by id, numbers rounded.
+
+Playing with everyone on one TV instead? See [party.md](party.md).
 
 ## Screens and flow
 

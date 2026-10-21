@@ -78,6 +78,9 @@
           "online": {
             "type": "boolean"
           },
+          "party": {
+            "type": "boolean"
+          },
           "platform": {
             "type": "string",
             "const": "web"

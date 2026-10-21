@@ -133,6 +133,9 @@
     "online": {
       "type": "boolean"
     },
+    "party": {
+      "type": "boolean"
+    },
     "inputs": {
       "maxItems": 4,
       "type": "array",

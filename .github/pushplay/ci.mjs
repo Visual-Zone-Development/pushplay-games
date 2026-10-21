@@ -85,6 +85,7 @@ async function build() {
             tags: m.tags ?? [],
             inputs: m.inputs ?? null,
             online: m.online ?? false,
+            party: m.party ?? false,
             platform: 'web',
             build: buildNumber,
             commit: sha,
@@ -116,7 +117,7 @@ async function build() {
  * can't go online until the next build. Runs in the build stage, before the game is zipped.
  */
 async function onlinePass(out, manifest) {
-  if (!manifest.online || dryRun) return []
+  if (!(manifest.online || manifest.party) || dryRun) return []
   if (!RELAY_URL) return ['no online relay is configured for this kit (brand.json relayUrl), so online play is off in this build']
   const base = RELAY_URL.replace(/^ws/, 'http').replace(/\/+$/, '')
   let token = ''

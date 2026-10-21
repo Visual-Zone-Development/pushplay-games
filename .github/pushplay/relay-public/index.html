@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+    <meta name="theme-color" content="#0d0f14" />
+    <title>Join a party</title>
+    <link rel="stylesheet" href="/shell.css" />
+    <script type="module" src="/shell.js"></script>
+  </head>
+  <body>
+    <form id="join" class="card" hidden>
+      <h1>Join the party</h1>
+      <label>Room code
+        <input id="code" name="code" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="4" inputmode="text" placeholder="ABCD" required />
+      </label>
+      <label>Your name
+        <input id="name" name="name" autocomplete="nickname" maxlength="20" placeholder="Name" required />
+      </label>
+      <fieldset id="colors"><legend>Colour</legend></fieldset>
+      <p id="error" class="error" role="alert"></p>
+      <button id="go" type="submit">Join</button>
+    </form>
+
+    <main id="play" hidden>
+      <header>
+        <span id="me"><i id="swatch"></i><b id="who"></b></span>
+        <span id="room"></span>
+        <button id="leave" type="button" aria-label="Leave">✕</button>
+      </header>
+      <div id="stage"></div>
+      <div id="notice" hidden><p id="notice-text"></p><button id="notice-button" type="button" hidden></button></div>
+    </main>
+  </body>
+</html>

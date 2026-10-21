@@ -13,6 +13,8 @@
 //   host:        net.state.ships[id] = {...}; read net.inputs[id] for each id in net.players
 //   everyone:    net.setInput({ x: input.x, fire: input.held('a') }); draw from net.view
 //   events:      net.on('join' | 'leave' | 'start' | 'end' | 'event' | 'disconnect', fn)
+//   secrets:     host: net.privateView(id).hand = [...]   that player: net.mine.hand
+//                (net.state reaches everyone; a view reaches only its player)
 //
 // Fractional numbers (positions, angles) are blended between updates; whole numbers (counts,
 // scores, countdowns) jump straight to the newest value.
@@ -21,7 +23,7 @@
 // that come and go by id (`ships: { p2: {...} }`), not by array position: removing the first
 // item of an array changes every index after it, and all of them get resent.
 
-export const NET_VERSION = 3
+export const NET_VERSION = 4
 
 /** Time between state updates from the host (about 30 a second). */
 const TICK_MS = 33
@@ -48,6 +50,7 @@ export function createNet({ maxPlayers = 2, minPlayers = 2 } = {}) {
   let connecting = null
   let lastTick = 0
   let lastSent = {} // host: the snapshot players have
+  let lastViews = {} // host: each player's private view, as they have it
   let snaps = [] // player: recent states as { t: host time, s: state }, oldest first
   let events = [] // player: host events waiting for their moment on screen
   let clockOffset = null // player: local time minus host time, at the lowest latency seen
@@ -78,6 +81,11 @@ export function createNet({ maxPlayers = 2, minPlayers = 2 } = {}) {
     view: {},
     /** Host: every player's latest input, by id (including the host's own). */
     inputs: {},
+    /** Host: each player's private view, by id; net.privateView(id) creates one. */
+    privateViews: {},
+    /** This player's private view, from the host (only this player gets it). */
+    mine: {},
+    privateView: (id) => (net.privateViews[id] ??= {}),
     stats: { sentBytes: 0, receivedBytes: 0, patches: 0, fulls: 0 },
 
     /** Number for a player (0 = host): handy for colours and spawn points. */
@@ -137,7 +145,15 @@ export function createNet({ maxPlayers = 2, minPlayers = 2 } = {}) {
             net.stats.patches++
           }
           lastSent = snap
+          for (const id of net.players) {
+            if (id === net.me || !lastViews[id]) continue
+            const v = snapshot(net.privateViews[id] ?? {}, round)
+            const vops = diff(lastViews[id], v)
+            if (vops.length) send({ t: 'send', to: id, d: { k: 'v', p: vops } })
+            lastViews[id] = v
+          }
         }
+        net.mine = net.privateViews[net.me] ?? {}
       } else {
         const text = JSON.stringify(snapshot(myInput, round))
         if (text !== sentInput && net.hostId) {
@@ -246,6 +262,9 @@ export function createNet({ maxPlayers = 2, minPlayers = 2 } = {}) {
         for (const id of net.players) net.inputs[id] = {}
         net.inputs[net.me] = myInput
         sentInput = '{}'
+        net.privateViews = {}
+        net.mine = {}
+        lastViews = {}
         if (net.isHost) {
           lastSent = {}
           net.state = {}
@@ -264,6 +283,8 @@ export function createNet({ maxPlayers = 2, minPlayers = 2 } = {}) {
         // Newcomers get everything once; after that, the same changes as everyone else.
         if (net.isHost) {
           send({ t: 'send', to: msg.id, d: { k: 'f', s: lastSent, t: Math.round(performance.now()) } })
+          lastViews[msg.id] = snapshot(net.privateViews[msg.id] ?? {}, round)
+          send({ t: 'send', to: msg.id, d: { k: 'V', s: lastViews[msg.id] } })
           net.stats.fulls++
         }
         emit('join', msg.id)
@@ -271,6 +292,8 @@ export function createNet({ maxPlayers = 2, minPlayers = 2 } = {}) {
       case 'peer-leave':
         net.players = net.players.filter((id) => id !== msg.id)
         delete net.inputs[msg.id]
+        delete net.privateViews[msg.id]
+        delete lastViews[msg.id]
         emit('leave', msg.id)
         break
       case 'start':
@@ -296,6 +319,8 @@ export function createNet({ maxPlayers = 2, minPlayers = 2 } = {}) {
     if (!d || typeof d !== 'object') return
     const now = performance.now()
     if (d.k === 'i' && net.isHost) net.inputs[from] = d.i
+    else if (from === net.hostId && d.k === 'V') net.mine = d.s
+    else if (from === net.hostId && d.k === 'v') net.mine = applyPatch(structuredClone(net.mine), d.p)
     else if (from === net.hostId && typeof d.t === 'number') {
       // Track the host's clock. The lowest offset seen is the fastest delivery; drift up slowly
       // so a clock that wanders, or a one-off fast packet, doesn't freeze the view.

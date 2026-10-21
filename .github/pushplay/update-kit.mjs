@@ -9,7 +9,7 @@ import { spawnSync } from 'node:child_process'
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { basename, dirname, join, resolve } from 'node:path'
-import { brand, KIT_DIR, KIT_VERSION, RUNTIME_FILES, RUNTIME_HEADER_RE, WORKFLOW_FILE } from './config.mjs'
+import { brand, KIT_DIR, KIT_VERSION, PARTY_RUNTIME_FILES, RUNTIME_FILES, RUNTIME_HEADER_RE, WORKFLOW_FILE } from './config.mjs'
 import { listGames, log, npmSpawn, ROOT } from './repo.mjs'
 
 const KIT_ZIP = 'kit.zip'
@@ -67,7 +67,7 @@ try {
   } else log('  – no prompts bundled with this kit (AGENTS.md, skills and docs left as they are)')
 
   // 3. Runtime modules in every game
-  const templates = join(kitDir, 'templates/shared')
+  const templates = join(kitDir, 'templates')
   const replaced = []
   const added = []
   const forked = []
@@ -76,9 +76,12 @@ try {
     const codeDir = existsSync(join(game.dir, 'src/game.js')) ? join(game.dir, 'src') : game.dir
     const present = RUNTIME_FILES.filter((f) => existsSync(join(codeDir, f)))
     if (!present.length) continue // not a kit game (no runtime files): leave it alone
-    for (const file of RUNTIME_FILES) {
+    // Party games (they have party.js) get the party modules too.
+    const party = existsSync(join(codeDir, 'party.js')) && existsSync(join(templates, 'party'))
+    const files = [...RUNTIME_FILES.map((f) => ['shared', f]), ...(party ? PARTY_RUNTIME_FILES.map((f) => ['party', f]) : [])]
+    for (const [group, file] of files) {
       const dest = join(codeDir, file)
-      const fresh = readFileSync(join(templates, file), 'utf8')
+      const fresh = readFileSync(join(templates, group, file), 'utf8')
       const rel = `${game.rel ? game.rel + '/' : ''}${codeDir === game.dir ? '' : 'src/'}${file}`
       if (!existsSync(dest)) {
         writeFileSync(dest, fresh)

@@ -5,7 +5,7 @@ This repo is a collection of small games. Each folder in `games/` is one game, a
 ## Workflow (follow it every time)
 
 0. **Design brief first.** A complete, fun game beats a quick tech demo. Before writing code, settle with the user (or decide and record as assumptions): the gameplay loop, 2D or 3D, art direction, whether they have assets, how it should *feel*, and any games it should feel like. Once step 1 has created the folder, write `games/<id>/DESIGN.md` from [`docs/game-design/DESIGN.template.md`](docs/game-design/DESIGN.template.md). The design guides in [`docs/game-design/`](docs/game-design/) cover the 8 formal elements and 8 kinds of fun ([framework](docs/game-design/framework.md)), genre loops, art styles, researching inspiration, and the [definition of done](docs/game-design/complete-game.md) every game should meet.
-1. **New game:** `npm run new-game <game-id>` (add `--vite` if you need npm packages like three.js, `--online --players 2-4` for online multiplayer). The id is lowercase-with-dashes and becomes the folder name. This creates a working starter with title, pause and settings screens that already work on controller, keyboard, mouse and touch: `game.js`, the runtime files (`input.js`, `menu.js`, `fit.js`, `audio.js`, `save.js`, `settings.js`, `prompts.js`, plus `net.js` and `lobby.js` in an `--online` game), `pushplay.json` and placeholder art.
+1. **New game:** `npm run new-game <game-id>` (add `--vite` if you need npm packages like three.js, `--online --players 2-4` for online multiplayer, `--party` for a party game played on a TV with phones). The id is lowercase-with-dashes and becomes the folder name. This creates a working starter with title, pause and settings screens that already work on controller, keyboard, mouse and touch: `game.js`, the runtime files (`input.js`, `menu.js`, `fit.js`, `audio.js`, `save.js`, `settings.js`, `prompts.js`, plus `net.js` and `lobby.js` in an `--online` game, or `net.js`, `party.js`, `party-lobby.js`, `qr.js` and `controller.js` in a `--party` game), `pushplay.json` and placeholder art.
 2. **Build the game** in that folder. Only touch other games, `.github/` or root files if the user asked you to. Never edit the runtime files (see *Runtime files*).
 3. **Fill in `pushplay.json`:** a real `description`, `players`, `tags`, `inputs`, and anything else that applies (see *Manifest*).
 4. **Make the art:** replace `art/cover.svg` and `art/hero.svg` (see *Art*). This is required; the check fails on placeholder art.
@@ -24,7 +24,7 @@ If your environment can't install the browser (some cloud sandboxes block the do
 
 ### Runtime files (don't edit)
 
-`input.js`, `menu.js`, `fit.js`, `audio.js`, `save.js`, `settings.js` and `prompts.js` in each game folder (plus `net.js` and `lobby.js` in an online game) start with the header `pushplay runtime v2 — replaced by npm run update-kit; don't edit`. They are shared code: `npm run update-kit` overwrites them in every game, so any edit is lost. Import them; never change them. Game-specific key aliases go through `input.extendKeys({ KeyR: 'y' })` in `game.js`.
+`input.js`, `menu.js`, `fit.js`, `audio.js`, `save.js`, `settings.js` and `prompts.js` in each game folder (plus `net.js` and `lobby.js` in an online game, and `party.js`, `party-lobby.js`, `qr.js`, `controller.js` and `net.js` in a party game) start with the header `pushplay runtime v2 — replaced by npm run update-kit; don't edit`. They are shared code: `npm run update-kit` overwrites them in every game, so any edit is lost. Import them; never change them. Game-specific key aliases go through `input.extendKeys({ KeyR: 'y' })` in `game.js`.
 
 ### Controls: every input, alone
 
@@ -48,7 +48,7 @@ Games are played on a Steam Deck or Legion Go with their built-in controls, and 
 - `input.held(b)`, `input.pressed(b)`, `input.released(b)`. Use `pressed()` for one-shot actions.
 - **Pause is `menu`, back is `b`. They are different buttons.** Esc always pauses and never acts as B; B/Backspace never pauses. So B is a normal gameplay button and a stray Esc can't cancel a run.
 - **Never bind F10, Start+Select, or a held Esc.** The launcher uses them to quit the game (see *Exit and pause*). Nothing in the game may depend on a chord of two buttons.
-- Nothing may need hover, a double-click, a scroll wheel, a modifier chord or typed text: a controller has none of them. Pointer-driven ideas (aiming, dragging, placing) also need a stick-driven cursor or snapping between targets.
+- Nothing may need hover, a double-click, a scroll wheel, a modifier chord or typed text: a controller has none of them. (A party game's phone screen, `controller.html`, may use text fields: it runs on a phone.) Pointer-driven ideas (aiming, dragging, placing) also need a stick-driven cursor or snapping between targets.
 - **Local multiplayer** uses `input.pads[i]` (`{ index, connected, x, y, aimX, aimY, held(), pressed() }`), one per controller; player 1 may also use the keyboard. Join screen: `${input.label('a')} to join`, one slot per pad that pressed. The merged `input.*` view is for menus only in a multiplayer game. Tag it `"local multiplayer"` and set `players` to e.g. `"2-4"`.
 
 ### Menus (`menu.js`)
@@ -109,7 +109,7 @@ Every game has a Settings screen, **reachable from the title and from the pause 
 
 ### Flow
 
-- Screens: `title` → `playing` ↔ `paused` → `gameover`, plus `settings` (and `lobby` between `title` and `playing` in an online game). Keep the current one in `state.screen` with exactly those names, and expose `window.__game = { state, TUNING }` (the check presses Start and expects `'paused'`).
+- Screens: `title` → `playing` ↔ `paused` → `gameover`, plus `settings` (and `lobby` between `title` and `playing` in an online or party game). Keep the current one in `state.screen` with exactly those names, and expose `window.__game = { state, TUNING }` (the check presses Start and expects `'paused'`).
 - The title screen is the first thing drawn and says how to start and how to pause. Game over shows score, best and retries in one press.
 - Restart (from pause or game over) resets everything the run touched: timers, particles, audio loops, RNG seed if seeded.
 
@@ -117,6 +117,7 @@ Every game has a Settings screen, **reachable from the title and from the pause 
 
 - No CDNs, remote fonts, analytics or network calls. Bundle everything inside the game folder (or install it with npm in a `--vite` game). The check fails on internet requests and on WebSockets.
 - Exception: online multiplayer, with `"online": true` in the manifest. Scaffold it with `--online`: it plays through the shared relay with no setup, and only the relay connection is allowed. Follow [`docs/game-design/multiplayer.md`](docs/game-design/multiplayer.md) and don't edit the provided `net.js` or `lobby.js` (see *Online multiplayer*).
+- Same for party games (`"party": true`, scaffolded with `--party`): phones join through the same relay (see *Party games*).
 - Saves persist per game on the handheld via `localStorage` (see *Saves*).
 
 ### Online multiplayer (`net.js`, `lobby.js`)
@@ -126,6 +127,20 @@ Every game has a Settings screen, **reachable from the title and from the pause 
 - **Flow:** `title` → `lobby` (`lobby.update()` returns `'start'` or `'back'`) → `playing` ↔ `paused`. Keep it, and keep `state.screen` and `window.__game`: the check plays two copies together through a local relay and still presses `menu` expecting `'paused'`.
 - **Pause can't freeze a shared world.** `menu` (Start / Esc / P / on-screen button) still opens a `menu.js` pause menu (Resume, Settings, Leave game), but it only stops your own controls (`net.setInput({})`) while the host keeps running. `'back'` resumes; Leave game calls `net.leave()` and returns to the lobby. Everything in *Exit and pause* still applies: the launcher owns quitting.
 - Show who's who ("You", colours by `net.slot(id)`). Tag it `"online multiplayer"`, set `players` to e.g. `"2-4"` and `"online": true` (the scaffold does). Bump `version` when the netcode changes: only builds with the same version play together.
+- **Secrets (a hand of cards, a hidden role):** `net.state` reaches every player, so never put them there. The host writes `net.privateView(id).hand = [...]`; only that player gets it, as `net.mine.hand`.
+
+### Party games (TV + phones: `party.js`, `party-lobby.js`, `controller.html`)
+
+A party game runs on the handheld or PC plugged into a TV. Players join from their phones (scan the QR code, or type the room code at the address on screen) or from any browser, and controllers plugged into the machine can join too. Think Jackbox: a quiz, drawing or bluffing game, a card game with hidden hands, or an action game with phones as gamepads. Full guide: [`docs/game-design/party.md`](docs/game-design/party.md).
+
+- `npm run new-game <id> --party [--controller pad|custom] [--players 3-8]` (up to 16 players). `pad` (default) gives every phone a stick and A/B; `custom` starts a phone screen of the game's own. The runtime files (`party.js`, `party-lobby.js`, `qr.js`, `controller.js`, `net.js`) are never edited; `controller.html` and `game.js` are yours.
+- **The TV runs everything.** Each frame, after `input.update(dt)`, call `party.update()`; then read `party.players` (`{ id, name, color, kind: 'phone' | 'local', connected }`), `party.inputs[id]` (`{ x, y, a, b }`, the same from a phone pad and a local controller) and `party.pressed(id, 'a')`.
+- **Who sees what.** `party.public` goes to every phone (prompt, choices, whose turn); `party.view(id)` goes only to that player's phone (their hand, secret role, private score); everything else stays on the TV. **Secrets never go in `party.public`.** Both are sent as changes only: write them freely.
+- **Phone → TV:** the phone screen calls `controller.send(data)` (→ `party.on('msg', ({ from, data }) => …)`) for choices and text, `controller.input({...})` for held controls.
+- **`controller.html` is one file** with its HTML, CSS and JS inline (images as `data:` URLs): the TV sends it to each phone, where it runs with no network. It reads `controller.public`, `controller.mine`, `controller.players`, `controller.me` and re-renders on `controller.on('update', fn)`. Design it for a phone held in one hand: big tap targets, portrait for custom screens. The kit's lobby screen covers the phones until the game starts.
+- **Flow:** `title` → `lobby` (`lobby.update()` returns `'start'` or `'back'`; the first phone or A on the TV starts) → `playing` ↔ `paused`. Unlike online games, **pause freezes the world**: the TV runs it. Set `party.public.paused` so phones can show it, and draw `drawJoinBadge()` during play so latecomers can join (or `party.lock()` to stop them).
+- Phones that drop (screen lock, Wi-Fi) keep their seat for two minutes and come back with everything; their `party.inputs` go empty meanwhile, so nothing runs away. Show away players dimmed (`connected: false`).
+- Latency is about 50–150 ms from phone to TV: great for party, quiz, card and brawler games, not for precise aiming. Tag it `"party"` (the scaffold sets `"party": true` and the tags).
 
 ### Performance
 
@@ -206,15 +221,15 @@ If you're truly unable to make art, remove the `art` field: the check will gener
 
 | Command | What it does |
 |---|---|
-| `npm run new-game <id> [--vite] [--online] [--players 2-4] [--name "Title"]` | Scaffold a game (`--online`: online multiplayer starter) |
-| `npm run dev <id>` | Play it in a browser with live reload (http://localhost:5173). Online games: a local relay starts too, so open two windows |
-| `npm run check [id]` | Validate, build, headless play test (gamepad, keyboard, touch, pause, a 16:9 window at DPR 2; online games also play two copies through a local relay), render art. Must pass before pushing. |
+| `npm run new-game <id> [--vite] [--online \| --party [--controller pad\|custom]] [--players 2-4] [--name "Title"]` | Scaffold a game (`--online`: online multiplayer starter; `--party`: TV + phones party starter) |
+| `npm run dev <id>` | Play it in a browser with live reload (http://localhost:5173). Online games: a local relay starts too, so open two windows. Party games: phones on the same Wi-Fi scan the lobby's QR code |
+| `npm run check [id]` | Validate, build, headless play test (gamepad, keyboard, touch, pause, a 16:9 window at DPR 2; online games also play two copies through a local relay; party games bring headless phones that join, play and reconnect), render art. Must pass before pushing. |
 | `npm run update-kit` | Refresh the build kit, these prompts and the runtime files in every game (only when the user asks) |
 
 ## Don'ts
 
 - Don't edit `.github/` unless asked: it holds the build kit and workflow shared by every game.
-- Don't edit the runtime files in a game folder (`input.js`, `menu.js`, `fit.js`, `audio.js`, `save.js`, `settings.js`, `prompts.js`, and `net.js` / `lobby.js` in online games).
+- Don't edit the runtime files in a game folder (`input.js`, `menu.js`, `fit.js`, `audio.js`, `save.js`, `settings.js`, `prompts.js`, `net.js` / `lobby.js` in online games, and `party.js` / `party-lobby.js` / `qr.js` / `controller.js` in party games).
 - Don't bind F10, Start+Select or a held Esc; don't build an "exit to launcher" of your own.
 - Don't commit `node_modules/`, `dist/`, `tools/`, `mockups/`, `*.py` or `__pycache__/`.
 - Don't delete or rewrite other games.

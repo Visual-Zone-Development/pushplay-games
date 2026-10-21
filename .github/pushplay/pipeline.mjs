@@ -4,7 +4,7 @@ import { copyFileSync, cpSync, existsSync, mkdirSync, readdirSync, readFileSync,
 import { createRequire } from 'node:module'
 import { basename, dirname, join } from 'node:path'
 import { chromium } from 'playwright'
-import { ART, ART_FONTS, CHECK_RUN_MS, MANIFEST_FILE, NET_MEET_MS, NET_PLAY_MS, NET_WARN_BYTES_PER_SEC, RUNTIME_FILES, RUNTIME_HEADER_RE, VIEWPORT, VIEWPORT_DENSE } from './config.mjs'
+import { ART, ART_FONTS, CHECK_RUN_MS, MANIFEST_FILE, NET_MEET_MS, NET_PLAY_MS, NET_WARN_BYTES_PER_SEC, PARTY_RUNTIME_FILES, RUNTIME_FILES, RUNTIME_HEADER_RE, VIEWPORT, VIEWPORT_DENSE } from './config.mjs'
 import { startLocalRelay } from './local-relay.mjs'
 import { buildMode, display, distDir, GameError, ignored, ignorePatterns, npmSpawn, outDir, quote, readManifest, ROOT, validateManifest } from './repo.mjs'
 import { serve } from './server.mjs'
@@ -69,11 +69,16 @@ export async function buildGame(game, browser, { pack = true, beforePack } = {})
   mkdirSync(join(out, ART_DIR), { recursive: true })
   const net = manifest.online ? netLibrary(game.dir) : null
   if (net) warnings.push(...net.warnings)
-  const relay = net ? await startLocalRelay() : null
+  const relay = net || manifest.party ? await startLocalRelay() : null
   const server = await serve({ '/': out, '/__src/': game.dir, '/__fonts/': FONTSOURCE }, relay ? { '/__net.json': JSON.stringify({ url: relay.url }) } : {})
   try {
     const play = await playCheck(browser, server, out, webEntry, manifest)
-    if (relay && !play.errors.length) {
+    if (manifest.party && !play.errors.length) {
+      const phones = await partyCheck(browser, server, webEntry, relay, manifest)
+      play.errors.push(...phones.errors)
+      play.warnings.push(...phones.warnings)
+    }
+    if (net && !play.errors.length) {
       const together = await netCheck(browser, server, webEntry, relay)
       play.errors.push(...together.errors)
       play.warnings.push(...together.warnings)
@@ -125,7 +130,7 @@ function sourceFiles(dir, out = [], rel = '') {
     if (entry.isDirectory()) sourceFiles(full, out, path)
     else if (/\.(m?js|ts|html)$/.test(entry.name)) {
       const text = readFileSync(full, 'utf8')
-      if (RUNTIME_FILES.includes(entry.name) && RUNTIME_HEADER_RE.test(text)) continue
+      if ((RUNTIME_FILES.includes(entry.name) || PARTY_RUNTIME_FILES.includes(entry.name)) && RUNTIME_HEADER_RE.test(text)) continue
       out.push({ path, text })
     }
   }
@@ -215,13 +220,13 @@ async function playCheck(browser, server, out, entry, manifest) {
     })
     await context.route('**/*', (route) => {
       const target = route.request().url()
-      if (target.startsWith(server.url) || target.startsWith('data:') || target.startsWith('blob:') || manifest.online) return route.continue()
+      if (target.startsWith(server.url) || target.startsWith('data:') || target.startsWith('blob:') || manifest.online || manifest.party) return route.continue()
       errors.push(`the game loads ${target} from the internet. Games must work offline: bundle it into the game folder (or set "online": true for multiplayer games)`)
       return route.abort()
     })
     await context.routeWebSocket(() => true, (ws) => {
       const target = ws.url()
-      if (manifest.online || target.startsWith(server.url.replace('http', 'ws'))) return ws.connectToServer()
+      if (manifest.online || manifest.party || target.startsWith(server.url.replace('http', 'ws'))) return ws.connectToServer()
       errors.push(`the game opens a WebSocket to ${target}. Games must work offline (or set "online": true for multiplayer games)`)
       ws.close()
     })
@@ -371,9 +376,10 @@ async function playCheck(browser, server, out, entry, manifest) {
       const before = await screen(page)
       if (before === null) {
         warnings.push("window.__game.state.screen is missing, so the check can't verify that Start / Esc pause the game. Expose it: window.__game = { state, TUNING }")
-      } else if (before !== 'playing' && !(manifest.online && before === 'lobby')) {
-        // Online games go to their lobby first (one copy can't play alone); netCheck plays two together.
-        errors.push(`pressing A on the title didn't start the game: after ${CHECK_RUN_MS / 1000}s state.screen is "${before}", not "playing"${manifest.online ? ' (or "lobby")' : ''}. The title menu's first item must start play`)
+      } else if (before !== 'playing' && !((manifest.online || manifest.party) && before === 'lobby')) {
+        // Online and party games go to their lobby first (one copy can't play alone); netCheck
+        // plays two together, partyCheck brings phones.
+        errors.push(`pressing A on the title didn't start the game: after ${CHECK_RUN_MS / 1000}s state.screen is "${before}", not "playing"${manifest.online || manifest.party ? ' (or "lobby")' : ''}. The title menu's first item must start play`)
       } else {
         await press('start')
         await page.waitForTimeout(200)
@@ -568,11 +574,133 @@ async function netCheck(browser, server, entry, relay) {
     const perSecond = Math.round(((relay.stats.bytes - before) / NET_PLAY_MS) * 1000)
     const received = await guest.evaluate(() => JSON.stringify(window.__kitNet.state) !== '{}')
     if (!received) errors.push("the second player never received any game state. On the host, write what players need to see into net.state (net.js sends the changes)")
+    // Private views (net.privateView(id)), when the game uses them, reach their player.
+    const secret = await host.evaluate(() => {
+      const net = window.__kitNet
+      const id = net.players.find((p) => p !== net.me)
+      return id && net.privateViews?.[id] && JSON.stringify(net.privateViews[id], (_k, x) => (typeof x === 'number' ? Math.round(x * 100) / 100 : x))
+    })
+    if (secret && secret !== '{}') {
+      const mine = await guest.evaluate(() => JSON.stringify(window.__kitNet.mine ?? {}))
+      if (mine !== secret) errors.push("the second player's net.mine doesn't match what the host wrote with net.privateView(id)")
+    }
     if (perSecond > NET_WARN_BYTES_PER_SEC) {
       warnings.push(`two players used about ${Math.round(perSecond / 1024)} KB/s through the relay; aim for under ${NET_WARN_BYTES_PER_SEC / 1024} KB/s. Keep net.state to what players must see, and key things by id instead of array position`)
     }
   } catch (err) {
     errors.push(`the two-player online check failed: ${err.message}`)
+  } finally {
+    await Promise.all(contexts.map((c) => c.close()))
+  }
+  return { errors, warnings }
+}
+
+/**
+ * Party games: the TV opens its party, phones join through the real join page, and the TV starts.
+ * Checks that every phone got the controller, that phone controls reach party.inputs, that each
+ * phone sees exactly its own party.view(id), and that a reloaded phone gets its seat back.
+ */
+async function partyCheck(browser, server, entry, relay, manifest) {
+  const errors = []
+  const warnings = []
+  const contexts = []
+  const count = Math.max(2, Math.min(4, Number(String(manifest.players ?? '2').split('-')[0]) || 2))
+  const party = (page) => page.evaluate(() => window.__kitParty && { status: window.__kitParty.status, error: window.__kitParty.error, code: window.__kitParty.code, joinUrl: window.__kitParty.joinUrl, players: window.__kitParty.players.length, started: !window.__kitParty.public.lobby }).catch(() => null)
+  const controllerFrame = (page) => page.frames().find((f) => f.url().endsWith('/frame.html'))
+  const ctl = async (page, fn, arg) => {
+    const frame = controllerFrame(page)
+    return frame ? frame.evaluate(fn, arg).catch(() => null) : null
+  }
+  /** Wait for fn to return something truthy, polling; null on timeout. */
+  const until = async (fn, ms = NET_MEET_MS) => {
+    const deadline = Date.now() + ms
+    while (Date.now() < deadline) {
+      const v = await fn()
+      if (v) return v
+      await new Promise((r) => setTimeout(r, 200))
+    }
+    return null
+  }
+  // A view as the phones get it: numbers rounded like snapshot() in net.js.
+  const round = (v) => JSON.stringify(v ?? {}, (_k, x) => (typeof x === 'number' ? Math.round(x * 100) / 100 : x))
+  try {
+    const tvContext = await browser.newContext({ viewport: VIEWPORT, deviceScaleFactor: 1 })
+    contexts.push(tvContext)
+    await tvContext.addInitScript(() => (window.__kitPartyTest = true))
+    const tv = await tvContext.newPage()
+    tv.on('pageerror', (err) => errors.push(`the game crashed during the party check: ${err.message}`))
+    await tv.goto(`${server.url}/${entry}`, { waitUntil: 'load', timeout: 20_000 })
+    const opened = await until(async () => {
+      const s = await party(tv)
+      if (s?.code) return s
+      if (!s || s.status === 'idle') {
+        await tv.keyboard.down('Space')
+        await tv.waitForTimeout(120)
+        await tv.keyboard.up('Space')
+      }
+      return null
+    })
+    if (!opened) {
+      const s = await party(tv)
+      errors.push(s ? `the party never opened (${s.status}${s.error ? `, "${s.error}"` : ''}). Keep the flow from the party template: title (A) → lobby.open()` : 'this party game never created its party (createParty from party.js)')
+      return { errors, warnings }
+    }
+    if (!opened.joinUrl) errors.push('the party has no join link, so the lobby has no QR code')
+
+    // Phones join through the join page, as people would.
+    const phones = []
+    for (let i = 0; i < count; i++) {
+      const context = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true })
+      contexts.push(context)
+      const page = await context.newPage()
+      page.on('pageerror', (err) => errors.push(`the phone controller crashed: ${err.message}`))
+      await page.goto(`${relay.joinBase}/j/${opened.code}`, { waitUntil: 'load', timeout: 20_000 })
+      await page.fill('#name', `Phone ${i + 1}`)
+      await page.click('#go')
+      phones.push(page)
+    }
+    const ids = []
+    for (const [i, page] of phones.entries()) {
+      const id = await until(() => ctl(page, () => window.controller?.me?.id))
+      if (!id) {
+        const notice = await page.textContent('#notice-text').catch(() => '')
+        errors.push(`phone ${i + 1} joined but never got the game's controller ("${notice}"). Party games need a controller.html next to index.html (npm run new-game --party makes one)`)
+        return { errors, warnings }
+      }
+      ids.push(id)
+    }
+    const started = await until(async () => (await party(tv))?.started, NET_MEET_MS)
+    if (!started) errors.push(`with ${count} phones in, the party lobby never started the game. Keep lobby.update() from party-lobby.js and start when it returns "start"`)
+
+    // Controls: a phone's input reaches the TV.
+    await ctl(phones[0], () => window.controller.input({ x: 1, y: 0, a: true }))
+    const moved = await until(() => tv.evaluate((id) => window.__kitParty.inputs[id]?.x === 1, ids[0]), 3000)
+    if (!moved) errors.push("a phone's controller.input({ x: 1 }) never showed up in party.inputs on the TV")
+    await ctl(phones[0], () => window.controller.input({}))
+
+    // Private views: each phone sees exactly what the TV wrote for it.
+    await tv.waitForTimeout(600)
+    for (const [i, page] of phones.entries()) {
+      const same = await until(async () => {
+        const theirs = await ctl(page, () => JSON.stringify(window.controller.mine))
+        const ours = await tv.evaluate((id) => window.__kitParty.views[id] ?? {}, ids[i]).then(round)
+        return theirs !== null && JSON.stringify(JSON.parse(theirs)) === ours
+      }, 3000)
+      if (!same) errors.push(`phone ${i + 1} doesn't show its own party.view(id) (what the TV wrote for it): check that the game writes views by player id`)
+    }
+
+    // A phone that reloads (or locks and comes back) gets its seat back.
+    const before = relay.stats.bytes
+    await phones[0].reload({ waitUntil: 'load' })
+    const back = await until(() => ctl(phones[0], () => window.controller?.me?.id))
+    if (back !== ids[0]) errors.push(`a phone that reloaded came back as ${back ?? 'nobody'} instead of its old seat ${ids[0]}`)
+    await tv.waitForTimeout(NET_PLAY_MS)
+    const perSecond = Math.round(((relay.stats.bytes - before) / (NET_PLAY_MS + 1000)) * 1000)
+    if (perSecond > NET_WARN_BYTES_PER_SEC * count) {
+      warnings.push(`${count} phones used about ${Math.round(perSecond / 1024)} KB/s through the relay. Keep party.public and views to what phones show; the game itself stays on the TV`)
+    }
+  } catch (err) {
+    errors.push(`the party check failed: ${err.message}`)
   } finally {
     await Promise.all(contexts.map((c) => c.close()))
   }

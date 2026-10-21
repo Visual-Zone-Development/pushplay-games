@@ -11,12 +11,14 @@ export const brand = JSON.parse(readFileSync(existsSync(vendored) ? vendored : s
  * Bumped whenever the kit's files change (kit-lock.json holds their hash; a test enforces the bump).
  * ci.mjs writes it into the release index, so the launcher can tell a repo its kit is outdated.
  */
-export const KIT_VERSION = 2
+export const KIT_VERSION = 3
 /** Runtime modules copied into every game; `update-kit` replaces them by this header. */
 export const RUNTIME_HEADER = `// ${brand.slug} runtime v`
 /** Matches the header whatever the product was called when the file was written. */
 export const RUNTIME_HEADER_RE = /^\/\/ \S+ runtime v/
 export const RUNTIME_FILES = ['input.js', 'menu.js', 'fit.js', 'audio.js', 'save.js', 'settings.js', 'prompts.js']
+/** Party games' runtime modules (templates/party), refreshed the same way in games that have party.js. */
+export const PARTY_RUNTIME_FILES = ['party.js', 'party-lobby.js', 'qr.js', 'controller.js']
 /** Per-game ignore list (one glob per line) for files that are never shipped. */
 export const IGNORE_FILE = `.${brand.slug}ignore`
 

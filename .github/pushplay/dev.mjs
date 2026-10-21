@@ -16,11 +16,18 @@ if (!game) {
   process.exit(1)
 }
 // Online games find this relay on their own when served from localhost: open two browser
-// windows to play against yourself.
-if (readManifest(game).online) {
-  await startLocalRelay(LOCAL_RELAY_PORT).then(
-    () => log(`Local online relay on ws://localhost:${LOCAL_RELAY_PORT} (open the game in two windows to test online play)`),
-    (err) => log(`Couldn't start the local online relay on port ${LOCAL_RELAY_PORT}: ${err.message}`)
+// windows to play against yourself. Party games' relay also listens on the Wi-Fi, so phones
+// can scan the QR code on the game's lobby screen.
+const manifest = readManifest(game)
+if (manifest.online || manifest.party) {
+  await startLocalRelay(LOCAL_RELAY_PORT, { lan: Boolean(manifest.party) }).then(
+    (r) =>
+      log(
+        manifest.party
+          ? `Local party relay: phones on this Wi-Fi join at ${r.joinBase} (or scan the QR code in the game's lobby)`
+          : `Local online relay on ws://localhost:${LOCAL_RELAY_PORT} (open the game in two windows to test online play)`
+      ),
+    (err) => log(`Couldn't start the local relay on port ${LOCAL_RELAY_PORT}: ${err.message}`)
   )
 }
 const child = spawn('npx', quote(['vite', game.dir, '--port', '5173', ...(host ? ['--host'] : [])]), { ...npmSpawn, cwd: ROOT, stdio: 'inherit' })
