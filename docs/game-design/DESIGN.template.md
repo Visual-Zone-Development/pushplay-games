@@ -54,6 +54,7 @@ Keyboard, mouse and touch equivalents come from `input.js` (see the table in AGE
 - **Palette:** `#……` background, `#……` hero, `#……` accent, `#……` danger, `#……` text
 - **Font:** <bundled font for art, and in-game>
 - **Rendering:** 2D canvas / three.js (`--vite`)
+- **Online:** no / yes: host runs the game, `net.js` syncs it ([multiplayer.md](multiplayer.md))
 - **Assets:** procedural / user-supplied (`assets/`, credits in `assets/CREDITS.md`) / CC0
 - **Cover idea:** …
 - **Hero idea:** …

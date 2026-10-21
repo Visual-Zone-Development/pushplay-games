@@ -28,5 +28,6 @@
   "githubAppClientId": "Iv23liqLU6Gr3rpf4AWK",
   "launcherRepo": "Visual-Zone-Development/pushplay",
   "releasesRepo": "Visual-Zone-Development/pushplay-releases",
-  "updateSigningKey": ""
+  "updateSigningKey": "RWQtMJddfR0tJ8HSbRtgEdSyF29npjrIqcSlG9jvmohZ+/V/gOfc93dh",
+  "relayUrl": "wss://relay-production-7034.up.railway.app"
 }

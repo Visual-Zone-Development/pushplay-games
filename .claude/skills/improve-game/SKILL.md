@@ -30,6 +30,8 @@ Follow AGENTS.md. Design material lives in `docs/game-design/`.
    - saves: if the save shape changed, bump the `createSave` version and pass a `migrate`; keys stay prefixed with the game id
    - settings: new shake or flash honours `reducedShake`; new text honours `textScale`
    - local multiplayer via `input.pads[i]`, if the game has it
+   - online play, if the game has it: new state goes in `net.state` on the host, and the check's two-copy test still passes ([multiplayer.md](../../../docs/game-design/multiplayer.md)). Bump `version` when the netcode changes: only builds with the same version play together
+   - **adding online play** to a game: copy `net.js` and `lobby.js` from `.github/pushplay/templates/online/`, follow that folder's `game.js` for the screen flow (title → lobby → playing; the pause menu is still opened by `menu` and built with `menu.js`, but it only stops your controls and offers Leave game instead of Restart), move what players see into `net.state`, set `"online": true` and add the `online multiplayer` tag
    - title, HUD and help text that mention the old behavior; prompts still come from `input.label`, not literals
    - cover and hero art, if the look changed
 4. `npm run check <id>`, fix every ✗, look at the screenshot, and redo the AGENTS.md **Verification** passes that the change touches (at least the input you changed, plus keyboard-only).

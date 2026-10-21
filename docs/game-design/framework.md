@@ -10,9 +10,9 @@ From Tracy Fullerton's *Game Design Workshop*. Every game has all eight, whether
 
 | Element | Ask | On the handheld |
 |---|---|---|
-| **Players** | How many, and how do they relate: solo, co-op, versus, one vs. the game? | One Deck or Legion Go, one screen. Local multiplayer means extra controllers on a shared screen (`input.pads[i]`, join by press), so no hidden information. |
+| **Players** | How many, and how do they relate: solo, co-op, versus, one vs. the game? | One Deck or Legion Go, one screen. Local multiplayer means extra controllers on a shared screen (`input.pads[i]`, join by press), so no hidden information. Online multiplayer means one device each, so hidden information works, but every action lands about 50–150 ms late ([multiplayer.md](multiplayer.md)). |
 | **Objectives** | What is the player trying to do, right now and overall? | One goal on screen at a time. It must be readable at a glance on a 7–8" display. |
-| **Procedures** | What actions can they take? What does each button do? | Map every action to stick + A/B/X/Y/LB/RB/LT/RT (keyboard, mouse and touch equivalents come with `input.js`). One action per button and no chorded inputs. `menu` (Start / Esc) is pause only; B is free for gameplay; F10 and Start+Select belong to the launcher. |
+| **Procedures** | What actions can they take? What does each button do? | Map every action to stick + A/B/X/Y/LB/RB/LT/RT (keyboard, mouse and touch equivalents come with `input.js`). One action per button and no chorded inputs. `menu` (Start / Esc / P / on-screen button) is pause only; B is free for gameplay; F10 and Start+Select belong to the launcher. |
 | **Rules** | What's allowed, what isn't, and what happens when? | Teach rules by letting the player bump into them, not with text. |
 | **Resources** | What do they spend, collect or manage: health, time, ammo, coins, space? | Show the important ones in the HUD, at least 24px and away from the outer 32px. |
 | **Conflict** | What stands in the way: enemies, the clock, the puzzle, other players? | Conflict should scale. Plan how it grows over 1, 5 and 15 minutes. |

@@ -5,7 +5,7 @@ This repo is a collection of small games. Each folder in `games/` is one game, a
 ## Workflow (follow it every time)
 
 0. **Design brief first.** A complete, fun game beats a quick tech demo. Before writing code, settle with the user (or decide and record as assumptions): the gameplay loop, 2D or 3D, art direction, whether they have assets, how it should *feel*, and any games it should feel like. Once step 1 has created the folder, write `games/<id>/DESIGN.md` from [`docs/game-design/DESIGN.template.md`](docs/game-design/DESIGN.template.md). The design guides in [`docs/game-design/`](docs/game-design/) cover the 8 formal elements and 8 kinds of fun ([framework](docs/game-design/framework.md)), genre loops, art styles, researching inspiration, and the [definition of done](docs/game-design/complete-game.md) every game should meet.
-1. **New game:** `npm run new-game <game-id>` (add `--vite` if you need npm packages like three.js). The id is lowercase-with-dashes and becomes the folder name. This creates a working starter with title, pause and settings screens that already work on controller, keyboard, mouse and touch: `game.js`, the runtime files (`input.js`, `menu.js`, `fit.js`, `audio.js`, `save.js`, `settings.js`, `prompts.js`), `pushplay.json` and placeholder art.
+1. **New game:** `npm run new-game <game-id>` (add `--vite` if you need npm packages like three.js, `--online --players 2-4` for online multiplayer). The id is lowercase-with-dashes and becomes the folder name. This creates a working starter with title, pause and settings screens that already work on controller, keyboard, mouse and touch: `game.js`, the runtime files (`input.js`, `menu.js`, `fit.js`, `audio.js`, `save.js`, `settings.js`, `prompts.js`, plus `net.js` and `lobby.js` in an `--online` game), `pushplay.json` and placeholder art.
 2. **Build the game** in that folder. Only touch other games, `.github/` or root files if the user asked you to. Never edit the runtime files (see *Runtime files*).
 3. **Fill in `pushplay.json`:** a real `description`, `players`, `tags`, `inputs`, and anything else that applies (see *Manifest*).
 4. **Make the art:** replace `art/cover.svg` and `art/hero.svg` (see *Art*). This is required; the check fails on placeholder art.
@@ -24,7 +24,7 @@ If your environment can't install the browser (some cloud sandboxes block the do
 
 ### Runtime files (don't edit)
 
-`input.js`, `menu.js`, `fit.js`, `audio.js`, `save.js`, `settings.js` and `prompts.js` in each game folder start with the header `pushplay runtime v2 — replaced by npm run update-kit; don't edit`. They are shared code: `npm run update-kit` overwrites them in every game, so any edit is lost. Import them; never change them. Game-specific key aliases go through `input.extendKeys({ KeyR: 'y' })` in `game.js`.
+`input.js`, `menu.js`, `fit.js`, `audio.js`, `save.js`, `settings.js` and `prompts.js` in each game folder (plus `net.js` and `lobby.js` in an online game) start with the header `pushplay runtime v2 — replaced by npm run update-kit; don't edit`. They are shared code: `npm run update-kit` overwrites them in every game, so any edit is lost. Import them; never change them. Game-specific key aliases go through `input.extendKeys({ KeyR: 'y' })` in `game.js`.
 
 ### Controls: every input, alone
 
@@ -109,15 +109,23 @@ Every game has a Settings screen, **reachable from the title and from the pause 
 
 ### Flow
 
-- Screens: `title` → `playing` ↔ `paused` → `gameover`, plus `settings`. Keep the current one in `state.screen` with exactly those names, and expose `window.__game = { state, TUNING }` (the check presses Start and expects `'paused'`).
+- Screens: `title` → `playing` ↔ `paused` → `gameover`, plus `settings` (and `lobby` between `title` and `playing` in an online game). Keep the current one in `state.screen` with exactly those names, and expose `window.__game = { state, TUNING }` (the check presses Start and expects `'paused'`).
 - The title screen is the first thing drawn and says how to start and how to pause. Game over shows score, best and retries in one press.
 - Restart (from pause or game over) resets everything the run touched: timers, particles, audio loops, RNG seed if seeded.
 
 ### Offline and self-contained
 
 - No CDNs, remote fonts, analytics or network calls. Bundle everything inside the game folder (or install it with npm in a `--vite` game). The check fails on internet requests and on WebSockets.
-- Exception: real online multiplayer, with `"online": true` in the manifest.
+- Exception: online multiplayer, with `"online": true` in the manifest. Scaffold it with `--online`: it plays through the shared relay with no setup, and only the relay connection is allowed. Follow [`docs/game-design/multiplayer.md`](docs/game-design/multiplayer.md) and don't edit the provided `net.js` or `lobby.js` (see *Online multiplayer*).
 - Saves persist per game on the handheld via `localStorage` (see *Saves*).
+
+### Online multiplayer (`net.js`, `lobby.js`)
+
+- `npm run new-game <id> --online --players <min>-<max>` adds `net.js` (connection, rooms, synced state) and `lobby.js` (Quick match / Host / Join, no text entry). Both are runtime files: import them, never edit them. Details and the full API: [`docs/game-design/multiplayer.md`](docs/game-design/multiplayer.md).
+- **The host runs the game.** Every copy calls `net.setInput({...})` each frame and draws `net.view`; only the host runs the rules in `hostUpdate(dt)`, reading `net.inputs[id]` and writing `net.state`. `net.js` sends only what changed. Put only what players must see in `net.state`; particles and shake come from `net.event`.
+- **Flow:** `title` → `lobby` (`lobby.update()` returns `'start'` or `'back'`) → `playing` ↔ `paused`. Keep it, and keep `state.screen` and `window.__game`: the check plays two copies together through a local relay and still presses `menu` expecting `'paused'`.
+- **Pause can't freeze a shared world.** `menu` (Start / Esc / P / on-screen button) still opens a `menu.js` pause menu (Resume, Settings, Leave game), but it only stops your own controls (`net.setInput({})`) while the host keeps running. `'back'` resumes; Leave game calls `net.leave()` and returns to the lobby. Everything in *Exit and pause* still applies: the launcher owns quitting.
+- Show who's who ("You", colours by `net.slot(id)`). Tag it `"online multiplayer"`, set `players` to e.g. `"2-4"` and `"online": true` (the scaffold does). Bump `version` when the netcode changes: only builds with the same version play together.
 
 ### Performance
 
@@ -198,15 +206,15 @@ If you're truly unable to make art, remove the `art` field: the check will gener
 
 | Command | What it does |
 |---|---|
-| `npm run new-game <id> [--vite] [--name "Title"]` | Scaffold a game |
-| `npm run dev <id>` | Play it in a browser with live reload (http://localhost:5173) |
-| `npm run check [id]` | Validate, build, headless play test (gamepad, keyboard, touch, pause, 1920×1080 at DPR 2), render art. Must pass before pushing. |
+| `npm run new-game <id> [--vite] [--online] [--players 2-4] [--name "Title"]` | Scaffold a game (`--online`: online multiplayer starter) |
+| `npm run dev <id>` | Play it in a browser with live reload (http://localhost:5173). Online games: a local relay starts too, so open two windows |
+| `npm run check [id]` | Validate, build, headless play test (gamepad, keyboard, touch, pause, 1920×1080 at DPR 2; online games also play two copies through a local relay), render art. Must pass before pushing. |
 | `npm run update-kit` | Refresh the build kit, these prompts and the runtime files in every game (only when the user asks) |
 
 ## Don'ts
 
 - Don't edit `.github/` unless asked: it holds the build kit and workflow shared by every game.
-- Don't edit the runtime files in a game folder (`input.js`, `menu.js`, `fit.js`, `audio.js`, `save.js`, `settings.js`, `prompts.js`).
+- Don't edit the runtime files in a game folder (`input.js`, `menu.js`, `fit.js`, `audio.js`, `save.js`, `settings.js`, `prompts.js`, and `net.js` / `lobby.js` in online games).
 - Don't bind F10, Start+Select or a held Esc; don't build an "exit to launcher" of your own.
 - Don't commit `node_modules/`, `dist/`, `tools/`, `mockups/`, `*.py` or `__pycache__/`.
 - Don't delete or rewrite other games.

@@ -13,7 +13,7 @@
 import { execFileSync, spawnSync } from 'node:child_process'
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { INDEX_ASSET, KIT_DIR, KIT_VERSION, RELEASE_TAG } from './config.mjs'
+import { INDEX_ASSET, KIT_DIR, KIT_VERSION, RELAY_URL, RELEASE_TAG } from './config.mjs'
 import { distDir, layout, listGames, log, ROOT, validateIndex, WORK_DIR } from './repo.mjs'
 
 const env = process.env
@@ -68,7 +68,7 @@ async function build() {
       const { id } = game
       log(`\n▶ ${id}`)
       try {
-        const built = await buildGame(game, browser)
+        const built = await buildGame(game, browser, { beforePack: onlinePass })
         for (const w of built.warnings) log(`  ⚠ ${w}`)
         const m = built.manifest
         out.games.push({
@@ -107,6 +107,38 @@ async function build() {
   mkdirSync(distDir, { recursive: true })
   writeFileSync(resultsPath, JSON.stringify(out, null, 2) + '\n')
   return out
+}
+
+/**
+ * Online games get the relay's address and a pass (a game token) in __net.json, which net.js
+ * reads. The pass comes from the relay in exchange for this workflow's GitHub OIDC token, which
+ * proves which repo built the game. No secrets needed. If it fails the game still ships, it just
+ * can't go online until the next build. Runs in the build stage, before the game is zipped.
+ */
+async function onlinePass(out, manifest) {
+  if (!manifest.online || dryRun) return []
+  if (!RELAY_URL) return ['no online relay is configured for this kit (brand.json relayUrl), so online play is off in this build']
+  const base = RELAY_URL.replace(/^ws/, 'http').replace(/\/+$/, '')
+  let token = ''
+  const warnings = []
+  try {
+    if (!env.ACTIONS_ID_TOKEN_REQUEST_URL) throw new Error(`the workflow needs "id-token: write" under permissions (update ${KIT_DIR} and its workflow)`)
+    const oidc = await fetch(`${env.ACTIONS_ID_TOKEN_REQUEST_URL}&audience=${encodeURIComponent(base)}`, {
+      headers: { authorization: `bearer ${env.ACTIONS_ID_TOKEN_REQUEST_TOKEN}` }
+    }).then((r) => (r.ok ? r.json() : Promise.reject(new Error(`GitHub OIDC token request failed (${r.status})`))))
+    const res = await fetch(`${base}/token`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ oidc: oidc.value, game: manifest.id, version: String(manifest.version ?? '0') })
+    })
+    const body = await res.json().catch(() => ({}))
+    if (!res.ok) throw new Error(`the relay refused (${res.status}${body.error ? `: ${body.error}` : ''})`)
+    token = body.token
+  } catch (err) {
+    warnings.push(`couldn't get an online pass, so this build can't go online: ${err.message}`)
+  }
+  writeFileSync(join(out, '__net.json'), JSON.stringify({ url: RELAY_URL, token }) + '\n')
+  return warnings
 }
 
 // --- Stage 2: merge into the release index and upload ---

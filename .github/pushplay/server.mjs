@@ -29,9 +29,10 @@ const TYPES = {
 /**
  * Minimal static server. Mounts map URL prefixes to folders ('/' = a game's files),
  * which mirrors how the launcher serves a game at the root of its own origin.
+ * `files` serves fixed contents at exact paths (e.g. /__net.json), ahead of the mounts.
  * Returns { url, close, missing } where `missing` lists 404'd paths.
  */
-export async function serve(mounts) {
+export async function serve(mounts, files = {}) {
   const missing = []
   const prefixes = Object.keys(mounts).sort((a, b) => b.length - a.length)
   const server = createServer((req, res) => {
@@ -42,6 +43,7 @@ export async function serve(mounts) {
       return res.writeHead(400).end('Bad request')
     }
     if (path === '/favicon.ico') return res.writeHead(204).end()
+    if (path in files) return res.writeHead(200, { 'content-type': TYPES[extname(path)] ?? 'text/plain' }).end(files[path])
     const prefix = prefixes.find((p) => path.startsWith(p))
     let file = prefix ? inside(mounts[prefix], path.slice(prefix.length)) : null
     if (file && existsSync(file) && statSync(file).isDirectory()) file = join(file, 'index.html')

@@ -44,6 +44,15 @@ export const CHECK_RUN_MS = 3000
 /** A second, denser window the check also opens (Legion Go class screens and launcher zoom). */
 export const VIEWPORT_DENSE = { width: 1920, height: 1080, deviceScaleFactor: 2 }
 
+/** Online games: the hosted relay (wss://), and the port of the local one `npm run dev` starts. */
+export const RELAY_URL = brand.relayUrl ?? ''
+export const LOCAL_RELAY_PORT = 5174
+/** The two-copy online check: how long the copies get to meet, and how long they then play. */
+export const NET_MEET_MS = 10_000
+export const NET_PLAY_MS = 3000
+/** Above this, the check warns that a game sends more than it needs to (bytes/s through the relay). */
+export const NET_WARN_BYTES_PER_SEC = 20 * 1024
+
 /** Minimum description length, so the library always has something useful to show. */
 export const MIN_DESCRIPTION = 20
 
