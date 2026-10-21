@@ -41,8 +41,8 @@ export const ART = brand.art
 
 /** How long the headless check lets a game run before judging it. */
 export const CHECK_RUN_MS = 3000
-/** A second, denser window the check also opens (Legion Go class screens and launcher zoom). */
-export const VIEWPORT_DENSE = { width: 1920, height: 1080, deviceScaleFactor: 2 }
+/** A second, denser 16:9 window the check also opens (Legion Go class screens and launcher zoom), small enough for a software GPU in CI. */
+export const VIEWPORT_DENSE = { width: 1280, height: 720, deviceScaleFactor: 2 }
 
 /** Online games: the hosted relay (wss://), and the port of the local one `npm run dev` starts. */
 export const RELAY_URL = brand.relayUrl ?? ''

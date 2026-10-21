@@ -205,6 +205,7 @@ async function playCheck(browser, server, out, entry, manifest) {
       window.requestAnimationFrame = (cb) =>
         raf((ts) => {
           window.__kitFrames++
+          window.__kitLastFrame = performance.now()
           if (window.__kitFirstFrame === null) window.__kitFirstFrame = performance.now()
           cb(ts)
         })
@@ -241,80 +242,138 @@ async function playCheck(browser, server, out, entry, manifest) {
     await page.waitForFunction(() => window.__kitFrames >= 2, null, { timeout: 10_000 }).catch(() => {})
     await page.waitForTimeout(600)
   }
+  /**
+   * A screenshot needs the page to produce a frame. When it can't in time, say what the frame
+   * clock saw instead of failing every later step with a bare timeout.
+   */
+  const capture = async (page, label, timeout = 15_000) => {
+    try {
+      return await page.screenshot({ type: 'png', timeout })
+    } catch (err) {
+      const clock = await Promise.race([
+        page.evaluate(() => ({ frames: window.__kitFrames, sinceLast: Math.round(performance.now() - (window.__kitLastFrame ?? 0)) })).catch(() => null),
+        new Promise((r) => setTimeout(() => r(null), 3000))
+      ])
+      const seen = clock ? `${clock.frames} frame(s) were drawn, the last one ${clock.sinceLast} ms before the capture gave up` : 'the page did not answer either'
+      errors.push(
+        `the screen couldn't be captured${label} within ${timeout / 1000} s (${seen}). The game must keep producing frames: check for work that takes seconds per frame on a slow machine (large blurs, thousands of draw calls) or a loop that never yields. ${String(err.message).split('\n')[0]}`
+      )
+      return null
+    }
+  }
+  /**
+   * A busy loop in the game would make every later step time out with no clue, so before the
+   * first screenshot: if the page can't answer a trivial call in 5 s, pause its JavaScript with
+   * the debugger and report where it is.
+   */
+  const responsive = async (page, label) => {
+    const answered = await Promise.race([page.evaluate(() => true).catch(() => false), new Promise((r) => setTimeout(() => r(null), 5000))])
+    if (answered !== null) return true
+    let where = 'unknown (the debugger could not pause it)'
+    try {
+      const cdp = await page.context().newCDPSession(page)
+      await cdp.send('Debugger.enable')
+      const paused = new Promise((resolve) => cdp.once('Debugger.paused', resolve))
+      await cdp.send('Debugger.pause')
+      const event = await Promise.race([paused, new Promise((r) => setTimeout(() => r(null), 3000))])
+      if (event) {
+        where = event.callFrames
+          .slice(0, 6)
+          .map((f) => `${f.functionName || '(anonymous)'} at ${f.url.replace(server.url, '')}:${f.location.lineNumber + 1}`)
+          .join(' ← ')
+        await cdp.send('Debugger.resume').catch(() => {})
+      }
+      await cdp.detach().catch(() => {})
+    } catch {
+      /* diagnostics only */
+    }
+    errors.push(
+      `the game's main thread is stuck${label}: it stopped answering for 5 s. Its JavaScript was paused at: ${where}. Look for a loop that never ends (a fixed-step accumulator with an unclamped dt, a while loop waiting on time) or work that takes seconds per frame`
+    )
+    return false
+  }
 
   // --- Pass 1: controller. A once (most games start on A), the stick nudges right, then Start must pause.
   {
     const context = await browser.newContext({ viewport: VIEWPORT, deviceScaleFactor: 1 })
     await offline(context)
     const page = await context.newPage()
-    await page.addInitScript(() => {
-      const check = (window.__kitCheck = { start: false, audio: [] })
-      const button = (pressed) => ({ pressed, touched: pressed, value: pressed ? 1 : 0 })
-      // A is tapped from 1.2 s after the first frame, in 150 ms pulses every 400 ms, and keeps
-      // tapping while the game still reports its title (slow frames can miss a single tap).
-      const onTitle = () => window.__game?.state?.screen === 'title'
-      const pressA = (t) => t > 1200 && (t - 1200) % 400 < 150 && (t < 1600 || (t < 4000 && onTitle()))
-      const pad = () => {
-        const t = window.__kitFirstFrame === null ? 0 : performance.now() - window.__kitFirstFrame
-        return {
-          id: 'Headless check gamepad (STANDARD GAMEPAD)',
-          index: 0,
-          connected: true,
-          mapping: 'standard',
-          timestamp: t,
-          axes: [t > 1500 && t < 2200 ? 0.8 : 0, 0, 0, 0],
-          buttons: Array.from({ length: 17 }, (_, i) => button((i === 0 && pressA(t)) || (i === 9 && check.start))),
-          vibrationActuator: null
-        }
-      }
-      Object.defineProperty(Navigator.prototype, 'getGamepads', { value: () => [pad(), null, null, null] })
-      window.addEventListener('load', () => {
-        setTimeout(() => window.dispatchEvent(Object.assign(new Event('gamepadconnected'), { gamepad: pad() })), 100)
-      })
-      for (const name of ['AudioContext', 'webkitAudioContext']) {
-        const Original = window[name]
-        if (!Original) continue
-        window[name] = class extends Original {
-          constructor(...args) {
-            super(...args)
-            check.audio.push(this)
+    try {
+      await page.addInitScript(() => {
+        const check = (window.__kitCheck = { start: false, audio: [] })
+        const button = (pressed) => ({ pressed, touched: pressed, value: pressed ? 1 : 0 })
+        // A is tapped from 1.2 s after the first frame: held for two frames, released for two, so a
+        // game that samples the pad once per frame sees a press however slow its frames are (a
+        // timer-driven game gets 150 ms pulses). It keeps tapping while the game still shows its title.
+        const onTitle = () => window.__game?.state?.screen === 'title'
+        const pulse = (t) => (window.__kitFrames > 0 ? window.__kitFrames % 4 < 2 : (t - 1200) % 400 < 150)
+        const pressA = (t) => t > 1200 && pulse(t) && (t < 1600 || (t < 4000 && onTitle()))
+        const pad = () => {
+          const t = window.__kitFirstFrame === null ? 0 : performance.now() - window.__kitFirstFrame
+          return {
+            id: 'Headless check gamepad (STANDARD GAMEPAD)',
+            index: 0,
+            connected: true,
+            mapping: 'standard',
+            timestamp: t,
+            axes: [t > 1500 && t < 2200 ? 0.8 : 0, 0, 0, 0],
+            buttons: Array.from({ length: 17 }, (_, i) => button((i === 0 && pressA(t)) || (i === 9 && check.start))),
+            vibrationActuator: null
           }
         }
+        Object.defineProperty(Navigator.prototype, 'getGamepads', { value: () => [pad(), null, null, null] })
+        window.addEventListener('load', () => {
+          setTimeout(() => window.dispatchEvent(Object.assign(new Event('gamepadconnected'), { gamepad: pad() })), 100)
+        })
+        for (const name of ['AudioContext', 'webkitAudioContext']) {
+          const Original = window[name]
+          if (!Original) continue
+          window[name] = class extends Original {
+            constructor(...args) {
+              super(...args)
+              check.audio.push(this)
+            }
+          }
+        }
+      })
+      watch(page)
+      await open(page, '')
+      await page.waitForTimeout(CHECK_RUN_MS)
+      // A slow first frame delays the tap; give a game that exposes its screen a moment to leave the title.
+      await page.waitForFunction(() => window.__game?.state?.screen !== 'title', null, { timeout: 2500 }).catch(() => {})
+      for (const path of server.missing) if (!path.startsWith('/__')) errors.push(`missing file: ${path} (404)`)
+      if (!(await responsive(page, ''))) return { errors: [...new Set(errors)], warnings: [...new Set(warnings)] }
+
+      const shot = await capture(page, '')
+      if (shot) {
+        writeFileSync(join(out, ART_DIR, 'screenshot.png'), shot)
+        if (await looksBlank(page, shot)) {
+          errors.push(`after ${CHECK_RUN_MS / 1000}s the screen is one flat color. The game should draw something right away (a title screen counts)`)
+        }
       }
-    })
-    watch(page)
-    await open(page, '')
-    await page.waitForTimeout(CHECK_RUN_MS)
-    // A slow first frame delays the tap; give a game that exposes its screen a moment to leave the title.
-    await page.waitForFunction(() => window.__game?.state?.screen !== 'title', null, { timeout: 2500 }).catch(() => {})
-    for (const path of server.missing) if (!path.startsWith('/__')) errors.push(`missing file: ${path} (404)`)
 
-    const shot = await page.screenshot({ type: 'png' })
-    writeFileSync(join(out, ART_DIR, 'screenshot.png'), shot)
-    if (await looksBlank(page, shot)) {
-      errors.push(`after ${CHECK_RUN_MS / 1000}s the screen is one flat color. The game should draw something right away (a title screen counts)`)
+      const before = await screen(page)
+      if (before === null) {
+        warnings.push("window.__game.state.screen is missing, so the check can't verify that Start / Esc pause the game. Expose it: window.__game = { state, TUNING }")
+      } else if (before !== 'playing' && !(manifest.online && before === 'lobby')) {
+        // Online games go to their lobby first (one copy can't play alone); netCheck plays two together.
+        errors.push(`pressing A on the title didn't start the game: after ${CHECK_RUN_MS / 1000}s state.screen is "${before}", not "playing"${manifest.online ? ' (or "lobby")' : ''}. The title menu's first item must start play`)
+      } else {
+        await page.evaluate(() => (window.__kitCheck.start = true))
+        await page.waitForTimeout(150)
+        await page.evaluate(() => (window.__kitCheck.start = false))
+        await page.waitForTimeout(400)
+        const after = await screen(page)
+        if (after !== 'paused') errors.push(`pressing Start during play didn't pause: state.screen is "${after}", not "paused". Open the pause menu on input.pressed('menu')`)
+      }
+      const audio = await page.evaluate(() => {
+        const list = window.__kitCheck?.audio ?? []
+        return { created: list.length, running: list.some((c) => c.state === 'running') }
+      })
+      if (audio.created && !audio.running) warnings.push('an AudioContext was created but never started running after input: resume it on the first key, tap or button press (createAudio from audio.js does this)')
+    } finally {
+      await context.close()
     }
-
-    const before = await screen(page)
-    if (before === null) {
-      warnings.push("window.__game.state.screen is missing, so the check can't verify that Start / Esc pause the game. Expose it: window.__game = { state, TUNING }")
-    } else if (before !== 'playing' && !(manifest.online && before === 'lobby')) {
-      // Online games go to their lobby first (one copy can't play alone); netCheck plays two together.
-      errors.push(`pressing A on the title didn't start the game: after ${CHECK_RUN_MS / 1000}s state.screen is "${before}", not "playing"${manifest.online ? ' (or "lobby")' : ''}. The title menu's first item must start play`)
-    } else {
-      await page.evaluate(() => (window.__kitCheck.start = true))
-      await page.waitForTimeout(150)
-      await page.evaluate(() => (window.__kitCheck.start = false))
-      await page.waitForTimeout(400)
-      const after = await screen(page)
-      if (after !== 'paused') errors.push(`pressing Start during play didn't pause: state.screen is "${after}", not "paused". Open the pause menu on input.pressed('menu')`)
-    }
-    const audio = await page.evaluate(() => {
-      const list = window.__kitCheck?.audio ?? []
-      return { created: list.length, running: list.some((c) => c.state === 'running') }
-    })
-    if (audio.created && !audio.running) warnings.push('an AudioContext was created but never started running after input: resume it on the first key, tap or button press (createAudio from audio.js does this)')
-    await context.close()
   }
 
   // --- Pass 2: keyboard only, no controller. Enter starts, Escape must pause.
@@ -322,22 +381,25 @@ async function playCheck(browser, server, out, entry, manifest) {
     const context = await browser.newContext({ viewport: VIEWPORT, deviceScaleFactor: 1 })
     await offline(context)
     const page = await context.newPage()
-    watch(page)
-    await open(page, ' (keyboard pass)')
-    await drawn(page)
-    const before = await page.screenshot({ type: 'png' })
-    await page.keyboard.press('Enter')
-    await page.waitForTimeout(600)
-    await page.waitForFunction(() => window.__game?.state?.screen !== 'title', null, { timeout: 1500 }).catch(() => {})
-    await page.keyboard.press('Escape')
-    await page.waitForTimeout(400)
-    const state = await screen(page)
-    if (state !== null) {
-      if (state !== 'paused') errors.push(`with only a keyboard, Enter then Escape didn't pause the game: state.screen is "${state}", not "paused". Enter chooses (a), Escape opens the pause menu (menu)`)
-    } else if (before.equals(await page.screenshot({ type: 'png' }))) {
-      warnings.push('with only a keyboard, pressing Enter then Escape changed nothing on screen. Menus must work with Enter / arrows and Escape must pause')
+    try {
+      watch(page)
+      await open(page, ' (keyboard pass)')
+      await drawn(page)
+      const before = await capture(page, ' (keyboard pass)')
+      await page.keyboard.press('Enter')
+      await page.waitForTimeout(600)
+      await page.waitForFunction(() => window.__game?.state?.screen !== 'title', null, { timeout: 1500 }).catch(() => {})
+      await page.keyboard.press('Escape')
+      await page.waitForTimeout(400)
+      const state = await screen(page)
+      if (state !== null) {
+        if (state !== 'paused') errors.push(`with only a keyboard, Enter then Escape didn't pause the game: state.screen is "${state}", not "paused". Enter chooses (a), Escape opens the pause menu (menu)`)
+      } else if (before && before.equals(await capture(page, ' (keyboard pass)'))) {
+        warnings.push('with only a keyboard, pressing Enter then Escape changed nothing on screen. Menus must work with Enter / arrows and Escape must pause')
+      }
+    } finally {
+      await context.close()
     }
-    await context.close()
   }
 
   // --- Pass 3: touch only. Tapping the first title menu item should leave the title.
@@ -345,31 +407,34 @@ async function playCheck(browser, server, out, entry, manifest) {
     const context = await browser.newContext({ viewport: VIEWPORT, deviceScaleFactor: 1, hasTouch: true })
     await offline(context)
     const page = await context.newPage()
-    watch(page)
-    await open(page, ' (touch pass)')
-    await drawn(page)
-    const before = await page.screenshot({ type: 'png' })
-    const state = await screen(page)
-    const spot = await page.evaluate(() => {
-      // The title menu's first item if the game exposes it (window.__game.titleMenu, a createMenu),
-      // else where the default menu puts it (640,452 in a 1280×800 space); in CSS pixels.
-      const menu = window.__game?.titleMenu
-      const first = typeof menu?.rect === 'function' ? menu.rect(0) : { x: 430, y: 420, w: 420, h: 64 }
-      const gx = first.x + first.w / 2
-      const gy = first.y + first.h / 2
-      const canvas = document.querySelector('canvas')
-      const r = canvas?.getBoundingClientRect()
-      return r && r.width ? { x: r.left + (gx / 1280) * r.width, y: r.top + (gy / 800) * r.height } : { x: gx, y: gy }
-    })
-    await page.touchscreen.tap(spot.x, spot.y)
-    await page.waitForTimeout(500)
-    const after = await screen(page)
-    if (state !== null) {
-      if (after === state) warnings.push(`with touch only, tapping the first title menu item (at ${Math.round(spot.x)},${Math.round(spot.y)}) changed nothing: state.screen is still "${after}". Menus must be tappable; expose the title menu as window.__game.titleMenu so the check knows where to tap`)
-    } else if (before.equals(await page.screenshot({ type: 'png' }))) {
-      warnings.push('with touch only, tapping the title menu changed nothing on screen. Menus must be tappable')
+    try {
+      watch(page)
+      await open(page, ' (touch pass)')
+      await drawn(page)
+      const before = await capture(page, ' (touch pass)')
+      const state = await screen(page)
+      const spot = await page.evaluate(() => {
+        // The title menu's first item if the game exposes it (window.__game.titleMenu, a createMenu),
+        // else where the default menu puts it (640,452 in a 1280×800 space); in CSS pixels.
+        const menu = window.__game?.titleMenu
+        const first = typeof menu?.rect === 'function' ? menu.rect(0) : { x: 430, y: 420, w: 420, h: 64 }
+        const gx = first.x + first.w / 2
+        const gy = first.y + first.h / 2
+        const canvas = document.querySelector('canvas')
+        const r = canvas?.getBoundingClientRect()
+        return r && r.width ? { x: r.left + (gx / 1280) * r.width, y: r.top + (gy / 800) * r.height } : { x: gx, y: gy }
+      })
+      await page.touchscreen.tap(spot.x, spot.y)
+      await page.waitForTimeout(500)
+      const after = await screen(page)
+      if (state !== null) {
+        if (after === state) warnings.push(`with touch only, tapping the first title menu item (at ${Math.round(spot.x)},${Math.round(spot.y)}) changed nothing: state.screen is still "${after}". Menus must be tappable; expose the title menu as window.__game.titleMenu so the check knows where to tap`)
+      } else if (before && before.equals(await capture(page, ' (touch pass)'))) {
+        warnings.push('with touch only, tapping the title menu changed nothing on screen. Menus must be tappable')
+      }
+    } finally {
+      await context.close()
     }
-    await context.close()
   }
 
   // --- Pass 4: a denser 16:9 screen (Legion Go class, launcher zoom). Not blank, canvas centred.
@@ -378,22 +443,26 @@ async function playCheck(browser, server, out, entry, manifest) {
     const context = await browser.newContext({ viewport, deviceScaleFactor })
     await offline(context)
     const page = await context.newPage()
-    watch(page)
-    await open(page, ` (${viewport.width}×${viewport.height} @${deviceScaleFactor}x)`)
-    await drawn(page)
-    await page.waitForTimeout(900)
-    const shot = await page.screenshot({ type: 'png' })
-    if (await looksBlank(page, shot)) errors.push(`at ${viewport.width}×${viewport.height} with ${deviceScaleFactor}× pixels the screen is one flat color. Use fitCanvas from fit.js to size and centre the game`)
-    const placement = await page.evaluate(() => {
-      const canvases = [...document.querySelectorAll('canvas')].map((c) => c.getBoundingClientRect()).filter((r) => r.width > 0)
-      if (!canvases.length) return null
-      const r = canvases.sort((a, b) => b.width * b.height - a.width * a.height)[0]
-      return { dx: r.left + r.width / 2 - innerWidth / 2, dy: r.top + r.height / 2 - innerHeight / 2, w: r.width, h: r.height }
-    })
-    if (placement && (Math.abs(placement.dx) > 2 || Math.abs(placement.dy) > 2)) {
-      warnings.push(`at ${viewport.width}×${viewport.height} the canvas (${Math.round(placement.w)}×${Math.round(placement.h)}) isn't centred (off by ${Math.round(placement.dx)},${Math.round(placement.dy)}px). fitCanvas from fit.js letterboxes and centres it`)
+    try {
+      watch(page)
+      await open(page, ` (${viewport.width}×${viewport.height} @${deviceScaleFactor}x)`)
+      await drawn(page)
+      await page.waitForTimeout(900)
+      // Twice the pixels through a software GPU: give the capture longer.
+      const shot = await capture(page, ` (${viewport.width}×${viewport.height} @${deviceScaleFactor}x)`, 45_000)
+      if (shot && (await looksBlank(page, shot))) errors.push(`at ${viewport.width}×${viewport.height} with ${deviceScaleFactor}× pixels the screen is one flat color. Use fitCanvas from fit.js to size and centre the game`)
+      const placement = await page.evaluate(() => {
+        const canvases = [...document.querySelectorAll('canvas')].map((c) => c.getBoundingClientRect()).filter((r) => r.width > 0)
+        if (!canvases.length) return null
+        const r = canvases.sort((a, b) => b.width * b.height - a.width * a.height)[0]
+        return { dx: r.left + r.width / 2 - innerWidth / 2, dy: r.top + r.height / 2 - innerHeight / 2, w: r.width, h: r.height }
+      })
+      if (placement && (Math.abs(placement.dx) > 2 || Math.abs(placement.dy) > 2)) {
+        warnings.push(`at ${viewport.width}×${viewport.height} the canvas (${Math.round(placement.w)}×${Math.round(placement.h)}) isn't centred (off by ${Math.round(placement.dx)},${Math.round(placement.dy)}px). fitCanvas from fit.js letterboxes and centres it`)
+      }
+    } finally {
+      await context.close()
     }
-    await context.close()
   }
 
   return { errors: [...new Set(errors)], warnings: [...new Set(warnings)] }

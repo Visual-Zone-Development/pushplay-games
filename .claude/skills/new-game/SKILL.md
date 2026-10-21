@@ -71,7 +71,7 @@ Run `npm run check <id>` after each milestone and fix every ✗.
   | Mouse only | hands off the keyboard | every menu by click; the on-screen pause button pauses; gameplay too if `inputs` includes `"mouse"`; cursor visible in every menu |
   | Touch | Chrome DevTools → device toolbar with touch emulation | every menu by tap; pause button; prompts say "Tap"; gameplay too if `inputs` includes `"touch"` |
   | Scaling | resize the window to 1920×1080, then device mode at DPR 2 | centred and letterboxed in the game's colour, text crisp, nothing clipped or blurry |
-  | `npm run check <id>` | | passes: gamepad, keyboard-only, touch, Start → `__game.state.screen === 'paused'`, 1920×1080 at DPR 2 |
+  | `npm run check <id>` | | passes: gamepad, keyboard-only, touch, Start → `__game.state.screen === 'paused'`, a 16:9 window at DPR 2 |
 
   Also confirm: menus use `menu.js`; pause menu is Resume / Restart / Settings / Quit to title; Settings is reachable from title and pause; no `F10`, Start+Select or held-Esc binding; no hard-coded button names (`input.label`, `drawPrompts`); nothing needs hover, a double-click, a scroll wheel or text entry; `window.__game.state.screen` is exposed.
 - **Manifest:**
