@@ -54,10 +54,14 @@ try {
       cpSync(join(source.prompts, file), join(ROOT, file))
       log(`  ✓ ${file}`)
     }
+    // Entry by entry, so a repo's own skills and docs next to the kit's survive.
     for (const dir of PROMPT_DIRS) {
       if (!existsSync(join(source.prompts, dir))) continue
-      rmSync(join(ROOT, dir), { recursive: true, force: true })
-      cpSync(join(source.prompts, dir), join(ROOT, dir), { recursive: true })
+      mkdirSync(join(ROOT, dir), { recursive: true })
+      for (const name of readdirSync(join(source.prompts, dir))) {
+        rmSync(join(ROOT, dir, name), { recursive: true, force: true })
+        cpSync(join(source.prompts, dir, name), join(ROOT, dir, name), { recursive: true })
+      }
       log(`  ✓ ${dir}/`)
     }
   } else log('  – no prompts bundled with this kit (AGENTS.md, skills and docs left as they are)')
