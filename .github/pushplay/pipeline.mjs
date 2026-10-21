@@ -196,6 +196,19 @@ async function playCheck(browser, server, out, entry, manifest) {
   const warnings = []
   const url = `${server.url}/${entry}`
   const offline = async (context) => {
+    // A frame clock, so the passes time their input from the game's first frame rather than
+    // from page load: on a slow CI runner the software renderer's first frame can take a second.
+    await context.addInitScript(() => {
+      window.__kitFrames = 0
+      window.__kitFirstFrame = null
+      const raf = window.requestAnimationFrame.bind(window)
+      window.requestAnimationFrame = (cb) =>
+        raf((ts) => {
+          window.__kitFrames++
+          if (window.__kitFirstFrame === null) window.__kitFirstFrame = performance.now()
+          cb(ts)
+        })
+    })
     await context.route('**/*', (route) => {
       const target = route.request().url()
       if (target.startsWith(server.url) || target.startsWith('data:') || target.startsWith('blob:') || manifest.online) return route.continue()
@@ -223,6 +236,11 @@ async function playCheck(browser, server, out, entry, manifest) {
     await page.goto(url, { waitUntil: 'load', timeout: 20_000 }).catch((err) => errors.push(`the game didn't load${label}: ${err.message}`))
   }
   const screen = (page) => page.evaluate(() => (window.__game?.state?.screen === undefined ? null : String(window.__game.state.screen)))
+  /** The game has drawn a couple of frames and had a moment to settle on its title. */
+  const drawn = async (page) => {
+    await page.waitForFunction(() => window.__kitFrames >= 2, null, { timeout: 10_000 }).catch(() => {})
+    await page.waitForTimeout(600)
+  }
 
   // --- Pass 1: controller. A once (most games start on A), the stick nudges right, then Start must pause.
   {
@@ -230,11 +248,14 @@ async function playCheck(browser, server, out, entry, manifest) {
     await offline(context)
     const page = await context.newPage()
     await page.addInitScript(() => {
-      const started = performance.now()
       const check = (window.__kitCheck = { start: false, audio: [] })
       const button = (pressed) => ({ pressed, touched: pressed, value: pressed ? 1 : 0 })
+      // A is tapped from 1.2 s after the first frame, in 150 ms pulses every 400 ms, and keeps
+      // tapping while the game still reports its title (slow frames can miss a single tap).
+      const onTitle = () => window.__game?.state?.screen === 'title'
+      const pressA = (t) => t > 1200 && (t - 1200) % 400 < 150 && (t < 1600 || (t < 4000 && onTitle()))
       const pad = () => {
-        const t = performance.now() - started
+        const t = window.__kitFirstFrame === null ? 0 : performance.now() - window.__kitFirstFrame
         return {
           id: 'Headless check gamepad (STANDARD GAMEPAD)',
           index: 0,
@@ -242,7 +263,7 @@ async function playCheck(browser, server, out, entry, manifest) {
           mapping: 'standard',
           timestamp: t,
           axes: [t > 1500 && t < 2200 ? 0.8 : 0, 0, 0, 0],
-          buttons: Array.from({ length: 17 }, (_, i) => button((i === 0 && t > 1200 && t < 1400) || (i === 9 && check.start))),
+          buttons: Array.from({ length: 17 }, (_, i) => button((i === 0 && pressA(t)) || (i === 9 && check.start))),
           vibrationActuator: null
         }
       }
@@ -264,6 +285,8 @@ async function playCheck(browser, server, out, entry, manifest) {
     watch(page)
     await open(page, '')
     await page.waitForTimeout(CHECK_RUN_MS)
+    // A slow first frame delays the tap; give a game that exposes its screen a moment to leave the title.
+    await page.waitForFunction(() => window.__game?.state?.screen !== 'title', null, { timeout: 2500 }).catch(() => {})
     for (const path of server.missing) if (!path.startsWith('/__')) errors.push(`missing file: ${path} (404)`)
 
     const shot = await page.screenshot({ type: 'png' })
@@ -301,10 +324,11 @@ async function playCheck(browser, server, out, entry, manifest) {
     const page = await context.newPage()
     watch(page)
     await open(page, ' (keyboard pass)')
-    await page.waitForTimeout(1000)
+    await drawn(page)
     const before = await page.screenshot({ type: 'png' })
     await page.keyboard.press('Enter')
     await page.waitForTimeout(600)
+    await page.waitForFunction(() => window.__game?.state?.screen !== 'title', null, { timeout: 1500 }).catch(() => {})
     await page.keyboard.press('Escape')
     await page.waitForTimeout(400)
     const state = await screen(page)
@@ -323,7 +347,7 @@ async function playCheck(browser, server, out, entry, manifest) {
     const page = await context.newPage()
     watch(page)
     await open(page, ' (touch pass)')
-    await page.waitForTimeout(1000)
+    await drawn(page)
     const before = await page.screenshot({ type: 'png' })
     const state = await screen(page)
     const spot = await page.evaluate(() => {
@@ -356,7 +380,8 @@ async function playCheck(browser, server, out, entry, manifest) {
     const page = await context.newPage()
     watch(page)
     await open(page, ` (${viewport.width}×${viewport.height} @${deviceScaleFactor}x)`)
-    await page.waitForTimeout(1500)
+    await drawn(page)
+    await page.waitForTimeout(900)
     const shot = await page.screenshot({ type: 'png' })
     if (await looksBlank(page, shot)) errors.push(`at ${viewport.width}×${viewport.height} with ${deviceScaleFactor}× pixels the screen is one flat color. Use fitCanvas from fit.js to size and centre the game`)
     const placement = await page.evaluate(() => {
