@@ -23,6 +23,9 @@ export function launchBrowser() {
       '--autoplay-policy=no-user-gesture-required',
       '--use-angle=swiftshader',
       '--enable-unsafe-swiftshader',
+      // 2D canvas on the CPU: through the software GPU, glow and blend effects take seconds a
+      // frame on a CI runner. WebGL still uses SwiftShader.
+      '--disable-accelerated-2d-canvas',
       // The online check runs two copies at once; neither may be throttled as a background window.
       '--disable-background-timer-throttling',
       '--disable-renderer-backgrounding',
@@ -300,14 +303,9 @@ async function playCheck(browser, server, out, entry, manifest) {
     const page = await context.newPage()
     try {
       await page.addInitScript(() => {
-        const check = (window.__kitCheck = { start: false, audio: [] })
+        // The check drives A and Start itself (press() below), held and released over whole frames.
+        const check = (window.__kitCheck = { a: false, start: false, audio: [] })
         const button = (pressed) => ({ pressed, touched: pressed, value: pressed ? 1 : 0 })
-        // A is tapped from 1.2 s after the first frame: held for two frames, released for two, so a
-        // game that samples the pad once per frame sees a press however slow its frames are (a
-        // timer-driven game gets 150 ms pulses). It keeps tapping while the game still shows its title.
-        const onTitle = () => window.__game?.state?.screen === 'title'
-        const pulse = (t) => (window.__kitFrames > 0 ? window.__kitFrames % 4 < 2 : (t - 1200) % 400 < 150)
-        const pressA = (t) => t > 1200 && pulse(t) && (t < 1600 || (t < 4000 && onTitle()))
         const pad = () => {
           const t = window.__kitFirstFrame === null ? 0 : performance.now() - window.__kitFirstFrame
           return {
@@ -317,7 +315,7 @@ async function playCheck(browser, server, out, entry, manifest) {
             mapping: 'standard',
             timestamp: t,
             axes: [t > 1500 && t < 2200 ? 0.8 : 0, 0, 0, 0],
-            buttons: Array.from({ length: 17 }, (_, i) => button((i === 0 && pressA(t)) || (i === 9 && check.start))),
+            buttons: Array.from({ length: 17 }, (_, i) => button((i === 0 && check.a) || (i === 9 && check.start))),
             vibrationActuator: null
           }
         }
@@ -337,10 +335,28 @@ async function playCheck(browser, server, out, entry, manifest) {
         }
       })
       watch(page)
+      /** Hold a pad button for three of the game's frames, then release it for three. */
+      const press = async (button) => {
+        const frames = () => page.evaluate(() => window.__kitFrames).catch(() => 0)
+        const waitFrames = async (n) => {
+          const target = (await frames()) + n
+          await page.waitForFunction((t) => window.__kitFrames >= t, target, { timeout: 5000 }).catch(() => {})
+        }
+        await page.evaluate((b) => (window.__kitCheck[b] = true), button)
+        await waitFrames(3)
+        await page.evaluate((b) => (window.__kitCheck[b] = false), button)
+        await waitFrames(3)
+      }
+      const started = Date.now()
       await open(page, '')
-      await page.waitForTimeout(CHECK_RUN_MS)
-      // A slow first frame delays the tap; give a game that exposes its screen a moment to leave the title.
-      await page.waitForFunction(() => window.__game?.state?.screen !== 'title', null, { timeout: 2500 }).catch(() => {})
+      await drawn(page)
+      await page.waitForTimeout(600)
+      // A on the title, again (up to three times) while a game that exposes its screen still shows it.
+      for (let i = 0; i < 3; i++) {
+        await press('a')
+        if ((await screen(page)) !== 'title') break
+      }
+      await page.waitForTimeout(Math.max(500, CHECK_RUN_MS - (Date.now() - started)))
       for (const path of server.missing) if (!path.startsWith('/__')) errors.push(`missing file: ${path} (404)`)
       if (!(await responsive(page, ''))) return { errors: [...new Set(errors)], warnings: [...new Set(warnings)] }
 
@@ -359,10 +375,8 @@ async function playCheck(browser, server, out, entry, manifest) {
         // Online games go to their lobby first (one copy can't play alone); netCheck plays two together.
         errors.push(`pressing A on the title didn't start the game: after ${CHECK_RUN_MS / 1000}s state.screen is "${before}", not "playing"${manifest.online ? ' (or "lobby")' : ''}. The title menu's first item must start play`)
       } else {
-        await page.evaluate(() => (window.__kitCheck.start = true))
-        await page.waitForTimeout(150)
-        await page.evaluate(() => (window.__kitCheck.start = false))
-        await page.waitForTimeout(400)
+        await press('start')
+        await page.waitForTimeout(200)
         const after = await screen(page)
         if (after !== 'paused') errors.push(`pressing Start during play didn't pause: state.screen is "${after}", not "paused". Open the pause menu on input.pressed('menu')`)
       }
