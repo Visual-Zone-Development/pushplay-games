@@ -40,7 +40,7 @@ export function shellHandler(dir) {
       headers['content-security-policy'] =
         "default-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' blob: data:; style-src 'unsafe-inline' data:; img-src data: blob:; font-src data:; media-src data: blob:; connect-src 'none'"
     } else if (ext === '.html') {
-      headers['content-security-policy'] = `default-src 'self'; connect-src 'self' ws://${host} wss://${host}; frame-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'`
+      headers['content-security-policy'] = `default-src 'self'; connect-src 'self' ws://${host} wss://${host}; frame-src 'self'; img-src 'self' data:; font-src 'self' data:; style-src 'self' 'unsafe-inline'`
       headers['x-frame-options'] = 'DENY'
     }
     res.writeHead(200, headers).end(req.method === 'HEAD' ? undefined : body)

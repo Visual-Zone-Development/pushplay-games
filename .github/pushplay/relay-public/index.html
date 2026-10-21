@@ -4,32 +4,39 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
     <meta name="theme-color" content="#0d0f14" />
-    <title>Join a party</title>
+    <title>Join a game · PushPlay</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/fonts.css" />
     <link rel="stylesheet" href="/shell.css" />
     <script type="module" src="/shell.js"></script>
   </head>
   <body>
     <form id="join" class="card" hidden>
-      <h1>Join the party</h1>
+      <div class="brand"><svg class="mark" viewBox="0 0 100 100" aria-hidden="true"><rect width="100" height="100" rx="24" fill="#FFB547"/><path d="M42 29 L75 50 L42 71 Z" fill="#0D0F14" stroke="#0D0F14" stroke-width="7" stroke-linejoin="round"/><rect x="14" y="36" width="20" height="7" rx="3.5" fill="#0D0F14"/><rect x="21" y="57" width="13" height="7" rx="3.5" fill="#0D0F14"/></svg><span>PushPlay</span></div>
+      <div>
+        <h1>Join a game</h1>
+        <p class="lede">Type the code on the TV.</p>
+      </div>
       <label>Room code
         <input id="code" name="code" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="4" inputmode="text" placeholder="ABCD" required />
       </label>
       <label>Your name
         <input id="name" name="name" autocomplete="nickname" maxlength="20" placeholder="Name" required />
       </label>
-      <fieldset id="colors"><legend>Colour</legend></fieldset>
+      <fieldset id="colors"><legend>Your colour</legend></fieldset>
       <p id="error" class="error" role="alert"></p>
-      <button id="go" type="submit">Join</button>
+      <button id="go" type="submit">Join game</button>
     </form>
 
     <main id="play" hidden>
       <header>
+        <svg class="mark" viewBox="0 0 100 100" aria-hidden="true"><rect width="100" height="100" rx="24" fill="#FFB547"/><path d="M42 29 L75 50 L42 71 Z" fill="#0D0F14" stroke="#0D0F14" stroke-width="7" stroke-linejoin="round"/><rect x="14" y="36" width="20" height="7" rx="3.5" fill="#0D0F14"/><rect x="21" y="57" width="13" height="7" rx="3.5" fill="#0D0F14"/></svg>
         <span id="me"><i id="swatch"></i><b id="who"></b></span>
         <span id="room"></span>
         <button id="leave" type="button" aria-label="Leave">✕</button>
       </header>
       <div id="stage"></div>
-      <div id="notice" hidden><p id="notice-text"></p><button id="notice-button" type="button" hidden></button></div>
+      <div id="notice" hidden><div class="spinner" aria-hidden="true"></div><p id="notice-text"></p><button id="notice-button" type="button" hidden></button></div>
     </main>
   </body>
 </html>
