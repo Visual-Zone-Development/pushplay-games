@@ -222,7 +222,10 @@ function fromHost(d) {
 // ---- the controller frame ----------------------------------------------------------------
 
 function mount(html) {
-  unmount()
+  // Keep messages waiting for the controller: the host sends everything right after the
+  // controller pages, which are paced, so the state often arrives first.
+  frame?.remove()
+  frameReady = false
   frame = document.createElement('iframe')
   frame.setAttribute('sandbox', 'allow-scripts')
   frame.setAttribute('allow', 'fullscreen')

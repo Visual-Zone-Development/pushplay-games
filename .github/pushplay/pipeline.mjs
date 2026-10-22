@@ -689,6 +689,28 @@ async function partyCheck(browser, server, entry, relay, manifest) {
       if (!same) errors.push(`phone ${i + 1} doesn't show its own party.view(id) (what the TV wrote for it): check that the game writes views by player id`)
     }
 
+    // A latecomer, after the game started: the TV sends it everything at once, before and
+    // while its controller page arrives, and it must still end up with its own view.
+    const maxPlayers = Number(String(manifest.players ?? '').split('-').at(-1)) || count
+    if (maxPlayers > count) {
+      const context = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true })
+      contexts.push(context)
+      const late = await context.newPage()
+      late.on('pageerror', (err) => errors.push(`the phone controller crashed: ${err.message}`))
+      await late.goto(`${relay.joinBase}/j/${opened.code}`, { waitUntil: 'load', timeout: 20_000 })
+      await late.fill('#name', 'Latecomer')
+      await late.click('#go')
+      const id = await until(() => ctl(late, () => window.controller?.me?.id))
+      const same =
+        id &&
+        (await until(async () => {
+          const theirs = await ctl(late, () => JSON.stringify(window.controller.mine))
+          const ours = await tv.evaluate((pid) => window.__kitParty.views[pid] ?? {}, id).then(round)
+          return theirs !== null && JSON.stringify(JSON.parse(theirs)) === ours
+        }, 3000))
+      if (!same) errors.push("a phone that joined after the game started doesn't show its own party.view(id)")
+    }
+
     // A phone that reloads (or locks and comes back) gets its seat back.
     const before = relay.stats.bytes
     await phones[0].reload({ waitUntil: 'load' })
