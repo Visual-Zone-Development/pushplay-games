@@ -1,4 +1,4 @@
-// Asset viewer (toolkit from the model-unit skill): renders one unit from several camera views, an
+// Asset viewer (toolkit from the threejs-models skill): renders one unit from several camera views, an
 // animation as a strip of frames, or two assets side by side, so changes can be compared with a
 // reference. Sets document.title = 'ready' when done, for scripts/shot.mjs.
 import * as THREE from 'three'

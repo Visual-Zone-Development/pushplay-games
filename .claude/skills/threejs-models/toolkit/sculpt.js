@@ -1,4 +1,4 @@
-// Sculpting toolkit for procedural units (from the model-unit skill): lofted bodies, extruded plates,
+// Sculpting toolkit for models built in code (from the threejs-models skill): lofted bodies, extruded plates,
 // horns, armour shells, fur rolls and hand-painted canvas textures. Unit files register their parts
 // and materials by name (registerShapes / registerMaterials); rig.js instances them like primitives.
 import * as THREE from 'three'

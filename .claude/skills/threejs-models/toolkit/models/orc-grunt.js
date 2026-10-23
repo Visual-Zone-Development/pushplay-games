@@ -1,6 +1,6 @@
 // Asset: orc grunt (Warcraft III style). One file per asset: its sculpted shapes, painted textures
 // and part list live here, so it can be edited without touching other units.
-// Built with the model-unit skill; style rules in the game's STYLE.md. A worked example: copy it as a
+// Built with the model-asset + threejs-models skills; style rules in the game's STYLE.md. A worked example: copy it as a
 // starting point for a new sculpted unit, rename the 'orc.*' parts to your asset's prefix.
 import { loft, plate, hornGeo, shell, shellRim, furRoll, canvas, grad, blob, rnd, registerShapes, registerMaterials, texturedMaterial } from '../sculpt.js'
 

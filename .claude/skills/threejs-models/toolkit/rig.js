@@ -1,6 +1,6 @@
-// Procedural units (toolkit from the model-unit / animate-unit skills): every soldier, beast and
+// Procedural models (toolkit from the threejs-models skill): every character, beast and
 // engine is a set of parts on a small skeleton, posed in code each frame. Animations blend smoothly
-// (idle ↔ walk/run, attack, cast, hit, die) and follow the principles in the animate-unit skill:
+// (idle ↔ walk/run, attack, cast, hit, die) and follow the principles in the animate-asset skill:
 // anticipation, follow-through, overlapping action, weight, and per-unit variation.
 // All parts of all units are drawn through a handful of InstancedMeshes (one per shape × material),
 // so hundreds of units cost ~15–30 draw calls.
