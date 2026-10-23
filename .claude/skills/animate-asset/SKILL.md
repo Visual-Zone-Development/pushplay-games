@@ -1,6 +1,6 @@
 ---
 name: animate-asset
-description: Make motion in a game in games/ look natural, readable and consistent — character and creature cycles (walk, run, jump, attack, hit, death, idle), vehicles, projectiles, effects, pickups and UI — in any rendering style (2D sprites, procedural canvas, 3D) and fitted to the game's own physics and rules. Use for "the run looks robotic", "the jump feels floaty", "attacks have no weight", "everything bobs in sync", "add a death animation", or animation consistency across a game. For three.js code-built units also load threejs-models.
+description: Make motion in a game in games/ look natural, readable and consistent — character and creature cycles (walk, run, jump, attack, hit, death, idle), vehicles, projectiles, effects, pickups and UI — in any rendering style (2D sprites, procedural canvas, 3D) and fitted to the game's own physics and rules. Use for "the run looks robotic", "the jump feels floaty", "attacks have no weight", "everything bobs in sync", "add a death animation", or animation consistency across a game. Also load canvas2d-assets for 2D games or threejs-models for three.js code-built models.
 ---
 
 # Animate an asset
@@ -16,7 +16,8 @@ game's physics and rules, which differ in every game, so start there.
 - `STYLE.md` → *Animation*: timing tokens (frame rates, cycle lengths, wind-up/recovery, squash amounts, eases).
   Match them; if this asset needs something new, add a rule for its whole class.
 - How the game animates now: sprite frames, tweens, procedural poses, a skeletal rig. Extend that; don't add a
-  second animation system. three.js code-built units: the **threejs-models** skill describes their rig.
+  second animation system. 2D: the **canvas2d-assets** skill (eased keyframes, springs, squash, sprite clips);
+  three.js code-built models: the **threejs-models** skill (its rig).
 
 ## 1. Fit the motion to the physics
 

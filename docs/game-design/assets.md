@@ -2,6 +2,15 @@
 
 Games can be entirely procedural (shapes, generated sound), which is often the fastest route to a cohesive look. When the player has their own sprites, sounds or models, or wants a specific look, bring them in this way.
 
+## Drawing assets in code
+
+Most games here draw their art in code rather than shipping files. The skills keep it consistent and good-looking:
+**model-asset** (build an asset to a reference the user provides, comparing renders every round), **edit-asset** (one
+focused change to one asset), **animate-asset** (natural motion that fits the game's physics), plus the engine
+how-tos **canvas2d-assets** (2D in any art style: vector, pixel art, sprite sheets, SVG; an asset gallery page) and
+**threejs-models** (3D models built in three.js code). A game's `STYLE.md` records its palette, proportions,
+shared parts and animation timing.
+
 ## Where they go
 
 ```

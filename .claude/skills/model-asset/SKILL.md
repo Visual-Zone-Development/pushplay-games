@@ -1,6 +1,6 @@
 ---
 name: model-asset
-description: Create or rebuild a visual asset for a game in games/ — a character, creature, vehicle, building, prop, pickup, effect, tile or UI element — to match a reference or art direction, in any rendering style (2D canvas shapes, pixel-art sprites, SVG, 3D, or the user's own files). Covers the game's STYLE.md, reference breakdown, silhouette and proportions, block-out, detail, and render-and-compare rounds. For one focused change to an existing asset use edit-asset; for motion use animate-asset; for 3D models built in three.js code also load threejs-models.
+description: Create or rebuild a visual asset for a game in games/ — a character, creature, vehicle, building, prop, pickup, effect, tile or UI element — to match a reference or art direction, in any rendering style (2D canvas shapes, pixel-art sprites, SVG, 3D, or the user's own files). Covers the game's STYLE.md, reference breakdown, silhouette and proportions, block-out, detail, and render-and-compare rounds. For one focused change to an existing asset use edit-asset; for motion use animate-asset; also load canvas2d-assets for 2D games or threejs-models for 3D models built in three.js code.
 ---
 
 # Model an asset
@@ -11,11 +11,10 @@ the game's rendering, so pair it with an engine skill when one exists:
 
 | Game renders with | How-to |
 |---|---|
+| 2D canvas: vector shapes, pixel art, sprite sheets, SVG | **canvas2d-assets** skill (style, animation and sprite toolkit, asset gallery) |
 | three.js, models built in code | **threejs-models** skill (rig, sculpting toolkit, asset viewer) |
 | three.js with model files (GLB) | `docs/game-design/3d.md` → *Models*, `docs/game-design/assets.md` |
-| 2D canvas shapes / procedural | draw functions per asset in the game's code; *Gallery page* below |
-| Pixel art / sprite sheets | `docs/game-design/assets.md` (sheets, whole-number scaling, `imageSmoothingEnabled = false`) |
-| SVG (art, UI) | edit the SVG; render it with the script below |
+| Cover / hero art (SVG) | edit the SVG; `npm run check` renders it, or use the script below |
 
 Sister skills share the game's `STYLE.md`: **edit-asset** (one focused change) and **animate-asset** (motion).
 
@@ -67,7 +66,7 @@ Render the asset where you can see it clearly. Options, best first:
 - a **gallery page** in the game folder (e.g. `gallery.html`) that draws one asset by query string:
   `?asset=<id>&view=<…>&anim=<…>&frames=<n>&scale=<…>&compare=<id2>`, and sets `document.title = 'ready'` when done.
   It isn't part of the build (Vite only bundles `index.html`; for plain games list it in `.pushplayignore`).
-  threejs-models ships one for 3D (`viewer.html`); for 2D, write a small one that calls the game's own draw code.
+  canvas2d-assets ships one for 2D (`gallery.html`) and threejs-models one for 3D (`viewer.html`).
 - the game itself (`index.html`), reaching the right screen with keys.
 
 `scripts/shot.mjs` (next to this file) renders any of these to PNG:

@@ -29,7 +29,8 @@ node .claude/skills/model-asset/scripts/shot.mjs <game-id> <scratch>/before \
   "gallery.html?asset=<id>&scale=4|close.png" "index.html|in-game.png|keys=Enter|wait=2500"
 ```
 
-Use the game's gallery/viewer page if it has one (threejs-models has `viewer.html`), otherwise the game itself.
+Use the game's gallery/viewer page if it has one (canvas2d-assets has `gallery.html`, threejs-models `viewer.html`),
+otherwise the game itself.
 Add a frame strip if the change could affect motion. Renders go to the scratchpad, never into the repo.
 
 ## 3. Make the smallest change that does it
