@@ -71,7 +71,7 @@ Follow AGENTS.md. Design material lives in `docs/game-design/`.
      - manifest has `tags` and `inputs`; `tools/`, `mockups/`, `*.py` not committed; runtime files unedited (header intact)
      - screen rules (24px text, 32px margins at 1280×800) and performance (60fps, DPR 2 included)
 
-   For a deeper look, run the `playtest` skill to measure run length, spikes and boring stretches. Hand the fixes to the specialist skills: `game-feel` (feel and juice), `level-design` (content and ramp), `game-audio` (sound), `game-ui` (HUD, menus, onboarding).
+   For a deeper look, run the `playtest` skill to measure run length, spikes and boring stretches. Hand the fixes to the specialist skills: `game-feel` (feel and juice), `level-design` (content and ramp), `game-audio` (sound), `game-ui` (HUD, menus, onboarding), `boss-design` (bosses and finales), `progression` (unlocks, upgrades, daily challenge), `story-and-dialogue` (story, characters, writing), `accessibility-audit` (colourblind, remapping, assists), `performance-pass` (frame rate, stutter, load time). Finish with `release-notes` when the user wants notes for the update.
 
    If it helps, research how the DESIGN.md reference games, or similar games, solved the same problem ([inspiration.md](../../../docs/game-design/inspiration.md)).
 4. **Propose.** Offer 3–5 improvements in one `AskUserQuestion` (multiSelect). Each option gives the problem → the fix, its expected effect on feel, and its size (S/M/L).

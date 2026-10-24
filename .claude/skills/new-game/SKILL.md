@@ -54,10 +54,10 @@ Run `npm run check <id>` after each milestone and fix every ✗.
    - **Online:** read [multiplayer.md](../../../docs/game-design/multiplayer.md) first. The host runs the rules in `hostUpdate()` and writes `net.state`; everyone draws `net.view`. Keep the template's title → lobby → playing flow with `state.screen` exposed; `menu` still opens the `menu.js` pause menu (Resume, Settings, Leave game) but it only stops your controls, since the host keeps the world running. Never edit `net.js` or `lobby.js`. Secrets go in `net.privateView(id)`, never `net.state`.
    - **Party:** read [party.md](../../../docs/game-design/party.md) first. The TV runs everything: read `party.inputs[id]` and `party.on('msg')`, write `party.public` for every phone and `party.view(id)` for one phone (never secrets in `public`). Build the phone screen in `controller.html` (one file, everything inline) and look at it on a real phone with `npm run dev`. Never edit the party runtime files.
    - If the user supplied assets, import them per [assets.md](../../../docs/game-design/assets.md). For 3D, follow [3d.md](../../../docs/game-design/3d.md).
-2. **Complete game.** Use the `level-design` skill for levels, waves and the difficulty ramp, `game-audio` for SFX and music, and `game-ui` for the HUD, onboarding and results screens. Work through the Definition of done: onboarding by doing, difficulty ramp with something new every 30–60s, retry in one press, best score, progression or variety; title / pause (Resume, Restart, Settings, Quit to title) / game-over / settings screens on `menu.js` and `settings.js`; SFX + music through `audio.js` obeying the sliders; `save.js` under `<id>-save-v1`, saved on pause and in `input.onPause`; reduced shake and text size honoured.
+2. **Complete game.** Use the `level-design` skill for levels, waves and the difficulty ramp, `game-audio` for SFX and music, `game-ui` for the HUD, onboarding and results screens, `boss-design` for a boss or finale, `progression` for the meta loop (unlocks, upgrades, daily seed), and `story-and-dialogue` when Narrative or Fantasy is a fun target. Work through the Definition of done: onboarding by doing, difficulty ramp with something new every 30–60s, retry in one press, best score, progression or variety; title / pause (Resume, Restart, Settings, Quit to title) / game-over / settings screens on `menu.js` and `settings.js`; SFX + music through `audio.js` obeying the sliders; `save.js` under `<id>-save-v1`, saved on pause and in `input.onPause`; reduced shake and text size honoured.
 3. **Polish.** Use the `game-feel` skill. Add juice aimed at the fun targets: the biggest effects on the biggest moments, with capped particles, all skipped when `reducedShake` is on.
 
-**Self-review** before moving on to art: run the `playtest` skill to check the difficulty curve and pacing, then re-read DESIGN.md and tick off every Definition of done item. Build anything missing, or list it as a known gap.
+**Self-review** before moving on to art: run the `playtest` skill to check the difficulty curve and pacing, `accessibility-audit` for the Accessibility items, and `performance-pass` on the heaviest moment, then re-read DESIGN.md and tick off every Definition of done item. Build anything missing, or list it as a known gap.
 
 ## 6. Controls, manifest, art
 - **Verification matrix.** Run `npm run dev <id>` and do each pass with only that input; every one must pass:
@@ -90,7 +90,7 @@ Run `npm run check <id>` after each milestone and fix every ✗.
   Refine and re-run until all three look good.
 
 ## 7. Ship
-Update DESIGN.md if the design drifted (set Status to shipped, add a Changelog entry). Commit (`Add <Name>`) and push.
+Update DESIGN.md if the design drifted (set Status to shipped, add a Changelog entry). Use the `release-notes` skill for the player-facing notes. Commit (`Add <Name>`) and push.
 
 Tell the user:
 - the name, the pitch and the controls

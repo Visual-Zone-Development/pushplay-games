@@ -21,7 +21,7 @@ Rules of thumb ([complete-game.md](../../../docs/game-design/complete-game.md), 
 - **Teach, test, twist:** introduce a thing safely, then test it, then combine it with something already known.
 - **Saw-tooth difficulty:** ramp, peak, breather, higher ramp. Never a flat line, never a cliff.
 - **Early wins:** the first minute is nearly impossible to lose.
-- **An ending or a moment:** a boss, a finale wave, or a milestone (every 5 waves) with a bigger reward.
+- **An ending or a moment:** a boss (build it with the `boss-design` skill), a finale wave, or a milestone (every 5 waves) with a bigger reward.
 - **Handheld readability:** the whole threat fits the 1280×800 view, or is telegraphed before it enters it.
 
 ## 2. Pick the content format
