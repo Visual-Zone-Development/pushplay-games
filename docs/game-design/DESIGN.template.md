@@ -4,6 +4,24 @@
 
 *Status: draft / approved / shipped · Version: 1.0.0*
 
+## Kickoff
+Answers from the kickoff interview ([kickoff.md](../../docs/game-design/kickoff.md)). Mark anything you decided yourself as *(assumed)*.
+
+| Topic | Answer |
+|---|---|
+| Concept / genre | |
+| 2D or 3D | |
+| Art style | |
+| Players | <solo / local 2–4 / online 2–N / party with phones> |
+| Feel | |
+| Camera / view | |
+| Session and structure | |
+| Like which game? | |
+| Audience and difficulty | |
+| Assets | |
+| Sound and music | |
+| Progression | |
+
 ## Fun targets
 - **Primary:** <kind of fun>. <How the game delivers it, in one line.>
 - **Secondary:** <kind of fun>. <How.>
