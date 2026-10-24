@@ -24,7 +24,7 @@ Follow [kickoff.md](../../../docs/game-design/kickoff.md). Use `AskUserQuestion`
 | 2. Play | **Feel** (multiSelect, up to 2), **camera / view**, **session and structure**, **like which game?**; swap in the online, party or local-multiplayer follow-ups (player count, co-op or versus, phone controller) when round 1 picked them |
 | 3. Details | Only what's still open: audience and difficulty, assets (none / "I have files" → ask for the folder / CC0), sound and music, theme and name, progression, mouse/touch gameplay |
 
-Round 1 and round 2 answers often settle each other's topics; skip any question that's already answered. Three rounds maximum. Fill any remaining gaps with sensible defaults and list them as assumptions.
+Round 1 and round 2 answers often settle each other's topics; skip any question that's already answered. Three rounds maximum. Fill any remaining gaps with sensible defaults and list them as assumptions. If the user can't choose between two or three strong directions, offer the `prototype-sprint` skill: tiny playable versions of each, then grow the winner.
 
 ## 3. Research inspiration
 Follow [inspiration.md](../../../docs/game-design/inspiration.md): 2–3 reference games (any the user named first). Use a few web searches if available, otherwise the offline canon. Record borrow / change / avoid for each, and state the twist that makes this game its own. Keep it quick.
@@ -50,9 +50,10 @@ Run `npm run check <id>` after each milestone and fix every ✗.
    - Keep the starter's skeleton: `fitCanvas(...)`, `input.attach(canvas, 1280, 800)`, `input.update()` first in the frame, `state.screen` with the names `title | playing | paused | settings | gameover`, `window.__game = { state, TUNING }`, and `input.onPause(...)` switching to `paused`.
    - Add the `?debug` overlay ([debugging.md](../../../docs/game-design/debugging.md)).
    - Map gameplay to buttons from the AGENTS.md table: `b` is a normal action button; `menu` is only pause. Game-specific key aliases via `input.extendKeys`.
-   - Get the core verb feeling good: pass the **30-second fun test** in framework.md before adding content.
-   - **Online:** read [multiplayer.md](../../../docs/game-design/multiplayer.md) first. The host runs the rules in `hostUpdate()` and writes `net.state`; everyone draws `net.view`. Keep the template's title → lobby → playing flow with `state.screen` exposed; `menu` still opens the `menu.js` pause menu (Resume, Settings, Leave game) but it only stops your controls, since the host keeps the world running. Never edit `net.js` or `lobby.js`. Secrets go in `net.privateView(id)`, never `net.state`.
-   - **Party:** read [party.md](../../../docs/game-design/party.md) first. The TV runs everything: read `party.inputs[id]` and `party.on('msg')`, write `party.public` for every phone and `party.view(id)` for one phone (never secrets in `public`). Build the phone screen in `controller.html` (one file, everything inline) and look at it on a real phone with `npm run dev`. Never edit the party runtime files.
+   - Get the core verb feeling good: pass the **30-second fun test** in framework.md before adding content. Use `camera` for anything that scrolls or is 3D, `physics-feel` for collisions, bouncing or vehicles, and `enemy-ai` for enemies and CPU opponents.
+   - **Local multiplayer:** use the `local-multiplayer` skill (join screen, `input.pads[i]`, shared camera).
+   - **Online:** read [multiplayer.md](../../../docs/game-design/multiplayer.md) first. The host runs the rules in `hostUpdate()` and writes `net.state`; everyone draws `net.view`. Keep the template's title → lobby → playing flow with `state.screen` exposed; `menu` still opens the `menu.js` pause menu (Resume, Settings, Leave game) but it only stops your controls, since the host keeps the world running. Never edit `net.js` or `lobby.js`. Secrets go in `net.privateView(id)`, never `net.state`. Use the `online-netcode` skill to make it feel good despite the delay.
+   - **Party:** read [party.md](../../../docs/game-design/party.md) first. The TV runs everything: read `party.inputs[id]` and `party.on('msg')`, write `party.public` for every phone and `party.view(id)` for one phone (never secrets in `public`). Build the phone screen in `controller.html` (one file, everything inline) and look at it on a real phone with `npm run dev`. Never edit the party runtime files. Use the `party-phone-screen` skill for the phone side.
    - If the user supplied assets, import them per [assets.md](../../../docs/game-design/assets.md). For 3D, follow [3d.md](../../../docs/game-design/3d.md).
 2. **Complete game.** Use the `level-design` skill for levels, waves and the difficulty ramp, `game-audio` for SFX and music, `game-ui` for the HUD, onboarding and results screens, `boss-design` for a boss or finale, `progression` for the meta loop (unlocks, upgrades, daily seed), and `story-and-dialogue` when Narrative or Fantasy is a fun target. Work through the Definition of done: onboarding by doing, difficulty ramp with something new every 30–60s, retry in one press, best score, progression or variety; title / pause (Resume, Restart, Settings, Quit to title) / game-over / settings screens on `menu.js` and `settings.js`; SFX + music through `audio.js` obeying the sliders; `save.js` under `<id>-save-v1`, saved on pause and in `input.onPause`; reduced shake and text size honoured.
 3. **Polish.** Use the `game-feel` skill. Add juice aimed at the fun targets: the biggest effects on the biggest moments, with capped particles, all skipped when `reducedShake` is on.
@@ -78,11 +79,11 @@ Run `npm run check <id>` after each milestone and fix every ✗.
   - `tags` (required): 2–5 lowercase genre/style words, reusing tags other games already use; add `online multiplayer` for online games and `party` for party games.
   - `inputs` (required): the inputs the whole game is playable with; drop `"mouse"` or `"touch"` only when gameplay genuinely can't, and say so on the title screen.
   - `online` if the game is networked (the `--online` scaffold sets it), or `party` for a party game (`--party` sets it).
-- **Art:**
+- **Art** (use the `cover-art` skill):
   - `art/cover.svg`: 720×500, big title, bottom 110px clear.
   - `art/hero.svg`: 1920×450, no text, key visual on the right.
   - Both use DESIGN.md's palette, font and hero object; see art-directions.md.
-- **Check and review:** run `npm run check <id>`, then **open the three PNGs it lists**:
+- **Check and review:** run `npm run check <id>`, then **open the three PNGs it lists** (if the screenshot doesn't show real gameplay, see the `screenshots` skill):
   - Does the cover read at thumbnail size?
   - Is the title legible?
   - Does the screenshot show real gameplay or the title?
