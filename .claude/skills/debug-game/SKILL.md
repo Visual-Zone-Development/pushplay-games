@@ -1,6 +1,6 @@
 ---
 name: debug-game
-description: Find and fix a bug in a game in games/. Use for crashes, a failing `npm run check`, blank or black screens, controls not responding, broken saves, stutter or low FPS, or anything that "doesn't work". For new features or tuning use improve-game.
+description: Find and fix a bug in a game in games/. Use for crashes, a failing `npm run check`, blank or black screens, controls not responding, broken saves, stutter or low FPS, or anything that "doesn't work". For new features or tuning use improve-game; for a full frame-rate and load-time pass use performance-pass; for objects passing through walls or jittery physics use physics-feel; for online lag or desync use online-netcode.
 ---
 
 # Debug game
