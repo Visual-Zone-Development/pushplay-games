@@ -1,4 +1,4 @@
-// The library art's scene: the arcade hall with a fan of the six cabinets, each drawn with its
+// The library art's scene: the arcade hall with a fan of cabinets, each drawn with its
 // own game's icon(), so the cover and banner always show the real games.
 import starCourier from '../games/star-courier.js'
 import hopGarden from '../games/hop-garden.js'
@@ -6,8 +6,10 @@ import mergeJars from '../games/merge-jars.js'
 import tinyTactics from '../games/tiny-tactics.js'
 import keyhole from '../games/keyhole.js'
 import neonRing from '../games/neon-ring.js'
+import lazyLake from '../games/lazy-lake.js'
 
-const GAMES = [starCourier, hopGarden, mergeJars, tinyTactics, keyhole, neonRing]
+// Seven of the games, fanned out (all eleven would be too small to read on a library tile).
+const GAMES = [starCourier, hopGarden, mergeJars, lazyLake, tinyTactics, keyhole, neonRing]
 
 /** Draw into a canvas of w×h CSS px at 2×, cabinets fanned round (cx, cy) with card width cw. */
 export function drawScene(canvas, w, h, { cx, cy, cw, spread = 1 }) {

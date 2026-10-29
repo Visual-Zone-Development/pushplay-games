@@ -17,9 +17,14 @@ import mergeJars from './games/merge-jars.js'
 import tinyTactics from './games/tiny-tactics.js'
 import keyhole from './games/keyhole.js'
 import neonRing from './games/neon-ring.js'
+import miniPutt from './games/mini-putt.js'
+import rooftopRun from './games/rooftop-run.js'
+import lazyLake from './games/lazy-lake.js'
+import tinyTowers from './games/tiny-towers.js'
+import letterDrop from './games/letter-drop.js'
 
 const ID = 'arcade-sampler'
-const GAMES = [starCourier, hopGarden, mergeJars, tinyTactics, keyhole, neonRing]
+const GAMES = [starCourier, hopGarden, rooftopRun, mergeJars, letterDrop, tinyTactics, tinyTowers, keyhole, neonRing, miniPutt, lazyLake]
 /** The hub's numbers; each game's own TUNING is under its id. */
 const TUNING = { readyTime: 1.6, ...Object.fromEntries(GAMES.map((g) => [g.id, g.TUNING])) }
 const C = { bg: '#140f2e', bg2: '#22184d', ink: '#f6f1ff', quiet: '#a79fd0', dark: '#0a0718', gold: '#ffd23f', pink: '#ff5c8a', teal: '#2ad1c9' }
@@ -193,9 +198,11 @@ function update(dt) {
   if (state.run.done) finish()
 }
 
-// The cabinet hall: a 3×2 grid of games, chosen with the d-pad / stick / keys, hover or tap.
-const COLS = 3
-const CARD = { w: 360, h: 250, gap: 28, top: 200 }
+// The cabinet hall: a 4×3 grid of games, chosen with the d-pad / stick / keys, hover or tap.
+// Each game's icon() is drawn for a 360-wide card and scaled to fit.
+const COLS = 4
+const CARD = { w: 284, h: 172, gap: 18, top: 188 }
+const ICON_K = CARD.w / 360
 const cardRect = (i) => {
   const x0 = (W - (COLS * CARD.w + (COLS - 1) * CARD.gap)) / 2
   return { x: x0 + (i % COLS) * (CARD.w + CARD.gap), y: CARD.top + Math.floor(i / COLS) * (CARD.h + CARD.gap), w: CARD.w, h: CARD.h }
@@ -263,7 +270,7 @@ function drawMarquee(y, size) {
 function drawTitle() {
   drawHall()
   drawMarquee(210, 120)
-  label(ctx, 'Six tiny games, six genres, six looks.', W / 2, 320, { font: font(700, 30), color: C.ink })
+  label(ctx, `${GAMES.length} tiny games, ${GAMES.length} genres, ${GAMES.length} looks.`, W / 2, 320, { font: font(700, 30), color: C.ink })
   label(ctx, 'Every one made in code with this kit.', W / 2, 362, { font: font(700, 24), color: C.quiet })
   const golds = GAMES.filter((g) => (save.data.medals[g.id] ?? 0) >= 3).length
   if (golds) label(ctx, `${golds} of ${GAMES.length} gold medals`, W / 2, 440, { font: font(700, 24), color: C.gold })
@@ -273,8 +280,8 @@ function drawTitle() {
 
 function drawHub() {
   drawHall()
-  drawMarquee(110, 76)
-  label(ctx, 'Pick a cabinet', W / 2, 170, { font: font(700, 24), color: C.quiet })
+  drawMarquee(92, 70)
+  label(ctx, 'Pick a cabinet', W / 2, 152, { font: font(700, 24), color: C.quiet })
   GAMES.forEach((g, i) => {
     const r = cardRect(i)
     const sel = i === state.sel
@@ -294,18 +301,22 @@ function drawHub() {
     ctx.beginPath()
     ctx.roundRect(r.x, r.y, r.w, r.h, 22)
     ctx.clip()
-    g.icon(ctx, r.x + r.w / 2, r.y + 92, 130, state.t)
-    ctx.fillStyle = 'rgba(0,0,0,0.42)'
-    ctx.fillRect(r.x, r.y + r.h - 82, r.w, 82)
+    ctx.save()
+    ctx.translate(r.x + r.w / 2, r.y + 62)
+    ctx.scale(ICON_K, ICON_K)
+    g.icon(ctx, 0, 0, 130, state.t)
+    ctx.restore()
+    ctx.fillStyle = 'rgba(0,0,0,0.5)'
+    ctx.fillRect(r.x, r.y + r.h - 62, r.w, 62)
     ctx.restore()
     ctx.lineWidth = sel ? 6 : 3
     ctx.strokeStyle = sel ? g.style.accent : 'rgba(255,255,255,0.18)'
     ctx.beginPath()
     ctx.roundRect(r.x, r.y, r.w, r.h, 22)
     ctx.stroke()
-    label(ctx, g.name, r.x + 22, r.y + r.h - 54, { font: font(400, 32, 'Lilita One'), color: '#fff', edge: 6, edgeColor: 'rgba(0,0,0,0.6)', align: 'left' })
-    label(ctx, g.blurb, r.x + 22, r.y + r.h - 22, { font: font(700, 19), color: 'rgba(255,255,255,0.8)', align: 'left' })
-    drawMedal(ctx, r.x + r.w - 34, r.y + r.h - 54, 16, save.data.medals[g.id] ?? 0)
+    label(ctx, g.name, r.x + 16, r.y + r.h - 40, { font: font(400, 27, 'Lilita One'), color: '#fff', edge: 6, edgeColor: 'rgba(0,0,0,0.6)', align: 'left' })
+    label(ctx, g.blurb, r.x + 16, r.y + r.h - 15, { font: font(700, 16), color: 'rgba(255,255,255,0.82)', align: 'left' })
+    drawMedal(ctx, r.x + r.w - 26, r.y + r.h - 40, 13, save.data.medals[g.id] ?? 0)
     const best = save.data.best[g.id]
     if (best) label(ctx, `Best ${best}`, r.x + r.w - 20, r.y + 26, { font: font(700, 18), color: '#fff', edge: 5, edgeColor: 'rgba(0,0,0,0.6)', align: 'right' })
     ctx.restore()

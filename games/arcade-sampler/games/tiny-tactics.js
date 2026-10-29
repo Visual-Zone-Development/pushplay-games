@@ -22,7 +22,7 @@ const TUNING = {
     { noise: 20, danger: 2 },
     { noise: 6, danger: 3.5 }
   ],
-  pace: { think: 0.4, step: 0.13, melee: 0.34, arrow: 0.34, heal: 0.45, after: 0.28, banner: 0.8 }
+  pace: { think: 0.4, step: 0.13, melee: 0.34, arrow: 0.34, heal: 0.45, after: 0.28, banner: 1 }
 }
 
 // ---- rules (pure) ------------------------------------------------------------------------------
@@ -831,7 +831,7 @@ export default {
     let battle = 0 // 0-based
     let turn = 1
     let phase = 'intro' // intro | player | cpu | result
-    let sel = null // { u, step: 'move' | 'act', from, reach, targets }
+    let sel = null // { u, step: 'move' | 'moving' | 'menu' | 'target', from, reach, targets, menu, list, ti }
     let inspect = null // an enemy whose threat range is shown
     let cpuSel = null
     let result = null
@@ -902,7 +902,8 @@ export default {
       for (const u of b.units) u.acted = false
       sel = null
       cpuSel = null
-      showBanner('Your turn', C.blue, 0.7)
+      showBanner('Your turn', C.blue)
+      push(T.pace.banner * 0.8, null, null)
       sfx.yourTurn()
       focusNext()
     }
@@ -912,7 +913,7 @@ export default {
     }
     function endPlayerTurn() {
       if (phase !== 'player') return
-      if (sel?.step === 'act') sel.u.acted = true
+      if (sel && sel.step !== 'move') sel.u.acted = true
       sel = null
       inspect = null
       phase = 'cpu'
@@ -1060,11 +1061,58 @@ export default {
     }
 
     // ---- player commands ----
+    // Each unit's orders take three steps: ① choose a unit, ② move it, ③ act from its action menu.
+    const hints = { choose: 0, move: 0, menu: 0, target: 0 } // battle 1's tips fade once a step is done twice
+    const pointerMode = () => input.mode === 'touch' || input.mode === 'mouse'
+    const inPause = (p) => p.x > W - 140 && p.y < 110
+    const stepNo = () => (phase !== 'player' ? 0 : !sel ? 1 : sel.step === 'move' || sel.step === 'moving' ? 2 : 3)
     function select(u) {
       sel = { u, step: 'move', from: { x: u.x, y: u.y }, reach: reach(b, u) }
       inspect = null
+      hints.choose++
       sfx.select()
     }
+    function openMenu() {
+      const u = sel.u
+      sel.step = 'menu'
+      sel.targets = targetsFrom(b, u, u.x, u.y)
+      const items = []
+      const atk = sel.targets.filter((a) => a.type === 'attack').length
+      const heal = sel.targets.filter((a) => a.type === 'heal').length
+      if (atk) items.push({ id: 'attack', text: 'Attack', n: atk })
+      if (heal) items.push({ id: 'heal', text: 'Heal', n: heal })
+      items.push({ id: 'wait', text: 'Wait' }, { id: 'undo', text: 'Undo move' })
+      sel.menu = { items, i: 0 }
+      cur.x = u.x
+      cur.y = u.y
+    }
+    function chooseItem(id) {
+      if (id === 'attack' || id === 'heal') {
+        hints.menu++
+        sel.step = 'target'
+        sel.kind = id
+        sel.list = sel.targets.filter((a) => a.type === id)
+        sel.ti = 0
+        cur.x = sel.list[0].t.x
+        cur.y = sel.list[0].t.y
+        return sfx.select()
+      }
+      if (id === 'wait') {
+        hints.menu++
+        const u = sel.u
+        sel = null
+        performAction(u, { type: 'wait' })
+        return sfx.back()
+      }
+      if (id === 'undo') return back()
+    }
+    function commitTarget(act) {
+      hints.target++
+      const u = sel.u
+      sel = null
+      performAction(u, act)
+    }
+    /** a, a click or a tap on a board tile. */
     function confirmTile(x, y) {
       const here = unitAt(b, x, y)
       if (!sel) {
@@ -1076,39 +1124,38 @@ export default {
       if (sel.step === 'move') {
         const node = sel.reach.get(key(x, y))
         if (node) {
+          hints.move++
           const path = pathOf(node)
           u.x = x
           u.y = y
           animMove(u, path)
-          sel.step = 'act'
-          sel.targets = targetsFrom(b, u, x, y)
-          push(0.01, null, () => {
-            const first = sel?.targets?.[0]?.t
-            if (first && padMode()) ((cur.x = first.x), (cur.y = first.y))
-          })
+          sel.step = 'moving'
+          push(0.01, null, () => sel && openMenu())
           return sfx.select()
         }
         if (here?.side === 'blue' && !here.acted) return select(here)
+        cur.x = u.x
+        cur.y = u.y
         sel = null
         return sfx.back()
       }
-      // act
-      if (x === u.x && y === u.y) return doWait()
-      const act = sel.targets.find((a) => a.t.x === x && a.t.y === y)
-      if (!act) return sfx.nope()
-      sel = null
-      performAction(u, act)
-    }
-    function doWait() {
-      if (sel?.step !== 'act') return
-      const u = sel.u
-      sel = null
-      performAction(u, { type: 'wait' })
-      sfx.back()
+      if (sel.step === 'target') {
+        const act = sel.list.find((a) => a.t.x === x && a.t.y === y)
+        return act ? commitTarget(act) : sfx.nope()
+      }
+      sfx.nope() // in the menu step only the menu answers
     }
     function back() {
-      if (sel?.step === 'act') {
-        const u = sel.u
+      if (!sel) return inspect && ((inspect = null), sfx.back())
+      const u = sel.u
+      if (sel.step === 'target') {
+        sel.step = 'menu'
+        cur.x = u.x
+        cur.y = u.y
+        return sfx.back()
+      }
+      if (sel.step === 'menu') {
+        // undo the move
         u.x = u.dx = sel.from.x
         u.y = u.dy = sel.from.y
         sel = { u, step: 'move', from: sel.from, reach: reach(b, u) }
@@ -1116,13 +1163,20 @@ export default {
         cur.y = u.y
         return sfx.back()
       }
-      if (sel) {
-        cur.x = sel.u.x
-        cur.y = sel.u.y
-        sel = null
-        return sfx.back()
-      }
-      if (inspect) ((inspect = null), sfx.back())
+      cur.x = u.x
+      cur.y = u.y
+      sel = null
+      sfx.back()
+    }
+    /** The action menu, next to the unit (on whichever side has room). */
+    function menuRect() {
+      const u = sel.u
+      const w = 230
+      const ih = 58
+      const h = sel.menu.items.length * ih + 16
+      const x = u.x >= 3 ? BX + u.x * TS - w - 12 : BX + (u.x + 1) * TS + 12
+      const y = clamp(BY + u.y * TS + TS / 2 - h / 2, BY + 6, BY + N * TS - h - 6)
+      return { x, y, w, h, items: sel.menu.items.map((it, i) => ({ ...it, i, x: x + 8, y: y + 8 + i * ih, w: w - 16, h: ih - 4 })) }
     }
     /** On-screen buttons for the current step (they work with mouse and touch; the keys do the same). */
     const measure = (str, f) => ((MCTX.font = f), MCTX.measureText(str).width)
@@ -1130,9 +1184,9 @@ export default {
       if (phase !== 'player' || seq.length) return []
       const y = PANEL.y + PANEL.h - 92
       const list = []
-      if (sel?.step === 'act') list.push({ id: 'wait', text: 'Wait', key: 'x' }, { id: 'undo', text: 'Undo', key: 'b' })
-      else if (sel) list.push({ id: 'cancel', text: 'Back', key: 'b' })
-      if (sel?.step !== 'act') list.push({ id: 'end', text: 'End turn', key: 'y' })
+      if (sel?.step === 'move') list.push({ id: 'cancel', text: 'Back', key: 'b' })
+      if (sel?.step === 'target') list.push({ id: 'cancel', text: 'Back to menu', key: 'b' })
+      if (!sel || sel.step === 'move') list.push({ id: 'end', text: 'End turn', key: 'y' })
       const showKey = input.mode === 'gamepad' || input.mode === 'keyboard'
       for (const bt of list) {
         bt.tw = measure(bt.text, gfont(30))
@@ -1150,26 +1204,58 @@ export default {
       return list
     }
     function pressButton(id) {
-      if (id === 'wait') doWait()
-      if (id === 'undo' || id === 'cancel') back()
+      if (id === 'cancel') back()
       if (id === 'end') endPlayerTurn()
     }
 
     function playerInput() {
+      const p = input.pointer
+      const moved = p.active && (p.x !== lastPointer.x || p.y !== lastPointer.y)
+      if (moved) lastPointer = { x: p.x, y: p.y }
+      const tapped = p.pressed && !inPause(p)
+      const btn = tapped ? buttons().find((bt) => inside(p, bt)) : null
+      if (btn) return pressButton(btn.id)
+
+      if (sel?.step === 'menu') {
+        const m = menuRect()
+        const n = m.items.length
+        if (input.navY) ((sel.menu.i = (sel.menu.i + input.navY + n) % n), sfx.cursor())
+        const hit = m.items.find((it) => inside(p, it))
+        if (moved && hit && hit.i !== sel.menu.i) ((sel.menu.i = hit.i), sfx.cursor())
+        if (tapped) return hit ? chooseItem(hit.id) : sfx.nope()
+        if (input.pressed('a')) return chooseItem(m.items[sel.menu.i].id)
+        if (input.pressed('b')) return back()
+        if (input.pressed('x')) return chooseItem('wait')
+        return
+      }
+      if (sel?.step === 'target') {
+        const n = sel.list.length
+        const step = input.navX || input.navY
+        if (step) {
+          sel.ti = (sel.ti + (step > 0 ? 1 : -1) + n) % n
+          cur.x = sel.list[sel.ti].t.x
+          cur.y = sel.list[sel.ti].t.y
+          sfx.cursor()
+        }
+        const t = moved || tapped ? tileAt(p) : null
+        const i = t ? sel.list.findIndex((a) => a.t.x === t.x && a.t.y === t.y) : -1
+        if (i >= 0 && i !== sel.ti) ((sel.ti = i), (cur.x = t.x), (cur.y = t.y))
+        if (tapped) return i >= 0 ? commitTarget(sel.list[i]) : sfx.nope()
+        if (input.pressed('a')) return commitTarget(sel.list[sel.ti])
+        if (input.pressed('b')) return back()
+        return
+      }
+      // ① choose a unit / ② move: a free cursor
       if (input.navX || input.navY) {
         const nx = clamp(cur.x + input.navX, 0, N - 1)
         const ny = clamp(cur.y + input.navY, 0, N - 1)
         if (nx !== cur.x || ny !== cur.y) ((cur.x = nx), (cur.y = ny), sfx.cursor())
       }
-      const p = input.pointer
-      if (p.active && (p.x !== lastPointer.x || p.y !== lastPointer.y)) {
-        lastPointer = { x: p.x, y: p.y }
+      if (moved) {
         const t = tileAt(p)
         if (t) ((cur.x = t.x), (cur.y = t.y))
       }
-      if (p.pressed && !(p.x > W - 140 && p.y < 110)) {
-        const btn = buttons().find((bt) => inside(p, bt))
-        if (btn) return pressButton(btn.id)
+      if (tapped) {
         const t = tileAt(p)
         if (t) {
           cur.x = t.x
@@ -1179,20 +1265,40 @@ export default {
       }
       if (input.pressed('a')) return confirmTile(cur.x, cur.y)
       if (input.pressed('b')) return back()
-      if (input.pressed('x')) return doWait()
       if (input.pressed('y')) return endPlayerTurn()
     }
 
-    // ---- what the cursor would do, for the info panel ----
+    // ---- words for the panel ----
+    /** One line that always says what to do next, and with which button. */
+    function instruction() {
+      const A = input.label('a')
+      const B = input.label('b')
+      const pm = pointerMode()
+      const a = A.toLowerCase()
+      if (phase === 'intro') return 'Get ready…'
+      if (phase === 'cpu') return 'Watch where red moves…'
+      if (phase === 'result') return result.last ? `${A} to see your results` : `${A} for the next battle`
+      if (seq.length && !sel) return blueReady().length === alive(b, 'blue').length ? 'Your turn is starting…' : 'Wait for it…'
+      if (!sel) return blueReady().length ? (pm ? `${A} a blue unit to give it orders` : `Pick a blue unit (${A})`) : 'All done: the enemy moves next.'
+      if (sel.step === 'move' || sel.step === 'moving') return pm ? `Move: ${a} a blue tile, or ${a} the unit to stay` : `Move: pick a blue tile (${A}), or ${A} on the unit to stay`
+      if (sel.step === 'menu') return pm ? `Act: ${a} an action in the menu` : `Act: choose an action (${A}), ${B} undoes the move`
+      const what = sel.kind === 'heal' ? 'a green ally to heal' : 'a red target'
+      return pm ? `${A} ${what}` : `Pick ${what} (${A}), ${B} goes back`
+    }
+    function describe(u, act) {
+      const nm = S(u).name
+      if (act.type === 'attack') return [`${nm} ${S(u).max > 1 ? 'shoots' : 'hits'} ${S(act.t).name} for ${act.raw}`, act.kill ? 'and defeats it!' : `${act.t.hp - act.amt} HP left.`, act.kill]
+      return [`${nm} heals ${S(act.t).name} for ${act.amt}`, `${act.t.hp + act.amt} of ${S(act.t).hp} HP.`]
+    }
+    /** What the highlighted choice will do. */
     function preview() {
       const here = unitAt(b, cur.x, cur.y)
-      if (phase === 'cpu') return cpuSel ? [`The red ${S(cpuSel.u).name} is moving…`, ''] : ['The enemy is thinking…', '']
+      if (phase === 'cpu') return cpuSel ? [`The red ${S(cpuSel.u).name} acts…`, ''] : ['The enemy is thinking…', '']
       if (phase !== 'player') return ['', '']
       if (!sel) {
-        if (here?.side === 'blue') return here.acted ? [`This ${S(here).name} has acted.`, ''] : [`Select your ${S(here).name}.`, '']
-        if (here?.side === 'red') return [`Red ${S(here).name}: ${inspect === here ? 'danger zone shown.' : 'select to see its reach.'}`, '']
-        const left = blueReady().length
-        return [left ? `${left} unit${left > 1 ? 's' : ''} still to act.` : 'All units have acted.', b.tiles[key(cur.x, cur.y)] === SHRINE ? `Shrine: +${T.shrineBonus} attack here.` : '']
+        if (here?.side === 'blue') return here.acted ? [`This ${S(here).name} has acted.`, 'It can go again next turn.'] : [`Your ${S(here).name} is ready.`, '']
+        if (here?.side === 'red') return [`Red ${S(here).name}`, inspect === here ? 'Its danger zone is shown.' : 'Red tiles: where it can strike.']
+        return b.tiles[key(cur.x, cur.y)] === SHRINE ? ['Shrine', `+${T.shrineBonus} attack when standing here.`] : ['', '']
       }
       const u = sel.u
       const nm = S(u).name
@@ -1200,15 +1306,20 @@ export default {
         if (sel.reach.has(key(cur.x, cur.y))) {
           const ts = targetsFrom(b, u, cur.x, cur.y).filter((a) => a.type === 'attack')
           const stay = cur.x === u.x && cur.y === u.y
-          return [stay ? `${nm} stays here.` : `Move ${nm} here.`, ts.length ? `Can then hit ${ts.map((a) => S(a.t).name).join(', ')}.` : b.tiles[key(cur.x, cur.y)] === SHRINE ? `Shrine: +${T.shrineBonus} attack.` : '']
+          return [stay ? `${nm} stays here.` : `Move ${nm} here.`, ts.length ? `Then it can hit ${ts.map((a) => S(a.t).name).join(', ')}.` : b.tiles[key(cur.x, cur.y)] === SHRINE ? `Shrine: +${T.shrineBonus} attack.` : 'Nobody in range from here.']
         }
-        return ["Can't move there.", '']
+        return ["It can't reach that tile.", '']
       }
-      if (cur.x === u.x && cur.y === u.y) return [`${nm} waits.`, sel.targets.length ? '' : 'No targets in range.']
-      const act = sel.targets.find((a) => a.t.x === cur.x && a.t.y === cur.y)
-      if (act?.type === 'attack') return [`${nm} ${S(u).max > 1 ? 'shoots' : 'hits'} red ${S(act.t).name} for ${act.raw}`, act.kill ? 'and defeats it!' : `${act.t.hp - act.amt} HP left.`, act.kill]
-      if (act?.type === 'heal') return [`${nm} heals ${S(act.t).name} for ${act.amt}`, `${act.t.hp + act.amt} of ${S(act.t).hp} HP.`]
-      return [sel.targets.length ? 'Pick a highlighted target.' : 'No targets in range.', `or wait / undo below.`]
+      if (sel.step === 'menu') {
+        const it = sel.menu.items[sel.menu.i]
+        const list = sel.targets.filter((a) => a.type === it.id)
+        if (list.length === 1) return describe(u, list[0])
+        if (list.length) return [`${list.length} ${it.id === 'heal' ? 'allies' : 'foes'} in range.`, 'Pick one next.']
+        if (it.id === 'wait') return [`${nm} holds this spot.`, 'Its go is over.']
+        if (it.id === 'undo') return [`${nm} goes back to the start.`, 'Then move it again.']
+      }
+      if (sel.step === 'target') return describe(u, sel.list[sel.ti])
+      return ['', '']
     }
 
     const run = {
@@ -1216,7 +1327,7 @@ export default {
       done: false,
       /** For test scripts: the live board and phase. */
       get debug() {
-        return { b, phase, sel, seq: seq.length, endBattle }
+        return { b, phase, sel, seq: seq.length, endBattle, step: stepNo(), menu: sel?.menu && menuRect() }
       },
       stats: () => [
         ['Battles won', `${won} / ${T.battles}`],
@@ -1226,10 +1337,12 @@ export default {
       prompts: (inp) => {
         if (inp.mode === 'touch' || inp.mode === 'mouse') return []
         if (phase === 'result') return [['a', 'Continue']]
-        if (phase !== 'player') return []
-        if (sel?.step === 'act') return [['a', 'Confirm'], ['x', 'Wait'], ['b', 'Undo']]
-        if (sel) return [['a', 'Move'], ['b', 'Back'], ['y', 'End turn']]
-        return [['a', 'Select'], ['y', 'End turn']]
+        if (phase !== 'player' || seq.length) return []
+        if (!sel) return [['a', 'Select'], ['y', 'End turn']]
+        if (sel.step === 'move') return [['a', 'Move here'], ['b', 'Back']]
+        if (sel.step === 'menu') return [['up', 'Choose'], ['a', 'Confirm'], ['b', 'Undo move']]
+        if (sel.step === 'target') return [['a', sel.kind === 'heal' ? 'Heal' : 'Attack'], ['b', 'Back']]
+        return []
       },
       update(dt) {
         time += dt
@@ -1358,9 +1471,31 @@ export default {
           }
         }
       }
-      if (sel?.step === 'act' && !seq.length) {
-        washTile(ctx, sel.u.x, sel.u.y, 'rgba(201,154,46,0.2)', 'rgba(150,110,30,0.7)')
-        for (const a of sel.targets) washTile(ctx, a.t.x, a.t.y, a.type === 'attack' ? 'rgba(177,58,44,0.32)' : 'rgba(61,154,85,0.32)', a.type === 'attack' ? C.red : C.heal)
+      if ((sel?.step === 'menu' || sel?.step === 'target') && !seq.length) {
+        washTile(ctx, sel.u.x, sel.u.y, 'rgba(201,154,46,0.22)', 'rgba(150,110,30,0.7)')
+        const kind = sel.step === 'target' ? sel.kind : sel.menu.items[sel.menu.i].id
+        for (const a of sel.targets) {
+          const on = a.type === kind
+          const fill = a.type === 'attack' ? `rgba(177,58,44,${on ? 0.38 : 0.12})` : `rgba(61,154,85,${on ? 0.38 : 0.12})`
+          washTile(ctx, a.t.x, a.t.y, fill, on ? (a.type === 'attack' ? C.red : C.heal) : null)
+        }
+        if (sel.step === 'target') {
+          // an inked aiming line to the chosen target
+          const t = sel.list[sel.ti].t
+          const [ax, ay] = tileCentre(sel.u.x, sel.u.y)
+          const [tx, ty] = tileCentre(t.x, t.y)
+          ctx.strokeStyle = sel.kind === 'heal' ? 'rgba(40,110,60,0.85)' : 'rgba(140,35,25,0.85)'
+          ctx.lineWidth = 5
+          ctx.lineCap = 'round'
+          ctx.setLineDash([3, 11])
+          ctx.lineDashOffset = -time * 30
+          ctx.beginPath()
+          ctx.moveTo(ax, ay)
+          ctx.lineTo(tx, ty)
+          ctx.stroke()
+          ctx.setLineDash([])
+          ctx.lineDashOffset = 0
+        }
       }
 
       // obstacles and units, back to front
@@ -1386,8 +1521,8 @@ export default {
       }
       ctx.globalAlpha = 1
 
-      // cursor: inked corner brackets
-      if (phase === 'player') {
+      // cursor: inked corner brackets (not while the action menu is open: the menu has the focus)
+      if (phase === 'player' && sel?.step !== 'menu' && sel?.step !== 'moving') {
         const x = BX + cur.dx * TS
         const y = BY + cur.dy * TS
         const pulse = 2 + Math.sin(time * 6) * 2
@@ -1408,6 +1543,8 @@ export default {
         ctx.lineWidth = 3.5
         ctx.stroke()
       }
+      if (sel?.step === 'menu' && !seq.length) drawActionMenu(ctx)
+      drawHint(ctx)
     }
     function drawUnit(ctx, u) {
       const [cx, cy] = [BX + u.dx * TS + TS / 2 + u.lx, BY + u.dy * TS + TS / 2 + u.ly]
@@ -1415,10 +1552,119 @@ export default {
       ctx.globalAlpha = u.hp > 0 ? 1 : u.fade
       const selected = sel?.u === u || cpuSel?.u === u
       const lift = u.hop + (selected && !seq.length ? 6 + Math.sin(time * 5) * 3 : 0) + (u.hp <= 0 ? (1 - u.fade) * -10 : 0)
-      const dim = phase === 'player' && u.side === 'blue' && u.acted
+      const dim = phase === 'player' && u.side === 'blue' && u.acted && u.hp > 0
+      if (selected && u.hp > 0) {
+        // a pulsing gold ring on the ground under the chosen unit
+        const pr = 40 + Math.sin(time * 6) * 4
+        ctx.fillStyle = 'rgba(241,205,98,0.3)'
+        ctx.beginPath()
+        ctx.ellipse(cx, cy + 10, pr, pr * 0.55, 0, 0, TAU)
+        ctx.fill()
+        ctx.strokeStyle = C.gold
+        ctx.lineWidth = 3
+        ctx.stroke()
+      }
       drawToken(ctx, cx + sh, cy - 4, 30, u.side, u.kind, { lift, flash: u.flash, dim, ring: selected })
       if (u.hp > 0) drawPips(ctx, cx, cy + 32, u.hp, S(u).hp, u.side)
+      if (dim) drawTick(ctx, cx + 24, cy - 26)
       ctx.globalAlpha = 1
+    }
+    function drawTick(ctx, x, y, r = 13) {
+      ctx.fillStyle = C.cream
+      ctx.strokeStyle = C.ink
+      ctx.lineWidth = 2.5
+      ctx.beginPath()
+      ctx.arc(x, y, r, 0, TAU)
+      ctx.fill()
+      ctx.stroke()
+      ctx.strokeStyle = C.heal
+      ctx.lineWidth = 3.5
+      ctx.lineCap = 'round'
+      ctx.lineJoin = 'round'
+      ctx.beginPath()
+      ctx.moveTo(x - r * 0.45, y + r * 0.02)
+      ctx.lineTo(x - r * 0.1, y + r * 0.4)
+      ctx.lineTo(x + r * 0.5, y - r * 0.4)
+      ctx.stroke()
+    }
+    function wrap(text, f, maxW) {
+      const words = text.split(' ')
+      const lines = []
+      let line = ''
+      for (const w of words) {
+        const t = line ? `${line} ${w}` : w
+        if (line && measure(t, f) > maxW) ((lines.push(line)), (line = w))
+        else line = t
+      }
+      if (line) lines.push(line)
+      return lines
+    }
+    function drawActionMenu(ctx) {
+      const m = menuRect()
+      ctx.fillStyle = 'rgba(50,28,10,0.3)'
+      ctx.beginPath()
+      ctx.roundRect(m.x + 4, m.y + 7, m.w, m.h, 12)
+      ctx.fill()
+      ctx.fillStyle = '#f6ead0'
+      ctx.beginPath()
+      ctx.roundRect(m.x, m.y, m.w, m.h, 12)
+      ctx.fill()
+      ctx.strokeStyle = C.ink
+      ctx.lineWidth = 3
+      ctx.stroke()
+      for (const it of m.items) {
+        const on = it.i === sel.menu.i
+        if (on) {
+          ctx.fillStyle = C.blue
+          ctx.beginPath()
+          ctx.roundRect(it.x, it.y, it.w, it.h, 8)
+          ctx.fill()
+        }
+        const col = on ? C.cream : C.ink
+        const dot = it.id === 'attack' ? C.red : it.id === 'heal' ? C.heal : null
+        if (dot) {
+          ctx.fillStyle = dot
+          ctx.beginPath()
+          ctx.arc(it.x + 22, it.y + it.h / 2, 8, 0, TAU)
+          ctx.fill()
+          ctx.strokeStyle = on ? C.cream : C.ink
+          ctx.lineWidth = 2
+          ctx.stroke()
+        }
+        label(ctx, it.text, it.x + 42, it.y + it.h / 2 + 1, { font: gfont(30), color: col, align: 'left' })
+        if (it.n) label(ctx, `${it.n}`, it.x + it.w - 16, it.y + it.h / 2 + 1, { font: nfont(24), color: on ? C.cream : C.inkSoft, align: 'right' })
+        if (on && !dot) label(ctx, '▶', it.x + 16, it.y + it.h / 2 + 1, { font: nfont(18), color: C.cream, align: 'left' })
+      }
+    }
+    const HINTS = {
+      choose: 'Tip: blue units are yours. Each acts once a turn.',
+      move: 'Tip: red dots show what it could hit from there.',
+      menu: 'Tip: Attack and Heal appear when someone is in range.',
+      target: 'Tip: the panel shows the result before you commit.'
+    }
+    function drawHint(ctx) {
+      if (battle !== 0 || phase !== 'player' || seq.length) return
+      const id = !sel ? 'choose' : sel.step === 'move' ? 'move' : sel.step === 'menu' ? 'menu' : sel.step === 'target' ? 'target' : null
+      if (!id || hints[id] >= 2 || (id === 'choose' && !blueReady().length)) return
+      const rowY = sel?.step === 'menu' ? sel.u.y : cur.y
+      const top = rowY >= 3
+      // straddles the board's frame, so it hides as little of the board as possible
+      const h = 44
+      const maxW = N * TS + 20
+      let px = 25
+      while (px > 20 && measure(HINTS[id], gfont(px)) + 40 > maxW) px--
+      const f = gfont(px)
+      const w = Math.min(maxW, measure(HINTS[id], f) + 40)
+      const x = BX + (N * TS - w) / 2
+      const y = top ? BY - h / 2 - 4 : BY + N * TS - h / 2 + 4
+      ctx.fillStyle = 'rgba(43,29,20,0.86)'
+      ctx.beginPath()
+      ctx.roundRect(x, y, w, h, 12)
+      ctx.fill()
+      ctx.strokeStyle = C.goldLight
+      ctx.lineWidth = 2
+      ctx.stroke()
+      label(ctx, HINTS[id], x + w / 2, y + h / 2 + 1, { font: f, color: C.cream })
     }
     function drawHeader(ctx) {
       label(ctx, `Battle ${battle + 1} of ${T.battles}`, BX - 20, 66, { font: gfont(44), color: C.ink, align: 'left' })
@@ -1440,65 +1686,91 @@ export default {
     function drawPanel(ctx) {
       const p = PANEL
       const x = p.x + 28
-      // whose turn
-      const isYou = phase === 'player'
+      // whose turn, and how many units can still act
       const heading = phase === 'player' ? 'Your turn' : phase === 'cpu' ? 'Enemy turn' : phase === 'result' ? (result.victory ? 'Victory' : 'Defeat') : 'Prepare'
-      label(ctx, heading, x, p.y + 44, { font: gfont(42), color: phase === 'cpu' || (phase === 'result' && !result.victory) ? C.red : isYou || phase === 'result' ? C.blue : C.ink, align: 'left' })
-      const ready = phase === 'player' ? blueReady().length : 0
-      if (phase === 'player') label(ctx, `${ready} of ${alive(b, 'blue').length} ready`, p.x + p.w - 28, p.y + 46, { font: nfont(24), color: C.inkSoft, align: 'right' })
+      const hcol = phase === 'cpu' || (phase === 'result' && !result.victory) ? C.red : phase === 'player' || phase === 'result' ? C.blue : C.ink
+      label(ctx, heading, x, p.y + 38, { font: gfont(38), color: hcol, align: 'left' })
+      if (phase === 'player') label(ctx, `${blueReady().length} of ${alive(b, 'blue').length} ready`, p.x + p.w - 28, p.y + 40, { font: nfont(26), color: C.ink, align: 'right' })
+
+      // ① Unit → ② Move → ③ Act
+      const cur3 = stepNo()
+      const steps = ['① Unit', '② Move', '③ Act']
+      const sf = nfont(24)
+      const gap = 30
+      const widths = steps.map((t) => measure(t, sf) + 26)
+      let sx = x
+      steps.forEach((t, i) => {
+        const on = cur3 === i + 1
+        ctx.beginPath()
+        ctx.roundRect(sx, p.y + 70, widths[i], 40, 20)
+        ctx.fillStyle = on ? C.blue : 'rgba(43,29,20,0.07)'
+        ctx.fill()
+        ctx.strokeStyle = on ? C.ink : 'rgba(43,29,20,0.25)'
+        ctx.lineWidth = on ? 2.5 : 1.5
+        ctx.stroke()
+        label(ctx, t, sx + widths[i] / 2, p.y + 91, { font: sf, color: on ? C.cream : 'rgba(43,29,20,0.4)' })
+        sx += widths[i]
+        if (i < 2) label(ctx, '→', sx + gap / 2, p.y + 90, { font: nfont(22), color: 'rgba(43,29,20,0.4)' })
+        sx += gap
+      })
+
+      // what to do next, in words, with the button
+      const lines = wrap(instruction(), nfont(28), p.w - 56).slice(0, 2)
+      lines.forEach((l, i) => label(ctx, l, x, p.y + 140 + i * 34, { font: nfont(28), color: C.ink, align: 'left' }))
       ctx.strokeStyle = C.inkSoft
       ctx.lineWidth = 1.5
       ctx.beginPath()
-      ctx.moveTo(x, p.y + 80)
-      ctx.lineTo(p.x + p.w - 28, p.y + 80)
+      ctx.moveTo(x, p.y + 200)
+      ctx.lineTo(p.x + p.w - 28, p.y + 200)
       ctx.stroke()
 
       // unit card: hovered unit, else the selected one
-      const u = (phase === 'player' || phase === 'intro' ? unitAt(b, cur.x, cur.y) : null) ?? sel?.u ?? cpuSel?.u
-      const cy = p.y + 150
+      const u = (sel?.step === 'menu' || sel?.step === 'target' ? sel.u : null) ?? (phase === 'player' || phase === 'intro' ? unitAt(b, cur.x, cur.y) : null) ?? sel?.u ?? cpuSel?.u
+      const cy = p.y + 248
       if (phase === 'result') {
-        label(ctx, result.victory ? `Battle ${battle + 1} won!` : `Battle ${battle + 1} lost`, x, cy - 18, { font: gfont(36), color: result.victory ? C.blue : C.red, align: 'left' })
+        label(ctx, result.victory ? `Battle ${battle + 1} won!` : `Battle ${battle + 1} lost`, x, cy - 14, { font: gfont(34), color: result.victory ? C.blue : C.red, align: 'left' })
         label(ctx, result.last ? (result.victory ? 'Every battle won. Well fought!' : 'Your campaign ends here.') : 'A fresh field awaits.', x, cy + 24, { font: gfont(26), color: C.inkSoft, align: 'left' })
       } else if (u) {
         const s = S(u)
-        drawToken(ctx, x + 40, cy, 36, u.side, u.kind)
-        label(ctx, `${u.side === 'blue' ? 'Your' : 'Red'} ${s.name}`, x + 100, cy - 22, { font: gfont(36), color: u.side === 'blue' ? C.blue : C.red, align: 'left' })
-        drawPips(ctx, x + 100 + (s.hp * 12) / 2, cy + 4, u.hp, s.hp, u.side)
-        label(ctx, `${u.hp} / ${s.hp} HP`, x + 110 + s.hp * 12, cy + 10, { font: nfont(24), color: C.ink, align: 'left' })
+        drawToken(ctx, x + 32, cy, 30, u.side, u.kind, { dim: u.side === 'blue' && u.acted && phase === 'player' })
+        if (u.side === 'blue' && u.acted && phase === 'player') drawTick(ctx, x + 56, cy - 20, 11)
+        label(ctx, `${u.side === 'blue' ? 'Your' : 'Red'} ${s.name}`, x + 80, cy - 16, { font: gfont(32), color: u.side === 'blue' ? C.blue : C.red, align: 'left' })
+        drawPips(ctx, x + 80 + (s.hp * 12) / 2, cy + 8, u.hp, s.hp, u.side)
+        label(ctx, `${u.hp} / ${s.hp} HP`, x + 90 + s.hp * 12, cy + 14, { font: nfont(24), color: C.ink, align: 'left' })
         const atk = attackAt(b, u, u.x, u.y)
         const range = s.min === s.max ? `${s.max}` : `${s.min}–${s.max}`
-        label(ctx, `Move ${s.move}   Range ${range}   Attack ${atk}${atk > s.atk ? '★' : ''}`, x, cy + 66, { font: nfont(24), color: C.ink, align: 'left' })
-        label(ctx, s.role, x, cy + 102, { font: gfont(26), color: C.inkSoft, align: 'left' })
+        label(ctx, `Move ${s.move}   Range ${range}   Attack ${atk}${atk > s.atk ? '★' : ''}`, x, cy + 54, { font: nfont(24), color: C.ink, align: 'left' })
+        label(ctx, s.role, x, cy + 86, { font: gfont(24), color: C.inkSoft, align: 'left' })
       } else {
         const t = b.tiles[key(cur.x, cur.y)]
         const what = t === ROCK ? ['Rock', 'Blocks movement. Arrows fly over.'] : t === TREE ? ['Tree', 'Blocks movement. Arrows fly over.'] : t === SHRINE ? ['Shrine', `Stand here for +${T.shrineBonus} attack.`] : ['Open ground', 'Defeat every red unit to win.']
-        label(ctx, what[0], x, cy - 18, { font: gfont(36), color: C.ink, align: 'left' })
+        label(ctx, what[0], x, cy - 14, { font: gfont(34), color: C.ink, align: 'left' })
         label(ctx, what[1], x, cy + 24, { font: gfont(26), color: C.inkSoft, align: 'left' })
       }
 
-      // what will happen
+      // what the highlighted choice will do
       const [l1, l2, danger] = phase === 'result' ? [''] : preview()
-      const by = p.y + 316
+      const by = p.y + 382
       if (l1) {
         ctx.fillStyle = 'rgba(201,154,46,0.14)'
         ctx.beginPath()
-        ctx.roundRect(x - 8, by - 34, p.w - 40, 116, 10)
+        ctx.roundRect(x - 8, by - 26, p.w - 40, l2 ? 84 : 52, 10)
         ctx.fill()
         ctx.strokeStyle = 'rgba(150,110,30,0.5)'
         ctx.lineWidth = 1.5
         ctx.stroke()
         label(ctx, l1, x + 6, by, { font: nfont(26), color: C.ink, align: 'left' })
-        if (l2) label(ctx, l2, x + 6, by + 42, { font: nfont(26), color: danger ? C.red : C.inkSoft, align: 'left' })
+        if (l2) label(ctx, l2, x + 6, by + 34, { font: nfont(24), color: danger ? C.red : C.inkSoft, align: 'left' })
       }
 
       // roster: every unit's health at a glance
-      const ry = p.y + 444
+      const ry = p.y + 462
       let rx = x + 18
       for (const side of ['blue', 'red']) {
         for (const kind of KINDS) {
           const v = b.units.find((q) => q.side === side && q.kind === kind)
           ctx.globalAlpha = v.hp > 0 ? 1 : 0.35
-          drawToken(ctx, rx, ry, 17, side, kind, { dim: v.hp > 0 && phase === 'player' && side === 'blue' && v.acted })
+          drawToken(ctx, rx, ry, 15, side, kind, { dim: v.hp > 0 && phase === 'player' && side === 'blue' && v.acted })
           label(ctx, v.hp > 0 ? `${v.hp}` : '✕', rx + 24, ry + 2, { font: nfont(24), color: v.hp > 0 ? C.ink : C.red, align: 'left' })
           ctx.globalAlpha = 1
           rx += 66
@@ -1534,37 +1806,35 @@ export default {
           label(ctx, k, kx + kw / 2, bt.y + bt.h / 2 + 1, { font: nfont(18), color: bt.id === 'end' ? C.cream : C.ink })
         }
       }
-      if (phase === 'cpu') label(ctx, 'Watch their moves…', x, p.y + p.h - 58, { font: gfont(28), color: C.inkSoft, align: 'left' })
     }
+    /** A full-width ribbon that sweeps across the screen: in from the left, out to the right. */
     function drawBanner(ctx) {
       const k = banner.t / banner.dur
-      const a = k < 0.15 ? k / 0.15 : k > 0.8 ? (1 - k) / 0.2 : 1
-      const cx = BX + (N * TS) / 2
+      const ease = (v) => 1 - (1 - v) ** 3
+      const sx = k < 0.22 ? -W * (1 - ease(k / 0.22)) : k > 0.8 ? W * ease((k - 0.8) / 0.2) : 0
       const cy = BY + (N * TS) / 2
-      ctx.globalAlpha = clamp(a, 0, 1)
-      const w = 440
-      const h = 104
-      const sx = (1 - Math.min(1, k / 0.15)) * -30
-      ctx.fillStyle = 'rgba(50,28,10,0.3)'
-      ctx.fillRect(cx - w / 2 + sx + 5, cy - h / 2 + 8, w, h)
+      const h = 120
+      ctx.save()
+      ctx.translate(sx, 0)
+      ctx.fillStyle = 'rgba(40,22,8,0.3)'
+      ctx.fillRect(0, cy - h / 2 + 8, W, h)
       ctx.fillStyle = '#f3e4c4'
-      ctx.beginPath()
-      ctx.moveTo(cx - w / 2 - 30 + sx, cy - h / 2)
-      ctx.lineTo(cx + w / 2 + 30 + sx, cy - h / 2)
-      ctx.lineTo(cx + w / 2 + sx, cy)
-      ctx.lineTo(cx + w / 2 + 30 + sx, cy + h / 2)
-      ctx.lineTo(cx - w / 2 - 30 + sx, cy + h / 2)
-      ctx.lineTo(cx - w / 2 + sx, cy)
-      ctx.closePath()
-      ctx.fill()
+      ctx.fillRect(0, cy - h / 2, W, h)
+      ctx.fillStyle = banner.color
+      ctx.fillRect(0, cy - h / 2, W, 12)
+      ctx.fillRect(0, cy + h / 2 - 12, W, 12)
       ctx.strokeStyle = C.ink
       ctx.lineWidth = 3
+      ctx.beginPath()
+      ctx.moveTo(0, cy - h / 2)
+      ctx.lineTo(W, cy - h / 2)
+      ctx.moveTo(0, cy + h / 2)
+      ctx.lineTo(W, cy + h / 2)
       ctx.stroke()
-      ctx.fillStyle = banner.color
-      ctx.fillRect(cx - w / 2 + 20 + sx, cy - h / 2 + 10, w - 40, 4)
-      ctx.fillRect(cx - w / 2 + 20 + sx, cy + h / 2 - 14, w - 40, 4)
-      label(ctx, banner.text, cx + sx, cy + 2, { font: gfont(54), color: banner.color })
-      ctx.globalAlpha = 1
+      // the text trails the ribbon a little, for a sweep
+      const tx = W / 2 + (k < 0.3 ? -120 * (1 - ease(k / 0.3)) : 0)
+      label(ctx, banner.text, tx, cy + 2, { font: gfont(64), color: banner.color })
+      ctx.restore()
     }
     function drawResult(ctx) {
       const k = Math.min(1, result.t / 0.35)

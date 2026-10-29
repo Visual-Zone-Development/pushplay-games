@@ -1,8 +1,8 @@
 # Arcade Sampler: design brief
 
-> Six tiny, complete games in one arcade cabinet, each a different genre in a different art style: a sampler of what you can make with this kit, and a quick fix of fun.
+> Eleven tiny, complete games in one arcade cabinet, each a different genre in a different art style: a sampler of what you can make with this kit, and a quick fix of fun.
 
-*Status: shipped · Version: 1.0.0*
+*Status: shipped · Version: 1.2.0*
 
 ## Kickoff
 | Topic | Answer |
@@ -34,6 +34,11 @@
 | **Tiny Tactics** | turn-based tactics duel on a 6×6 board, three units each vs a CPU | parchment board game | turns, enemy-ai, readable UI | win + units left |
 | **Keyhole** | pixel-art adventure room: walk 8 ways, talk to the keeper, find the key, open the door, three rooms | pixel art (integer scaled) | pixel-art, dialogue, environments | rooms cleared + time |
 | **Neon Ring** | twin-stick arena: move and aim, dash, survive waves, 1–2 players co-op | neon glow | enemy-ai, game-feel, local-multiplayer | waves + kills |
+| **Rooftop Run** | one-button endless runner: jump gaps and chimneys at rising speed, fair procedural gaps | dusk silhouettes, parallax | game-feel, level-design (fair generation) | metres + stars |
+| **Letter Drop** | word game: chain falling letter tiles into words (no typing), 21k-word offline dictionary | newspaper puzzle, wooden tiles | game-ui, grid input on every device | letter values × length × combo |
+| **Tiny Towers** | tower defense: 3 towers with upgrades, 5 waves and a boss | toy diorama | level-design (waves), enemy-ai (paths), build menus | kills + lives + win |
+| **Mini Putt** | mini golf: aim, power swing or slingshot drag, 6 holes (banks, slope, windmill, pond, bumpers) | felt and wood toy course | physics-feel (swept collisions, bounce, cup capture) | strokes under par+3 |
+| **Lazy Lake** | cozy fishing: cast, hook in time, keep the line's tension in the zone; 4 species, a saved catalogue; dusk falls over the round | golden-hour lake | a tension mechanic, ambient environments, time of day | fish points |
 
 ## Core loop
 - **Hub:** pick a cabinet → a short ready screen (how to play, with live input prompts) → play → results (score, best, medal) → again or back to the hub.
@@ -70,7 +75,12 @@ Every game plays with controller, keyboard, mouse and touch; menus are menu.js. 
 - Hop Garden [300, 700, 1200]: a route-knowing bot clears a stage in 5–10 s; a casual player ~3 stages (bronze), a good one into lap 2 (gold).
 - Merge Jars [800, 2000, 3500]: 400 bot games each: random ≈ bronze, greedy bronze–silver, a corner strategy ≈ silver–gold.
 - Tiny Tactics [400, 900, 1400]: 1500 strong-bot runs vs the CPU: bronze 68 %, silver 36 %, gold 11 %.
-- Keyhole [400, 800, 1100]: a tap bot cleared all rooms with 46 s left (1166).
+- Keyhole [400, 950, 1250]: the slimes are now required (+50 each); a tap bot cleared everything for 1319.
+- Rooftop Run [350, 800, 1500]: timing-noise bots (σ 0.15 → 0.07 s) score ≈ 475 → 1620.
+- Letter Drop [2000, 4500, 8000]: casual bot ≈ 2400, good ≈ 9200 (it searches perfectly, so gold sits below it).
+- Tiny Towers [800, 2200, 3000]: a basic arrow layout ≈ bronze, mixed builds ≈ silver, gold needs the boss to die.
+- Mini Putt [1000, 1600, 2200]: sloppy bot ≈ 1100, careless ≈ 2000, careful ≈ 3000.
+- Lazy Lake [500, 950, 1450]: casual bot median 585, good 1405.
 - Neon Ring [1500, 4000, 7000]: bronze ≈ reaching the first boss, silver ≈ wave 8, gold ≈ beating wave 10.
 
 ## Known gaps
@@ -79,4 +89,6 @@ Every game plays with controller, keyboard, mouse and touch; menus are menu.js. 
 - Each game exposes a small debug hook (`run.debug` / `run._dbg` / `run.sim`) used by its test scripts.
 
 ## Changelog
+- 1.2.0: Five more games (Rooftop Run, Letter Drop, Tiny Towers, Mini Putt, Lazy Lake); the hall is a 4×3 grid and the cover features seven of the eleven.
+- 1.1.0: From playtest feedback. Tiny Tactics makes each step of a turn clear: a ① Unit → ② Move → ③ Act indicator with one plain instruction, an action menu after moving (Attack / Heal / Wait / Undo move), target picking with a damage preview, acted units dimmed with a ✓, "Your turn" / "Enemy turn" banners, and first-battle tips. Keyhole gives you a sword (from the keeper) with a pixel slash animation (`x`, or `b`; tap a slime with mouse or touch), slimes have 2 HP, hit flash, knockback and a death poof, chase when near, and room 3's door stays sealed until all three are beaten.
 - 1.0.0: First version: six games (Star Courier moved in from its own folder), the cabinet hall with medals, ready countdown, results, cover and banner drawn by the games' own icons.

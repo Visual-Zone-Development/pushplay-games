@@ -1,5 +1,6 @@
 // Keyhole: a three-room top-down pixel-art key hunt. Talk to the room's resident for a hint, find
 // the key (in a chest, behind bars a crate opens, in a chest a lever unlocks), unlock the door.
+// The keeper hands over a sword; room 3's door stays sealed until its slimes are beaten.
 // Style: 16 px pixel art from palette-indexed string maps, drawn on a 288×160 native canvas and
 // scaled ×4 (one pixel scale for the whole world), with 'Press Start 2P' text on top at full size.
 import { W, H, clamp } from '../common.js'
@@ -10,10 +11,23 @@ const TUNING = {
   roomScore: 250,
   gemScore: 25,
   timeBonus: 3, // points per second left when all three rooms are cleared
-  slimePenalty: 5, // seconds lost when a slime touches you
-  slimeSpeed: [30, 38],
+  slimeScore: 50,
+  slimePenalty: 3, // seconds lost when a slime touches you
+  slimeSpeed: [30, 38, 34],
   slimeRadius: 9,
-  invulnerable: 1.5,
+  slimeHp: 2,
+  chaseRadius: 48, // px (3 tiles): slimes come for you inside this
+  chaseSpeed: 34,
+  chaseGrace: 1.5, // seconds after entering a room before slimes notice you
+  invulnerable: 1.0,
+  heroKnock: 12, // px the hero is shoved when touched
+  swingTime: 0.25, // 4 frames: wind-up, two active, follow-through
+  swingCooldown: 0.35,
+  swingReach: 11, // px from the hero to the centre of the hitbox
+  swingHalf: 7, // hitbox half size
+  slimeKnock: 8, // half a tile
+  slimeStun: 0.4,
+  hitFreeze: 0.04,
   typeRate: 46, // characters per second
   pushHold: 0.12, // seconds of walking into a crate before it moves
   crateSlide: 0.16,
@@ -303,6 +317,23 @@ const CHEST_OPEN = sprite(
     '........'
   ])
 )
+const SWORD = sprite([
+  '.......kk.......',
+  '......ko5k......',
+  '......ko4k......',
+  '......ko4k......',
+  '......ko4k......',
+  '......ko4k......',
+  '......ko3k......',
+  '....kkkYykkk....',
+  '....kLYYYYyk....',
+  '....kkkwwkkk....',
+  '......kbwk......',
+  '......kbwk......',
+  '......kYyk......',
+  '.......kk.......'
+])
+const SEAL = sprite(['..kkk..', '.kpoopk', 'kpoRRok'.slice(0, 7), 'kpRoRpk', 'kpoRRpk', '.kppppk', '..kkk..'].map((r) => r.padEnd(7, '.')))
 const PADLOCK = sprite(['.kkk.', 'k4.4k', 'kkkkk', 'k454k', 'k4k4k', 'kkkkk'])
 const LEVER_OFF = sprite([
   '................',
@@ -604,9 +635,11 @@ const ROOMS = [
     npc: 'ghost',
     deco: 'pillar',
     lockedChest: true,
+    sealed: true,
     slimes: [
       [[3, 2], [15, 2]],
-      [[3, 4], [11, 4], [11, 6], [3, 6]]
+      [[3, 4], [11, 4], [11, 6], [3, 6]],
+      [[12, 3], [12, 7]]
     ],
     map: [
       '###T####D####T####',
@@ -645,6 +678,8 @@ function art() {
     cat: [sprite(CAT), sprite(CAT_BLINK)],
     ghost: [sprite(GHOST), sprite(GHOST_BLINK)],
     slime: [sprite(SLIME_A), sprite(SLIME_B)],
+    slimeWhite: [SLIME_A, SLIME_B].map((rows) => sprite(rows.map((r) => r.replace(/[^.]/g, 'o')))),
+    sealGlow: bakeGlow(16, '#e26f86'),
     glow: [bakeGlow(30), bakeGlow(33)],
     keyGlow: bakeGlow(14, PAL.L)
   }
@@ -880,6 +915,77 @@ function sparkle(g, x, y, f) {
   else (g.fillRect(x - 2, y, 5, 1), g.fillRect(x, y - 2, 1, 5), (g.fillStyle = PAL.i), g.fillRect(x, y, 1, 1))
 }
 
+/** A Bresenham line of single pixels (crisp at any angle). */
+function pxLine(g, x0, y0, x1, y1, color) {
+  x0 = Math.round(x0), y0 = Math.round(y0), x1 = Math.round(x1), y1 = Math.round(y1)
+  const dx = Math.abs(x1 - x0), dy = -Math.abs(y1 - y0), sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1
+  let err = dx + dy
+  g.fillStyle = color
+  for (;;) {
+    g.fillRect(x0, y0, 1, 1)
+    if (x0 === x1 && y0 === y1) break
+    const e2 = 2 * err
+    if (e2 >= dy) ((err += dy), (x0 += sx))
+    if (e2 <= dx) ((err += dx), (y0 += sy))
+  }
+}
+const TAU2 = Math.PI * 2
+const BASE_ANGLE = { right: 0, down: Math.PI / 2, left: Math.PI, up: -Math.PI / 2 }
+/** Sword swing frame f (0 wind-up, 1–2 strike, 3 follow-through): the blade plus a pixel arc. */
+function drawSlash(g, hx, hy, dir, f) {
+  const base = BASE_ANGLE[dir]
+  const side = dir === 'left' ? -1 : 1 // left swings mirror right
+  const rel = [-1.9, -0.7, 0.5, 1.15][f] * side
+  const a = base + rel
+  const ox = hx + Math.cos(base) * 3, oy = hy - 6 + Math.sin(base) * 2
+  // arc trail (frames 1–3): a crescent from the start angle to the blade
+  if (f >= 1) {
+    const a0 = base - 1.9 * side
+    const lo = Math.min(a0, a), hi = Math.max(a0, a)
+    for (let y = -15; y <= 15; y++) {
+      for (let x = -15; x <= 15; x++) {
+        const r = Math.hypot(x, y)
+        if (r < 8 || r > 14) continue
+        const an = lo + ((((Math.atan2(y, x) - lo) % TAU2) + TAU2) % TAU2)
+        if (an > hi) continue
+        const near = Math.abs(an - a) < 0.5
+        if (f === 3 && !near && r < 12) continue
+        g.fillStyle = r > 12.5 ? (f === 3 ? PAL.O : PAL.o) : r > 10.5 ? PAL.i : f === 3 ? 'rgba(143,216,255,0.35)' : 'rgba(143,216,255,0.6)'
+        g.fillRect(Math.round(ox + x), Math.round(oy + y), 1, 1)
+      }
+    }
+  }
+  // the blade: outline, then steel, then hilt
+  const cx = Math.cos(a), cy = Math.sin(a)
+  const x1 = ox + cx * 3, y1 = oy + cy * 3, x2 = ox + cx * 13, y2 = oy + cy * 13
+  pxLine(g, x1 + 1, y1, x2 + 1, y2, INK)
+  pxLine(g, x1 - 1, y1, x2 - 1, y2, INK)
+  pxLine(g, x1, y1 + 1, x2, y2 + 1, INK)
+  pxLine(g, x1, y1 - 1, x2, y2 - 1, INK)
+  pxLine(g, x1, y1, x2, y2, PAL.o)
+  pxLine(g, ox + cx * 9, oy + cy * 9, x2, y2, PAL[5])
+  pxLine(g, ox - cy * 2 + cx * 3, oy + cx * 2 + cy * 3, ox + cy * 2 + cx * 3, oy - cx * 2 + cy * 3, PAL.Y)
+  pxLine(g, ox, oy, ox + cx * 2, oy + cy * 2, PAL.b)
+}
+/** Crossed chains and a pulsing slime sigil over a sealed door. */
+function drawSeal(g, x, y, t) {
+  for (const [ax, bx] of [[1, 14], [14, 1]]) {
+    for (let i = 0; i <= 12; i++) {
+      const px = Math.round(ax + ((bx - ax) * i) / 12), py = 4 + i
+      g.fillStyle = INK
+      g.fillRect(x + px - 1, y + py, 3, 1)
+      g.fillStyle = i % 3 === 0 ? PAL[5] : PAL[4]
+      g.fillRect(x + px, y + py, 1, 1)
+    }
+  }
+  g.globalCompositeOperation = 'lighter'
+  g.globalAlpha = 0.5 + Math.sin(t * 4) * 0.3
+  g.drawImage(art().sealGlow, x + 8 - 16, y + 10 - 16)
+  g.globalAlpha = 1
+  g.globalCompositeOperation = 'source-over'
+  g.drawImage(SEAL, x + 5, y + 7 + (Math.floor(t * 3) % 2))
+}
+
 /** A pixel frame (outer ink, light bevel, dark fill) on the full-res canvas, in 4 px steps. */
 function pixelBox(ctx, x, y, w, h, { fill = '#221b36', edge = PAL[4], dark = PAL[2], alpha = 0.96 } = {}) {
   ctx.fillStyle = INK
@@ -947,16 +1053,16 @@ function drawIcon(ctx, x, y, size, t) {
 export default {
   id: 'keyhole',
   name: 'Keyhole',
-  blurb: 'Talk, push, sneak, find the key',
+  blurb: 'Talk, push, fight, find the key',
   scoreLabel: 'points',
   style: { bg: '#2a2342', accent: '#f2c14e' },
-  medals: [400, 800, 1100],
+  medals: [400, 950, 1250],
   music: { bpm: 96, root: 55, chords: [0, 5, 9, 7], lead: [0, 2, 4, 7, 4, 2, 1, null], wave: 'square', gain: 0.028 },
   TUNING,
   howTo: (input) =>
     input.mode === 'touch' || input.mode === 'mouse'
       ? `${input.label('a')} where to walk · ${input.label('a')} people and things to use them`
-      : `${input.stickLabel()} to walk · ${input.label('a')} to talk, open and push`,
+      : `${input.stickLabel()} to walk · ${input.label('a')} to talk and use · ${input.label('x')} to swing`,
   icon: drawIcon,
   cursor: true,
   create(env) {
@@ -981,6 +1087,10 @@ export default {
       hit: () => (audio.noise({ dur: 0.2, gain: 0.16 }), audio.tone({ freq: 440, dur: 0.35, type: 'square', slide: -330, gain: 0.1 })),
       locked: () => (audio.tone({ freq: 140, dur: 0.07, type: 'square', gain: 0.08 }), audio.tone({ freq: 120, dur: 0.09, type: 'square', gain: 0.08, delay: 0.09 })),
       door: () => [0, 5, 9, 12].forEach((s, i) => audio.tone({ freq: 392 * 2 ** (s / 12), dur: 0.12, type: 'square', gain: 0.07, delay: i * 0.06 })),
+      whoosh: () => (audio.noise({ dur: 0.09, gain: 0.07 }), audio.tone({ freq: 700, dur: 0.09, type: 'triangle', slide: -450, gain: 0.05 })),
+      squish: () => (audio.tone({ freq: 260, dur: 0.1, type: 'square', slide: -160, gain: 0.09 }), audio.noise({ dur: 0.06, gain: 0.08 })),
+      pop: () => (audio.tone({ freq: 180, dur: 0.06, type: 'square', slide: 500, gain: 0.1 }), audio.noise({ dur: 0.16, gain: 0.1, delay: 0.04 }), audio.tone({ freq: 1046, dur: 0.1, type: 'square', gain: 0.05, delay: 0.08 })),
+      seal: () => (audio.noise({ dur: 0.35, gain: 0.12 }), [12, 7, 4, 0, 12, 16, 19].forEach((s, i) => audio.tone({ freq: 392 * 2 ** (s / 12), dur: 0.12, type: 'square', gain: 0.07, delay: 0.05 + i * 0.06 }))),
       win: () => [0, 4, 7, 12, 7, 12, 16].forEach((s, i) => audio.tone({ freq: 523 * 2 ** (s / 12), dur: 0.16, type: 'square', gain: 0.08, delay: i * 0.09 }))
     }
     const VOICES = {
@@ -994,14 +1104,18 @@ export default {
       keeper: () => [
         'Ah, a visitor! These old halls lock behind you, I am afraid.',
         `My spare key sits in the chest in the east corner. Walk up and ${pointerMode() ? input.label('a').toLowerCase() + ' it' : 'press ' + input.label('a')} to open it.`,
-        'Grab the gems on your way. Each door after this is trickier!'
+        'Grab the gems on your way. Each door after this is trickier!',
+        `And take my old sword. Slimes lurk deeper in: ${input.label('x')} to swing it.`
       ],
       keeperAgain: () => ['The chest in the east corner, by the shelves. Then the big door up north.'],
       cat: () => ['Mrrp. The key is behind those bars, see?', `Shove that crate onto the gold plate and the bars lift. ${pointerMode() ? input.label('a') + ' the crate to push it.' : 'Walk into it to push.'}`, 'If it gets stuck, come back and I will nudge it home.'],
       catReset: () => ['Mrrow... fine. Back where it started.'],
       catAgain: () => ['Purr. Plate first, then the key.'],
-      ghost: () => ['Ooooh... the slimes guard my old chest. It is locked tight.', 'Pull the lever on the east wall and it opens. If a slime touches you... back to the doorway you go!'],
-      ghostAgain: () => ['Lever on the east wall... chest in the far corner... mind the slimes...']
+      ghost: () => [
+        'Ooooh... slimes have sealed my crypt. While one lives, that door will not open.',
+        `Defeat them all with your sword (${pointerMode() ? input.label('a') + ' a slime' : input.label('x')}). Then pull the lever on the east wall to open my chest.`
+      ],
+      ghostAgain: () => [slimes.some((sl) => !sl.dead) ? 'The slimes... strike them twice each... the seal breaks when they are gone...' : 'Lever on the east wall... chest in the far corner...']
     }
 
     // ---- run state ----
@@ -1013,13 +1127,21 @@ export default {
     let bonus = 0
     let room = null
     let bg = null
-    const hero = { x: 0, y: 0, dir: 'up', frame: 0, anim: 0, moving: false, inv: 0, hold: 0, push: 0 }
+    const hero = { x: 0, y: 0, dir: 'up', frame: 0, anim: 0, moving: false, inv: 0, hold: 0, holdItem: null, push: 0, kb: null }
     let objs = []
     let gems = []
     let slimes = []
     let crate = null
     let plateLatched = false
     let hasKey = false
+    let hasSword = false
+    let slimesBeaten = 0
+    let swing = null // { t, dir, hit: Set }
+    let swingCd = 0
+    let freeze = 0
+    let hunt = null // a slime the pointer asked us to go and hit
+    let roomT = 0
+    let sealFx = 0
     let talk = null
     let path = null
     let fade = { t: 0.35, phase: 'in' }
@@ -1053,7 +1175,7 @@ export default {
           else if (ch === 'N') objs.push({ ...o, type: 'npc', who: room.npc, talked: false })
           else if (ch === 'C') objs.push({ ...o, type: 'chest', open: false, locked: !!room.lockedChest })
           else if (ch === 'L') objs.push({ ...o, type: 'lever', on: false })
-          else if (ch === 'D') objs.push({ ...o, type: 'door', open: false, anim: 0 })
+          else if (ch === 'D') objs.push({ ...o, type: 'door', open: false, anim: 0, sealed: !!room.sealed })
           else if (ch === 'T') objs.push({ ...o, type: 'torch' })
           else if (ch === 's') objs.push({ ...o, type: 'plate' })
           else if (ch === '|') objs.push({ ...o, type: 'bars', open: false, anim: 0 })
@@ -1065,8 +1187,14 @@ export default {
       )
       for (const p of room.slimes ?? []) {
         const i = slimes.length
-        slimes.push({ pts: p.map(([x, y]) => [x * TS + 8, y * TS + 11]), i: 1, x: p[0][0] * TS + 8, y: p[0][1] * TS + 11, speed: T.slimeSpeed[i % T.slimeSpeed.length], ph: i * 1.7 })
+        slimes.push({ pts: p.map(([x, y]) => [x * TS + 8, y * TS + 11]), i: 1, x: p[0][0] * TS + 8, y: p[0][1] * TS + 11, speed: T.slimeSpeed[i % T.slimeSpeed.length], ph: i * 1.7, hp: T.slimeHp, flash: 0, stun: 0, kb: null, dying: 0, dead: false, stuck: 0 })
       }
+      // Skipped the keeper? The sword waits by the crypt's doorway.
+      if (room.slimes && !hasSword) objs.push({ tx: room.start.tx - 1, ty: room.start.ty - 1, type: 'sword' })
+      swing = null
+      hunt = null
+      roomT = 0
+      sealFx = 0
       placeHero()
     }
     function placeHero() {
@@ -1151,14 +1279,27 @@ export default {
     function float(str, x, y, color = PAL.L) {
       floats.push({ str, x: OX + x * SC, y: OY + y * SC, t: 0, color })
     }
-    function getKey(fromX, fromY) {
-      hasKey = true
+    function holdUp(item) {
       hero.hold = T.keyHold
+      hero.holdItem = item
       hero.dir = 'down'
       path = null
+      hunt = null
+      swing = null
       sfx.key()
-      burst(hero.x, hero.y - 20, [PAL.L, PAL.Y, PAL.o], 16, 60)
+      burst(hero.x, hero.y - 20, item === 'sword' ? [PAL.o, PAL[5], PAL.L] : [PAL.L, PAL.Y, PAL.o], 16, 60)
     }
+    function getKey() {
+      hasKey = true
+      holdUp('key')
+    }
+    function getSword() {
+      if (hasSword) return
+      hasSword = true
+      objs = objs.filter((o) => o.type !== 'sword')
+      holdUp('sword')
+    }
+    const liveSlimes = () => slimes.filter((sl) => !sl.dead && !sl.dying)
     function interact(o) {
       if (!o) return
       if (o.type === 'crate') return tryPush(...DIRV[hero.dir])
@@ -1178,7 +1319,7 @@ export default {
             })
           }
         }
-        return say(o.who, first ? LINES[o.who]() : LINES[o.who + 'Again']())
+        return say(o.who, first ? LINES[o.who]() : LINES[o.who + 'Again'](), o.who === 'keeper' ? getSword : null)
       }
       if (o.type === 'chest') {
         if (o.locked) {
@@ -1201,6 +1342,11 @@ export default {
         return say('note', ['Clunk! Far away, a lock springs open.'])
       }
       if (o.type === 'door') {
+        if (o.sealed) {
+          sfx.locked()
+          const n = liveSlimes().length
+          return say('note', [`A slimy seal holds the door shut. Defeat the ${n === 1 ? 'last slime' : n + ' slimes'} to break it.`])
+        }
         if (!hasKey) {
           sfx.locked()
           return say('note', ['The door is locked. The key must be in this room somewhere.'])
@@ -1295,16 +1441,91 @@ export default {
       if (p) path = { tiles: p.slice(1), then: null }
     }
 
-    function hitBySlime() {
+    function hitBySlime(sl) {
       hits++
       time = Math.max(0, time - T.slimePenalty)
       timeFlash = 1
       sfx.hit()
-      burst(hero.x, hero.y - 6, [PAL.p, PAL.R, PAL.o], 16, 70)
+      burst(hero.x, hero.y - 6, [PAL.p, PAL.R, PAL.o], 12, 60)
       float(`-${T.slimePenalty}s`, hero.x, hero.y - 20, PAL.p)
-      shake = 0.3
-      placeHero()
+      shake = 0.2
+      const dx = hero.x - sl.x, dy = hero.y - sl.y
+      const d = Math.hypot(dx, dy) || 1
+      hero.kb = { vx: (dx / d) * T.heroKnock / 0.12, vy: (dy / d) * T.heroKnock / 0.12, t: 0.12 }
       hero.inv = T.invulnerable
+      path = null
+      hunt = null
+    }
+
+    // ---- the sword ----
+    function startSwing(dir) {
+      if (!hasSword || swingCd > 0 || swing || hero.hold > 0) return false
+      if (dir) hero.dir = dir
+      swing = { t: 0, dir: hero.dir, hit: new Set() }
+      swingCd = T.swingCooldown
+      sfx.whoosh()
+      return true
+    }
+    const dirToward = (dx, dy) => (Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : dy > 0 ? 'down' : 'up')
+    function slimeBlocked(x, y) {
+      const x0 = Math.floor((x - 5) / TS), x1 = Math.floor((x + 4.99) / TS)
+      const y0 = Math.floor((y - 6) / TS), y1 = Math.floor((y - 0.01) / TS)
+      for (let ty = y0; ty <= y1; ty++) for (let tx = x0; tx <= x1; tx++) if (ty <= 0 || solid(tx, ty)) return true
+      return false
+    }
+    function moveSlime(sl, dx, dy) {
+      let moved = 0
+      for (const ax of ['x', 'y']) {
+        let rem = ax === 'x' ? dx : dy
+        const sg = Math.sign(rem)
+        rem = Math.abs(rem)
+        while (rem > 0) {
+          const st = Math.min(1, rem)
+          const nx = ax === 'x' ? sl.x + sg * st : sl.x
+          const ny = ax === 'y' ? sl.y + sg * st : sl.y
+          if (slimeBlocked(nx, ny)) break
+          sl.x = nx
+          sl.y = ny
+          rem -= st
+          moved += st
+        }
+      }
+      return moved
+    }
+    function hitSlime(sl, dir) {
+      const [dx, dy] = DIRV[dir]
+      sl.hp--
+      sl.flash = 0.034 // two frames
+      sl.stun = T.slimeStun
+      sl.kb = { vx: (dx * T.slimeKnock) / 0.1, vy: (dy * T.slimeKnock) / 0.1, t: 0.1 }
+      freeze = T.hitFreeze
+      sfx.squish()
+      burst(sl.x, sl.y - 5, [PAL.p, PAL.o, PAL.R], 8, 50)
+      if (sl.hp <= 0) {
+        sl.dying = 0.22
+        sl.stun = 1
+      }
+    }
+    function slimeGone(sl) {
+      sl.dead = true
+      slimesBeaten++
+      run.score += T.slimeScore
+      sfx.pop()
+      burst(sl.x, sl.y - 4, [PAL.p, PAL.R, PAL.o, PAL.r], 22, 75)
+      for (let i = 0; i < 10; i++) {
+        const a = (i / 10) * Math.PI * 2
+        parts.push({ x: sl.x, y: sl.y - 4, vx: Math.cos(a) * 40, vy: Math.sin(a) * 40, life: 0.3, c: PAL.o })
+      }
+      float(`+${T.slimeScore}`, sl.x, sl.y - 16, PAL.p)
+      const door = objs.find((o) => o.type === 'door')
+      if (door?.sealed && !liveSlimes().length) {
+        door.sealed = false
+        sealFx = 0.8
+        sfx.seal()
+        shake = 0.25
+        burst(door.tx * TS + 8, door.ty * TS + 9, [PAL.p, PAL.o, PAL[4], PAL.r], 30, 80)
+        float('SEAL BROKEN!', door.tx * TS + 8, 30, PAL.p)
+      }
     }
 
     loadRoom(0)
@@ -1312,19 +1533,27 @@ export default {
     const run = {
       score: 0,
       done: false,
-      _dbg: () => ({ roomIx, hasKey, time, hx: hero.x, hy: hero.y, talk: !!talk, crate: crate && [crate.tx, crate.ty], plateLatched, gemsTotal, hits, finished }),
+      _swing: () => swing,
+      _room: (ix) => ((roomIx = ix), (hasSword = true), loadRoom(ix)),
+      _dbg: () => ({ roomIx, hasKey, hasSword, slimesLeft: liveSlimes().length, slimeXY: liveSlimes().map((sl) => [Math.round(sl.x), Math.round(sl.y)]), sealed: !!objs.find((o) => o.type === 'door')?.sealed, time, hx: hero.x, hy: hero.y, talk: !!talk, crate: crate && [crate.tx, crate.ty], plateLatched, gemsTotal, hits, finished }),
       stats: () => [
         ['Rooms', `${roomsCleared}/3`],
         ['Gems', `${gemsTotal}/12`],
-        finished ? ['Time bonus', `+${bonus}`] : ['Slime hits', hits]
+        finished ? ['Time bonus', `+${bonus}`] : ['Slimes beaten', `${slimesBeaten}/3`]
       ],
       prompts: (inp) => {
         if (talk) return [['a', 'Next']]
         const tg = target()
-        return tg ? [['a', VERBS[tg.type]]] : []
+        const out = tg ? [['a', VERBS[tg.type]]] : []
+        if (hasSword) out.push(['x', 'Attack'])
+        return out
       },
       update(dt) {
         clock += dt
+        if (freeze > 0) {
+          freeze -= dt
+          return
+        }
         timeFlash = Math.max(0, timeFlash - dt * 2)
         shake = Math.max(0, shake - dt)
         for (const p of parts) {
@@ -1395,6 +1624,28 @@ export default {
           return
         }
         hero.inv = Math.max(0, hero.inv - dt)
+        roomT += dt
+        sealFx = Math.max(0, sealFx - dt)
+        swingCd = Math.max(0, swingCd - dt)
+        if (swing) {
+          swing.t += dt
+          const f = Math.floor((swing.t / T.swingTime) * 4)
+          if (f === 1 || f === 2) {
+            const [dx, dy] = DIRV[swing.dir]
+            const cx = hero.x + dx * T.swingReach, cy = hero.y - 5 + dy * T.swingReach
+            for (const sl of liveSlimes()) {
+              if (swing.hit.has(sl)) continue
+              if (Math.abs(sl.x - cx) < T.swingHalf + 5 && Math.abs(sl.y - 4 - cy) < T.swingHalf + 5) {
+                swing.hit.add(sl)
+                hitSlime(sl, swing.dir)
+              }
+            }
+          }
+          if (swing.t >= T.swingTime) swing = null
+        }
+        // Floor sword (only if the keeper was skipped)
+        const fs = objs.find((o) => o.type === 'sword')
+        if (fs && Math.abs(fs.tx * TS + 8 - hero.x) < 10 && Math.abs(fs.ty * TS + 10 - hero.y) < 10) getSword()
 
         // Gem sparkle + pickup
         for (const gm of gems) {
@@ -1415,20 +1666,40 @@ export default {
           getKey()
         }
 
-        // Slimes patrol their waypoints.
+        // Slimes: knocked back and stunned when hit, chase you when close, otherwise patrol.
         for (const sl of slimes) {
-          const [tx, ty] = sl.pts[sl.i]
-          const d = Math.hypot(tx - sl.x, ty - sl.y)
-          const st = sl.speed * dt
-          if (d <= st) {
-            sl.x = tx
-            sl.y = ty
-            sl.i = (sl.i + 1) % sl.pts.length
-          } else {
-            sl.x += ((tx - sl.x) / d) * st
-            sl.y += ((ty - sl.y) / d) * st
+          if (sl.dead) continue
+          sl.flash = Math.max(0, sl.flash - dt)
+          if (sl.kb) {
+            moveSlime(sl, sl.kb.vx * dt, sl.kb.vy * dt)
+            if ((sl.kb.t -= dt) <= 0) sl.kb = null
           }
-          if (hero.inv <= 0 && Math.hypot(sl.x - hero.x, sl.y - hero.y) < T.slimeRadius) hitBySlime()
+          if (sl.dying) {
+            if ((sl.dying -= dt) <= 0) slimeGone(sl)
+            continue
+          }
+          if (sl.stun > 0) {
+            sl.stun -= dt
+            continue
+          }
+          const hd = Math.hypot(hero.x - sl.x, hero.y - sl.y)
+          if (roomT > T.chaseGrace && hd < T.chaseRadius && hd > 2) {
+            const st = T.chaseSpeed * dt
+            moveSlime(sl, ((hero.x - sl.x) / hd) * st, ((hero.y - sl.y) / hd) * st)
+          } else {
+            const [tx, ty] = sl.pts[sl.i]
+            const d = Math.hypot(tx - sl.x, ty - sl.y)
+            const st = sl.speed * dt
+            if (d <= st + 0.5) {
+              sl.i = (sl.i + 1) % sl.pts.length
+              sl.stuck = 0
+            } else {
+              const m = moveSlime(sl, ((tx - sl.x) / d) * st, ((ty - sl.y) / d) * st)
+              sl.stuck = m < st * 0.3 ? sl.stuck + dt : 0
+              if (sl.stuck > 1) ((sl.i = (sl.i + 1) % sl.pts.length), (sl.stuck = 0))
+            }
+          }
+          if (hero.inv <= 0 && hd < T.slimeRadius) hitBySlime(sl)
         }
 
         if (hero.hold > 0) {
@@ -1436,19 +1707,49 @@ export default {
           hero.moving = false
           return
         }
+        if (hero.kb) {
+          move(hero.kb.vx * dt, hero.kb.vy * dt)
+          if ((hero.kb.t -= dt) <= 0) hero.kb = null
+          hero.moving = false
+          return
+        }
 
-        // Pointer: tap a tile to walk there, tap people and things to use them.
+        // Pointer: tap a slime to go and hit it, tap close to the hero to swing, tap a tile to walk
+        // there, tap people and things to use them.
         const p = input.pointer
         if (p.pressed && !(p.x >= PAUSE_ZONE.x && p.y <= PAUSE_ZONE.h)) {
           const nx = (p.x - OX) / SC, ny = (p.y - OY) / SC
-          if (nx >= 0 && ny >= 0 && nx < NW && ny < NH) tapAt(Math.floor(nx / TS), Math.floor(ny / TS))
+          const tapped = hasSword && liveSlimes().find((sl) => Math.abs(sl.x - nx) < 11 && Math.abs(sl.y - 5 - ny) < 11)
+          if (tapped) ((hunt = tapped), (path = null))
+          else if (hasSword && liveSlimes().length && Math.hypot(nx - hero.x, ny - (hero.y - 6)) < 20) {
+            hunt = null
+            path = null
+            startSwing(dirToward(nx - hero.x, ny - (hero.y - 6)))
+          } else if (nx >= 0 && ny >= 0 && nx < NW && ny < NH) ((hunt = null), tapAt(Math.floor(nx / TS), Math.floor(ny / TS)))
         }
+        if (hasSword && (input.pressed('x') || input.pressed('b'))) startSwing()
 
         let mx = input.x, my = input.y
         const stick = Math.hypot(mx, my)
-        if (stick > 0.25) path = null
+        if (stick > 0.25) ((path = null), (hunt = null))
         else ((mx = 0), (my = 0))
-        if (path) {
+        if (hunt && (hunt.dead || hunt.dying)) hunt = null
+        if (hunt) {
+          const dx = hunt.x - hero.x, dy = hunt.y - 4 - (hero.y - 5)
+          const d = Math.hypot(dx, dy)
+          if (d < T.swingReach + T.swingHalf) {
+            if (startSwing(dirToward(dx, dy))) hunt = null
+          } else {
+            // Route around pillars: step along a BFS path toward the slime's tile when it is not close.
+            const step = d > 22 && bfs(heroTile(), [{ tx: Math.floor(hunt.x / TS), ty: Math.floor((hunt.y - 3) / TS) }])?.[1]
+            const gx = step ? step.tx * TS + 8 : hunt.x, gy = step ? step.ty * TS + 11 : hunt.y
+            const gd = Math.hypot(gx - hero.x, gy - hero.y) || 1
+            mx = (gx - hero.x) / gd
+            my = (gy - hero.y) / gd
+          }
+        }
+        if (swing) ((mx = 0), (my = 0))
+        if (path && !swing) {
           const nt = path.tiles[0]
           if (!nt) {
             const then = path.then
@@ -1540,7 +1841,17 @@ export default {
         const tf = Math.floor(t * 7)
         for (const o of objs) {
           if (o.type === 'torch') g.drawImage(TORCH[(tf + o.tx) % 3], o.tx * TS, o.ty * TS)
-          if (o.type === 'door') g.drawImage(o.open ? DOOR_OPEN : DOOR, o.tx * TS, o.ty * TS)
+          if (o.type === 'door') {
+            g.drawImage(o.open ? DOOR_OPEN : DOOR, o.tx * TS, o.ty * TS)
+            if (o.sealed) drawSeal(g, o.tx * TS, o.ty * TS, t)
+            if (sealFx > 0) {
+              g.globalCompositeOperation = 'lighter'
+              g.globalAlpha = sealFx / 0.8
+              g.drawImage(A.sealGlow, o.tx * TS + 8 - 16, o.ty * TS + 9 - 16)
+              g.globalAlpha = 1
+              g.globalCompositeOperation = 'source-over'
+            }
+          }
           if (o.type === 'plate') g.drawImage(plateLatched ? PLATE_DOWN : PLATE_UP, o.tx * TS, o.ty * TS)
         }
         g.globalCompositeOperation = 'lighter'
@@ -1593,8 +1904,29 @@ export default {
           list.push({ y: cy + 15, d: () => (shadow(g, cx + 8, cy + 15, 14), g.drawImage(CRATE, cx, cy)) })
         }
         for (const sl of slimes) {
-          const f = Math.floor(t * 4 + sl.ph) % 2
-          list.push({ y: sl.y, d: () => (shadow(g, Math.round(sl.x), Math.round(sl.y) + 3, 12), g.drawImage(A.slime[f], Math.round(sl.x) - 8, Math.round(sl.y) - 12)) })
+          if (sl.dead) continue
+          const f = sl.stun > 0 ? 1 : Math.floor(t * 4 + sl.ph) % 2
+          const white = sl.flash > 0 && !settings.data.reducedShake
+          list.push({
+            y: sl.y,
+            d: () => {
+              const sx = Math.round(sl.x), sy = Math.round(sl.y)
+              shadow(g, sx, sy + 3, 12)
+              if (sl.dying) {
+                // squash flat, then the pop in slimeGone
+                const k = 1 - sl.dying / 0.22
+                const w = Math.round(16 + k * 8), h = Math.max(3, Math.round(10 - k * 8))
+                g.drawImage(white ? A.slimeWhite[1] : A.slime[1], 0, 7, 16, 9, sx - w / 2, sy + 3 - h, w, h)
+                return
+              }
+              g.drawImage(white ? A.slimeWhite[f] : A.slime[f], sx - 8, sy - 12)
+            }
+          })
+        }
+        for (const o of objs) {
+          if (o.type !== 'sword') continue
+          const x = o.tx * TS, y = o.ty * TS, bob = Math.round(Math.sin(t * 3) * 1.5)
+          list.push({ y: y + 12, d: () => (shadow(g, x + 8, y + 14, 6), g.drawImage(SWORD, x, y + bob), sparkle(g, x + 10, y + 1 + bob, Math.floor(t * 5) % 3)) })
         }
         const blinkOff = hero.inv > 0 && Math.floor(hero.inv * 12) % 2 === 0
         list.push({
@@ -1603,12 +1935,25 @@ export default {
             const hx = Math.round(hero.x), hy = Math.round(hero.y)
             shadow(g, hx, hy + 1, 10)
             if (blinkOff) return
+            if (swing) {
+              // attack pose: wind-up, lunge on the two active frames, recover
+              const f = Math.min(3, Math.floor((swing.t / T.swingTime) * 4))
+              const [dx, dy] = DIRV[swing.dir]
+              const lunge = f === 1 || f === 2 ? 1 : f === 0 ? -1 : 0
+              const bx = hx + dx * lunge, by = hy + dy * lunge
+              const blade = () => drawSlash(g, bx, by, swing.dir, f)
+              if (swing.dir === 'up') blade()
+              g.drawImage(A.hero[swing.dir][f === 0 ? 2 : 3], bx - 8, by - 15 - (f === 0 ? 1 : 0))
+              if (swing.dir !== 'up') blade()
+              return
+            }
             const fr = A.hero[hero.dir][hero.frame]
             const bob = hero.frame >= 2 ? -1 : 0
             g.drawImage(fr, hx - 8, hy - 15 + bob)
             if (hero.hold > 0) {
               g.drawImage(A.keyGlow, hx - 14, hy - 34)
-              g.drawImage(KEY, hx - 8, hy - 28)
+              if (hero.holdItem === 'sword') g.drawImage(SWORD, hx - 8, hy - 31)
+              else g.drawImage(KEY, hx - 8, hy - 28)
               sparkle(g, hx + 6, hy - 29, Math.floor(t * 8) % 3)
             }
           }
@@ -1675,11 +2020,23 @@ export default {
         if (hasKey) ctx.drawImage(KEY, 1120 - 232, 56, 64, 32)
         ctx.restore()
         pixText(ctx, `${roomGems}/${gems.length}`, 1120, 60, f20, PAL.i, 'right')
+        const left = liveSlimes().length
+        if (room.slimes && left) pixText(ctx, `SLIMES ${left} LEFT`, W / 2, 68, f20, PAL.p, 'center')
+        if (hasSword) {
+          ctx.save()
+          ctx.imageSmoothingEnabled = false
+          ctx.drawImage(SWORD, 0, 0, 16, 14, 1120 - 300, 44, 32, 28)
+          ctx.restore()
+        }
+        if (hero.hold > 0 && hero.holdItem) {
+          const msg = hero.holdItem === 'sword' ? 'GOT THE SWORD!' : 'GOT THE KEY!'
+          pixText(ctx, msg, clamp(OX + hero.x * SC, 240, W - 240), Math.max(OY + 8, OY + (hero.y - 36) * SC - 36), f20, PAL.L, 'center')
+        }
         if (finished) {
           pixelBox(ctx, W / 2 - 300, H / 2 - 110, 600, 220, { fill: '#2a2342' })
           pixText(ctx, 'ESCAPED!', W / 2, H / 2 - 70, font(400, 40, 'Press Start 2P'), PAL.L, 'center')
           pixText(ctx, `TIME BONUS +${bonus}`, W / 2, H / 2 + 4, f20, PAL.o, 'center')
-          pixText(ctx, `GEMS ${gemsTotal}/12`, W / 2, H / 2 + 44, f20, PAL.i, 'center')
+          pixText(ctx, `GEMS ${gemsTotal}/12 · SLIMES ${slimesBeaten}/3`, W / 2, H / 2 + 44, f20, PAL.i, 'center')
         }
       }
     }
