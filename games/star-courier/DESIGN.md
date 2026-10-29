@@ -2,7 +2,7 @@
 
 > Pilot a tiny courier ship through an asteroid field, grabbing parcels before the 60-second clock runs out.
 
-*Status: shipped · Version: 1.1.0*
+*Status: shipped · Version: 1.2.0*
 
 This is the sample game. It is also a worked example of the brief every game gets: see [`docs/game-design/`](../../docs/game-design/).
 
@@ -44,13 +44,13 @@ This is the sample game. It is also a worked example of the brief every game get
 | Geometry Wars | One-screen arena, rising density | Far calmer visuals; capped particles for the Deck |
 
 ## Art direction
-- **Style:** Flat bold vector
-- **Palette:** `#0b1024` background, `#5cc8ff` ship, `#ffb547` parcels/accent, `#ff7a6b` danger, `#eef0f5` text
-- **Font:** system-ui in game; Rubik/Lilita One style in art
-- **Rendering:** 2D canvas
-- **Assets:** procedural (no files)
-- **Cover idea:** the ship mid-boost with a parcel and rocks, title big at the top
-- **Hero idea:** the ship and asteroid field on the right half, calm starfield on the left
+- **Style:** Lit vector (the art-direction skill's *Look recipes*); full rules in [STYLE.md](STYLE.md)
+- **Style contract** (summary of STYLE.md): Top-down space, one light from the upper left. Every object has three tones (base, a cool blue-ish shade toward the lower right, a warm highlight toward the upper left), a dark ink edge (`#070a18`) so it separates from the nebula, and a thin cool rim light from behind. The ship is the only cyan thing; parcels are the only amber things and glow; rocks are desaturated violet-grey. The backdrop (nebula, dust, far stars, a hazy ringed planet) is the darkest, least saturated layer, with a vignette. No text or logos on objects.
+- **Palette:** `#0b1024` space, `#5cc8ff` ship (hero), `#ffb547` parcels/accent, `#ff7a6b` danger, `#6d6a80` rock, `#eef0f5` text, `#070a18` ink edge
+- **Font:** Lilita One (titles), Rubik 700 (HUD and menus), bundled in `assets/fonts/`
+- **Rendering:** 2D canvas. `art.js` draws everything; the game bakes sprites once at 2–3× and blits them. Rocks turn but their light doesn't (shading is drawn unrotated, clipped to the outline).
+- **Assets:** procedural, plus the three OFL fonts
+- **Cover / hero:** `art/cover.html` and `art/hero.html` call the same `art.js`, so they always match the game. `art/gallery.html` is the contact sheet (`npm run art:shots star-courier`).
 
 ## Audio
 - **SFX:** none yet
@@ -82,5 +82,6 @@ This is the sample game. It is also a worked example of the brief every game get
 - Kept deliberately small as the template's sample. The unchecked items are good first tasks for `improve-game`.
 
 ## Changelog
+- 1.2.0: Art pass: lit, inked sprites from `art.js` (ship, rocks, parcels), nebula backdrop with a planet, glow and exhaust, bundled fonts; cover and hero drawn by the game's own art code.
 - 1.1.0: Runtime v2: settings screen, sound effects, auto-pause, mouse and touch flight, input-aware prompts, versioned save.
 - 1.0.0: First version.

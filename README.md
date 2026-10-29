@@ -35,6 +35,18 @@ Cloud agents usually push to a branch or open a pull request. That's fine: every
 
 Tip: some cloud sandboxes can't download the headless browser that `npm run check` uses. The agent can still push, and the Actions run will report any problems. For Claude Code on the web you can add `npm run setup` to the environment's setup script.
 
+## Better art (optional): bring your own image API key
+
+Games draw their art in code by default: lit, outlined sprites, pixel art, code-built 3D models, textured backdrops, and cover and banner art made from the game's own drawing code (the `art-direction`, `pixel-art`, `threejs-models` and `cover-art` skills). No key or account is needed. Ask the agent to *"do an art pass on <game>"* whenever a game looks plain.
+
+If you'd like painted sprites, textures or key art as well, give the agent your own image API key. Generation only happens while the agent works: the images are saved into the game and bundled, and the game never calls the API.
+
+1. Get a key from **OpenAI** (`OPENAI_API_KEY`), **Google Gemini** (`GEMINI_API_KEY`) or **Replicate** (`REPLICATE_API_TOKEN`).
+2. **On your computer:** copy `.env.example` to `.env` and paste the key in. `.env` is gitignored, so it never gets pushed. **In a cloud agent** (Claude Code on the web, Codex): add the same variable to the environment's settings instead.
+3. Ask for it: *"generate painted art for <game> with my key"*. The agent writes the prompts, shows the estimated cost (`npm run art -- <id> --dry`), then generates the images, looks at them and refines them.
+
+It costs roughly $0.003–$0.21 per image depending on the provider and quality, so about $0.50–$6 for a typical game. Each run stops at 12 images unless you allow more. Details: [`docs/game-design/generated-art.md`](docs/game-design/generated-art.md).
+
 ## Already have a game in its own repo?
 
 You don't need this template, an AI, or anything made for PushPlay. Any repo works ([details](https://pushplay.gg/guide/your-repo)):
@@ -52,6 +64,8 @@ npm run setup                   # dependencies + headless browser
 npm run new-game my-game        # or --vite for npm packages
 npm run dev my-game             # play at http://localhost:5173 (--host to try it on a phone; ?debug for the state overlay)
 npm run check my-game           # what CI runs; also renders the art
+npm run art:shots my-game       # render the cover, banner and art/gallery.html to PNG to look at
+npm run art -- my-game --dry    # optional: generated art with your own key (see Better art)
 npm run update-kit              # newest build kit, prompts and runtime files (see Notes)
 ```
 

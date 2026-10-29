@@ -22,7 +22,7 @@ Follow [kickoff.md](../../../docs/game-design/kickoff.md). Use `AskUserQuestion`
 |---|---|
 | 1. Shape | **Concept / genre** (for a vague request: pitch 3 concepts instead), **2D or 3D**, **art style**, **players** (solo / local 2–4 / online / party with phones) |
 | 2. Play | **Feel** (multiSelect, up to 2), **camera / view**, **session and structure**, **like which game?**; swap in the online, party or local-multiplayer follow-ups (player count, co-op or versus, phone controller) when round 1 picked them |
-| 3. Details | Only what's still open: audience and difficulty, assets (none / "I have files" → ask for the folder / CC0), sound and music, theme and name, progression, mouse/touch gameplay |
+| 3. Details | Only what's still open: audience and difficulty, assets (none / "I have files" → ask for the folder / CC0 / generate with the user's image API key if one is set, see [generated-art.md](../../../docs/game-design/generated-art.md)), sound and music, theme and name, progression, mouse/touch gameplay |
 
 Round 1 and round 2 answers often settle each other's topics; skip any question that's already answered. Three rounds maximum. Fill any remaining gaps with sensible defaults and list them as assumptions. If the user can't choose between two or three strong directions, offer the `prototype-sprint` skill: tiny playable versions of each, then grow the winner.
 

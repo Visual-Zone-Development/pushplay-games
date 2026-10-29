@@ -3,13 +3,13 @@
   "id": "star-courier",
   "name": "Star Courier",
   "description": "Pilot a tiny courier ship through an asteroid field, grabbing parcels before the 60-second clock runs out. Bumping a rock costs you five seconds.",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "entry": {
     "web": "index.html"
   },
   "art": {
-    "cover": "art/cover.svg",
-    "hero": "art/hero.svg"
+    "cover": "art/cover.html",
+    "hero": "art/hero.html"
   },
   "controls": "gamepad",
   "inputs": [

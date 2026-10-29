@@ -37,7 +37,7 @@ Follow-ups that replace a round-2 slot when they apply:
 | Topic | Ask | Typical options |
 |---|---|---|
 | **Audience and difficulty** | "Who's it for?" | Me, I like a challenge / casual, anyone can pick it up / kids or family / selectable difficulty |
-| **Assets** | "Do you have art or sound?" | None, draw it in code (Recommended) / I have files (then ask for the folder) / find free CC0 assets |
+| **Assets** | "Do you have art or sound?" | None, draw it in code (Recommended) / I have files (then ask for the folder) / find free CC0 assets / generate painted art with my image API key (offer only if `OPENAI_API_KEY`, `GEMINI_API_KEY` or `REPLICATE_API_TOKEN` is set; mention the cost, [generated-art.md](generated-art.md)) |
 | **Sound and music** | "What should it sound like?" | Chiptune / synthwave / calm ambient / orchestral-ish / punchy arcade SFX, little music |
 | **Theme and name** | "Any setting or name in mind?" | 2–3 themes or names that fit; Other for their own |
 | **Progression** | "What keeps you coming back?" | Beat your best score / unlock characters or upgrades / new levels / daily challenge |

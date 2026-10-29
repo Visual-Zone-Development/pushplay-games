@@ -169,7 +169,7 @@ Do all of these before pushing; `npm run check` covers them headlessly, you cove
 
 ## Assets
 
-Games can be fully procedural, or use the user's own sprites, audio, models and fonts. Copy them into `games/<id>/assets/` (never link outside the folder or to the internet), record where each came from and its license in `assets/CREDITS.md`, and keep files small (sprite sheets ≤ 2048px, music ≤ ~3 MB, < 30 MB total). Details: [`docs/game-design/assets.md`](docs/game-design/assets.md).
+Games can be fully procedural, or use the user's own sprites, audio, models and fonts. Copy them into `games/<id>/assets/` (never link outside the folder or to the internet), record where each came from and its license in `assets/CREDITS.md`, and keep files small (sprite sheets ≤ 2048px, music ≤ ~3 MB, < 30 MB total). Details: [`docs/game-design/assets.md`](docs/game-design/assets.md). Painted sprites and textures can also be generated with the user's own image API key (`npm run art`, see [`docs/game-design/generated-art.md`](docs/game-design/generated-art.md)); the images are bundled, never fetched at runtime.
 
 ## Manifest (`games/<id>/pushplay.json`)
 
@@ -215,6 +215,8 @@ Guidelines:
 - No external images or links inside the SVG. Embedded `<image href="data:...">` is fine.
 - For a pixel-art or canvas look, an `art/cover.html` page that draws with the game's own code also works. Set `"cover": "art/cover.html"`. The page is rendered at exactly 720×500, after `load`.
 
+The best covers are drawn by the game's own art code: `art/cover.html` and `art/hero.html` import the module the game draws with, so the library art always matches the game (see the `cover-art` skill and `games/star-courier/art/`). `npm run art:shots <id>` renders them, any `art/gallery.html` contact sheet and a tile-size thumbnail to look at.
+
 If you're truly unable to make art, remove the `art` field: the check will generate a basic cover from a screenshot. Hand-made art is strongly preferred.
 
 ## Commands
@@ -224,6 +226,8 @@ If you're truly unable to make art, remove the `art` field: the check will gener
 | `npm run new-game <id> [--vite] [--online \| --party [--controller pad\|custom]] [--players 2-4] [--name "Title"]` | Scaffold a game (`--online`: online multiplayer starter; `--party`: TV + phones party starter) |
 | `npm run dev <id>` | Play it in a browser with live reload (http://localhost:5173). Online games: a local relay starts too, so open two windows. Party games: phones on the same Wi-Fi scan the lobby's QR code |
 | `npm run check [id]` | Validate, build, headless play test (gamepad, keyboard, touch, pause, a 16:9 window at DPR 2; online games also play two copies through a local relay; party games bring headless phones that join, play and reconnect), render art. Must pass before pushing. |
+| `npm run art:shots <id>` | Render the game's art pages (cover, hero, `art/gallery.html`) and a cover thumbnail to PNG to look at |
+| `npm run art -- <id> [--dry]` | Optional: generate painted art from `art/prompts.json` with your own image API key (`.env` or environment; prints the cost first) |
 | `npm run update-kit` | Refresh the build kit, these prompts and the runtime files in every game (only when the user asks) |
 
 ## Don'ts
@@ -231,5 +235,5 @@ If you're truly unable to make art, remove the `art` field: the check will gener
 - Don't edit `.github/` unless asked: it holds the build kit and workflow shared by every game.
 - Don't edit the runtime files in a game folder (`input.js`, `menu.js`, `fit.js`, `audio.js`, `save.js`, `settings.js`, `prompts.js`, `net.js` / `lobby.js` in online games, and `party.js` / `party-lobby.js` / `qr.js` / `controller.js` in party games).
 - Don't bind F10, Start+Select or a held Esc; don't build an "exit to launcher" of your own.
-- Don't commit `node_modules/`, `dist/`, `tools/`, `mockups/`, `*.py` or `__pycache__/`.
+- Don't commit `node_modules/`, `dist/`, or a game's own `tools/`, `mockups/`, `*.py` or `__pycache__/` (the repo-level `tools/` folder is shared tooling and belongs in git).
 - Don't delete or rewrite other games.

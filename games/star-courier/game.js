@@ -9,6 +9,7 @@ import { createAudio } from './audio.js'
 import { createSave, createSettings } from './save.js'
 import { createSettingsScreen } from './settings.js'
 import { drawPrompts } from './prompts.js'
+import { PAL, bake, blit, bakeShip, bakeRocks, bakeParcel, bakeGlow, drawShip as drawShipArt, drawFlame, drawRock, drawBackdrop, drawVignette } from './art.js'
 
 const ID = 'star-courier'
 const W = 1280
@@ -32,6 +33,7 @@ const state = {
   parcels: [],
   rocks: [],
   sparks: [],
+  trail: [],
   score: 0,
   time: TUNING.roundSeconds,
   hitFlash: 0,
@@ -70,7 +72,23 @@ const PAUSE_BUTTON = { x: W / 2 - 28, y: 24, w: 56, h: 56 }
 const inside = (p, r) => p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h
 
 const rand = (min, max) => min + Math.random() * (max - min)
-const stars = Array.from({ length: 140 }, () => ({ x: rand(0, W), y: rand(0, H), z: rand(0.2, 1) }))
+// Near stars drift over the baked backdrop for a little parallax.
+const stars = Array.from({ length: 60 }, () => ({ x: rand(0, W), y: rand(0, H), z: rand(0.3, 1) }))
+
+// Art (art.js): baked once at 2×, blitted every frame.
+const ART = {
+  ship: bakeShip(),
+  rocks: bakeRocks(6),
+  parcel: bakeParcel(),
+  glowAmber: bakeGlow(PAL.amber, 40),
+  glowRed: bakeGlow(PAL.danger, 24),
+  backdrop: bake(W, H, (g) => (g.translate(-W / 2, -H / 2), drawBackdrop(g, W, H)), 2)
+}
+// Bundled fonts (OFL, see assets/CREDITS.md); text falls back to system-ui until they load.
+for (const [family, file, weight] of [['Rubik', 'rubik-700', 700], ['Rubik', 'rubik-900', 900], ['Lilita One', 'lilita-one', 400]]) {
+  const face = new FontFace(family, `url(./assets/fonts/${file}.woff2)`, { weight: String(weight) })
+  face.load().then((f) => document.fonts.add(f), () => {})
+}
 
 // Launcher overlay, window hidden or unfocused, every controller gone: pause.
 input.onPause(() => {
@@ -82,6 +100,7 @@ function reset() {
   state.parcels = Array.from({ length: 3 }, spawnParcel)
   state.rocks = Array.from({ length: 5 }, spawnRock)
   state.sparks = []
+  state.trail = []
   state.score = 0
   state.time = TUNING.roundSeconds
   state.hitFlash = 0
@@ -109,7 +128,8 @@ function spawnRock() {
     vy: rand(60, 160),
     r: rand(22, 44),
     spin: rand(-2, 2),
-    a: 0
+    a: 0,
+    look: ART.rocks[Math.floor(Math.random() * ART.rocks.length)]
   }
 }
 function burst(x, y, color, n = 14) {
@@ -167,7 +187,11 @@ function play(dt) {
     const d = Math.hypot(ax, ay)
     if (d > 12) (dx = ax / d), (dy = ay / d)
   }
-  const thrust = input.held('a') || input.held('rt') ? TUNING.boost : TUNING.thrust
+  const boosting = input.held('a') || input.held('rt')
+  const thrust = boosting ? TUNING.boost : TUNING.thrust
+  // How hard the engine is burning (visual only): idle glow, more when steering, most on boost.
+  const burn = Math.min(1, Math.hypot(dx, dy)) * (boosting ? 1 : 0.55)
+  ship.burn = 0.15 + burn * 0.85
   ship.vx = (ship.vx + dx * thrust * dt) * Math.pow(TUNING.drag, dt)
   ship.vy = (ship.vy + dy * thrust * dt) * Math.pow(TUNING.drag, dt)
   ship.x = Math.max(20, Math.min(W - 20, ship.x + ship.vx * dt))
@@ -222,41 +246,51 @@ function play(dt) {
     s.x += s.vx * dt
     s.y += s.vy * dt
   }
+  // exhaust puffs from the nozzles, capped
+  if (burn > 0.1 && state.trail.length < 90) {
+    const bx = ship.x - Math.cos(ship.angle) * 34
+    const by = ship.y - Math.sin(ship.angle) * 34
+    state.trail.push({ x: bx + rand(-3, 3), y: by + rand(-3, 3), life: 0.45 * burn + 0.1, max: 0.45 * burn + 0.1 })
+  }
+  state.trail = state.trail.filter((t) => (t.life -= dt) > 0)
 }
 
-const font = (weight, px) => `${weight} ${Math.round(px * settings.data.textScale)}px system-ui, sans-serif`
+const font = (weight, px, family = 'Rubik') => `${weight} ${Math.round(px * settings.data.textScale)}px ${family}, system-ui, sans-serif`
+const now = () => performance.now() / 1000
 
-function drawShip(x, y, angle, scale = 1) {
+/** Text with an ink edge, so it reads over the nebula. */
+function inkText(text, x, y, color = PAL.text, edge = 6) {
+  ctx.lineJoin = 'round'
+  ctx.lineWidth = edge
+  ctx.strokeStyle = PAL.ink
+  ctx.strokeText(text, x, y)
+  ctx.fillStyle = color
+  ctx.fillText(text, x, y)
+}
+
+/** In play the baked sprite; big (the title) the vector art itself, so it stays sharp. */
+function drawShip(x, y, angle, scale = 1, burn = 0.3) {
   ctx.save()
   ctx.translate(x, y)
   ctx.rotate(angle)
   ctx.scale(scale, scale)
-  ctx.fillStyle = '#5cc8ff'
-  ctx.beginPath()
-  ctx.moveTo(26, 0)
-  ctx.lineTo(-18, -16)
-  ctx.lineTo(-10, 0)
-  ctx.lineTo(-18, 16)
-  ctx.closePath()
-  ctx.fill()
-  ctx.fillStyle = '#ffb547'
-  ctx.beginPath()
-  ctx.moveTo(-12, -6)
-  ctx.lineTo(-26 - Math.random() * 10, 0)
-  ctx.lineTo(-12, 6)
-  ctx.fill()
+  drawFlame(ctx, burn, now())
+  if (scale === 1) blit(ctx, ART.ship, 0, 0)
+  else drawShipArt(ctx)
   ctx.restore()
 }
 
 function draw() {
   ctx.save()
   if (state.shake > 0) ctx.translate((Math.random() - 0.5) * 16 * state.shake, (Math.random() - 0.5) * 16 * state.shake)
-  ctx.fillStyle = '#0b1024'
+  ctx.fillStyle = PAL.space
   ctx.fillRect(-20, -20, W + 40, H + 40)
+  ctx.drawImage(ART.backdrop.canvas, 0, 0, W, H)
   for (const s of stars) {
-    ctx.fillStyle = `rgba(255,255,255,${0.25 + s.z * 0.6})`
-    ctx.fillRect(s.x, s.y, s.z * 2.5, s.z * 2.5)
+    ctx.fillStyle = `rgba(220,236,255,${0.2 + s.z * 0.5})`
+    ctx.fillRect(s.x, s.y, s.z * 2.2, s.z * 2.2)
   }
+  if (state.screen === 'title' || state.screen === 'settings') drawVignette(ctx, W, H, 0.5)
   ctx.textBaseline = 'middle'
 
   if (state.screen === 'title') drawTitle()
@@ -268,18 +302,18 @@ function draw() {
     if (state.screen === 'paused' || state.screen === 'gameover') {
       ctx.fillStyle = 'rgba(5,7,15,0.7)'
       ctx.fillRect(0, 0, W, H)
-      ctx.fillStyle = '#eef0f5'
       ctx.textAlign = 'center'
-      ctx.font = font(800, 72)
+      ctx.font = font(400, 76, 'Lilita One')
       if (state.screen === 'paused') {
-        ctx.fillText('Paused', W / 2, H / 2 - 150)
-        pauseMenu.draw(ctx, font(600, 30))
+        inkText('Paused', W / 2, H / 2 - 150)
+        pauseMenu.draw(ctx, font(700, 30))
       } else {
-        ctx.fillText(`${state.score} parcels delivered`, W / 2, H / 2 - 80)
-        ctx.font = font(500, 28)
-        ctx.fillStyle = '#c9cfdb'
-        ctx.fillText(`Best ${save.data.best}`, W / 2, H / 2 - 10)
-        overMenu.draw(ctx, font(600, 30))
+        inkText(`${state.score} parcels delivered`, W / 2, H / 2 - 80)
+        const best = state.score > 0 && state.score >= save.data.best
+        ctx.font = font(700, 28)
+        ctx.fillStyle = best ? PAL.amber : '#c9cfdb'
+        ctx.fillText(best ? 'New best!' : `Best ${save.data.best}`, W / 2, H / 2 - 10)
+        overMenu.draw(ctx, font(700, 30))
       }
     }
   }
@@ -288,55 +322,51 @@ function draw() {
 }
 
 function drawTitle() {
-  drawShip(W / 2, H / 2 - 190, -Math.PI / 2, 3)
+  const t = now()
+  drawShip(W / 2, H / 2 - 222 + Math.sin(t * 1.6) * 6, -Math.PI / 2, 2.4, 0.45)
   ctx.textAlign = 'center'
-  ctx.fillStyle = '#eef0f5'
-  ctx.font = font(800, 88)
-  ctx.fillText('Star Courier', W / 2, H / 2 - 10)
-  ctx.font = font(500, 28)
+  ctx.font = font(400, 104, 'Lilita One')
+  inkText('Star Courier', W / 2, H / 2 - 14, PAL.text, 12)
+  ctx.font = font(700, 28)
   ctx.fillStyle = '#c9cfdb'
   ctx.fillText(`Grab parcels. Dodge rocks. ${TUNING.roundSeconds} seconds on the clock.${save.data.best ? ` Best: ${save.data.best}` : ''}`, W / 2, H / 2 + 55)
-  titleMenu.draw(ctx, font(600, 30))
+  titleMenu.draw(ctx, font(700, 30))
   drawPrompts(ctx, input, [['a', 'Boost'], ['menu', 'Pause']], { size: 24 * settings.data.textScale })
 }
 
 function drawPlay() {
+  // additive layer: exhaust, parcel halos
+  ctx.globalCompositeOperation = 'lighter'
+  for (const t of state.trail) {
+    const k = t.life / t.max
+    ctx.globalAlpha = k * 0.5
+    blit(ctx, ART.glowAmber, t.x, t.y, 0, 0.25 + (1 - k) * 0.35)
+  }
   for (const p of state.parcels) {
-    const y = p.y + Math.sin(p.bob) * 6
-    ctx.fillStyle = '#ffb547'
-    ctx.fillRect(p.x - 16, y - 14, 32, 28)
-    ctx.fillStyle = '#7a4a10'
-    ctx.fillRect(p.x - 3, y - 14, 6, 28)
-  }
-  for (const r of state.rocks) {
-    ctx.save()
-    ctx.translate(r.x, r.y)
-    ctx.rotate(r.a)
-    ctx.fillStyle = '#6d6a80'
-    ctx.beginPath()
-    for (let i = 0; i < 8; i++) {
-      const a = (i / 8) * Math.PI * 2
-      const rr = r.r * (i % 2 ? 0.82 : 1)
-      ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr)
-    }
-    ctx.fill()
-    ctx.restore()
-  }
-  if (state.hitFlash <= 0 || Math.floor(state.hitFlash * 20) % 2) drawShip(state.ship.x, state.ship.y, state.ship.angle)
-  for (const s of state.sparks) {
-    ctx.globalAlpha = Math.min(1, s.life * 2)
-    ctx.fillStyle = s.color
-    ctx.fillRect(s.x - 3, s.y - 3, 6, 6)
+    ctx.globalAlpha = 0.55 + Math.sin(p.bob * 1.3) * 0.2
+    blit(ctx, ART.glowAmber, p.x, p.y + Math.sin(p.bob) * 6, 0, 1.1)
   }
   ctx.globalAlpha = 1
+  ctx.globalCompositeOperation = 'source-over'
+  for (const p of state.parcels) blit(ctx, ART.parcel, p.x, p.y + Math.sin(p.bob) * 6, Math.sin(p.bob * 0.7) * 0.12)
+  for (const r of state.rocks) drawRock(ctx, r.look, r.x, r.y, r.r, r.a)
+  if (state.hitFlash <= 0 || Math.floor(state.hitFlash * 20) % 2) drawShip(state.ship.x, state.ship.y, state.ship.angle, 1, state.ship.burn ?? 0.3)
+  ctx.globalCompositeOperation = 'lighter'
+  for (const s of state.sparks) {
+    ctx.globalAlpha = Math.min(1, s.life * 2)
+    blit(ctx, s.color === PAL.danger ? ART.glowRed : ART.glowAmber, s.x, s.y, 0, 0.35)
+    ctx.fillStyle = '#fff3d6'
+    ctx.fillRect(s.x - 2, s.y - 2, 4, 4)
+  }
+  ctx.globalAlpha = 1
+  ctx.globalCompositeOperation = 'source-over'
+  drawVignette(ctx, W, H, 0.5)
 
-  ctx.fillStyle = '#eef0f5'
   ctx.font = font(700, 32)
   ctx.textAlign = 'left'
-  ctx.fillText(`Parcels ${state.score}`, 32, 52)
+  inkText(`Parcels ${state.score}`, 32, 52, PAL.amber)
   ctx.textAlign = 'right'
-  ctx.fillStyle = state.time < 10 ? '#ff7a6b' : '#eef0f5'
-  ctx.fillText(`${Math.ceil(state.time)}s`, W - 32, 52)
+  inkText(`${Math.ceil(state.time)}s`, W - 32, 52, state.time < 10 ? PAL.danger : PAL.text)
   if (state.screen === 'playing') {
     ctx.fillStyle = 'rgba(255,255,255,0.12)'
     ctx.beginPath()

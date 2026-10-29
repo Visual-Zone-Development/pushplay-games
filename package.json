@@ -12,7 +12,9 @@
     "new-game": "node .github/pushplay/new-game.mjs",
     "dev": "node .github/pushplay/dev.mjs",
     "check": "node .github/pushplay/check.mjs",
-    "update-kit": "node .github/pushplay/update-kit.mjs"
+    "update-kit": "node .github/pushplay/update-kit.mjs",
+    "art": "node tools/art/generate.mjs",
+    "art:shots": "node tools/art/shots.mjs"
   },
   "devDependencies": {
     "vite": "^7.3.7"
