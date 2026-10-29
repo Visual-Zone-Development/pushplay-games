@@ -1,4 +1,4 @@
-// npm run new-game <game-id> [--vite] [--online | --party [--controller pad|custom]] [--players 2-4] [--name "Display Name"]   (collection repos only)
+// npm run new-game <game-id> [--vite] [--online | --party [--controller pad|custom|motion]] [--players 2-4] [--name "Display Name"]   (collection repos only)
 // Creates games/<game-id>/ from the starter template: title, pause and settings screens that
 // work with a controller, a keyboard, a mouse and touch, a manifest, and placeholder art.
 //   default:   plain HTML + ES modules, no build step (best for most 2D games)
@@ -7,7 +7,9 @@
 //              starter where the host runs the game. --players sets how many (default 2).
 //   --party:   a party game: it runs on the TV and players join from their phones (QR code or
 //              room code) or with local controllers. --controller pad (default) gives phones a
-//              stick and A/B; --controller custom starts a phone screen of the game's own.
+//              stick and A/B; --controller custom starts a phone screen of the game's own;
+//              --controller motion makes the phone a motion controller (tilt, steering wheel,
+//              swings) and adds motion.js, which reads it on the TV.
 //              --players sets how many (default 2-8, up to 16).
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { spawnSync } from 'node:child_process'
@@ -29,7 +31,7 @@ const id = args.find((a, i) => !a.startsWith('--') && !['--name', '--players', '
 const [minPlayers, maxPlayers = minPlayers] = players.split('-').map(Number)
 
 if (!id || !/^[a-z0-9][a-z0-9-]{0,63}$/.test(id)) {
-  log('Usage: npm run new-game <game-id> [--vite] [--online | --party [--controller pad|custom]] [--players 2-4] [--name "Display Name"]')
+  log('Usage: npm run new-game <game-id> [--vite] [--online | --party [--controller pad|custom|motion]] [--players 2-4] [--name "Display Name"]')
   log('  game-id: lowercase letters, digits and dashes, e.g. tower-panic')
   process.exit(1)
 }
@@ -41,8 +43,8 @@ if (online && party) {
   log('Pick one: --online (every player runs the game) or --party (the TV runs it, phones join)')
   process.exit(1)
 }
-if (!['pad', 'custom'].includes(controller)) {
-  log('--controller is pad (a stick and A/B on the phone) or custom (the game draws its own phone screen)')
+if (!['pad', 'custom', 'motion'].includes(controller)) {
+  log('--controller is pad (a stick and A/B on the phone), custom (the game draws its own phone screen) or motion (the phone is a motion controller)')
   process.exit(1)
 }
 if (layout() === 'single') {
@@ -87,6 +89,8 @@ if (party) {
   const page = fill(readFileSync(join(templates, 'party-controllers', `${controller}.html`), 'utf8'))
   mkdirSync(vite ? join(dir, 'public') : dir, { recursive: true })
   writeFileSync(join(vite ? join(dir, 'public') : dir, 'controller.html'), page)
+  // Motion: the TV side that reads it (the game's own code, not a runtime file).
+  if (controller === 'motion') writeFileSync(join(codeDir, 'motion.js'), fill(readFileSync(join(templates, 'party-motion/motion.js'), 'utf8')))
 }
 // The runtime modules; `npm run update-kit` replaces them later, so extend them from game.js.
 for (const file of RUNTIME_FILES) writeFileSync(join(codeDir, file), fill(readFileSync(join(templates, 'shared', file), 'utf8')))
@@ -135,6 +139,7 @@ if (online) log(`     Online: the host runs the rules in hostUpdate() and writes
 if (party) {
   log(`     Party: the TV runs everything. party.public goes to every phone, party.view(id) to one phone only.`)
   log(`     The phone screen is games/${id}/${vite ? 'public/' : ''}controller.html. Don't edit party.js, party-lobby.js, qr.js, controller.js or net.js.`)
+  if (controller === 'motion') log(`     Motion: const motion = createMotion(party) from motion.js; motion.update(dt) each frame, then motion.of(id).tilt / .wheel / .swings. Read docs/game-design/motion.md.`)
 }
 log(`  2. Fill in "description" and "tags" in games/${id}/${MANIFEST_FILE} (drop inputs gameplay can't support).`)
 log(`  3. Replace games/${id}/art/cover.svg and hero.svg with real art.`)

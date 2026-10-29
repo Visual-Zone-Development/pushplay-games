@@ -133,7 +133,7 @@ Every game has a Settings screen, **reachable from the title and from the pause 
 
 A party game runs on the handheld or PC plugged into a TV. Players join from their phones (scan the QR code, or type the room code at the address on screen) or from any browser, and controllers plugged into the machine can join too. Think Jackbox: a quiz, drawing or bluffing game, a card game with hidden hands, or an action game with phones as gamepads. Full guide: [`docs/game-design/party.md`](docs/game-design/party.md).
 
-- `npm run new-game <id> --party [--controller pad|custom] [--players 3-8]` (up to 16 players). `pad` (default) gives every phone a stick and A/B; `custom` starts a phone screen of the game's own. The runtime files (`party.js`, `party-lobby.js`, `qr.js`, `controller.js`, `net.js`) are never edited; `controller.html` and `game.js` are yours.
+- `npm run new-game <id> --party [--controller pad|custom|motion] [--players 3-8]` (up to 16 players). `pad` (default) gives every phone a stick and A/B; `custom` starts a phone screen of the game's own; `motion` makes the phone a motion controller and adds `motion.js` to read it on the TV (tilt, steering wheel, swings timed on the phone; see [`docs/game-design/motion.md`](docs/game-design/motion.md): phones can't point at the screen). The runtime files (`party.js`, `party-lobby.js`, `qr.js`, `controller.js`, `net.js`) are never edited; `controller.html` and `game.js` are yours.
 - **The TV runs everything.** Each frame, after `input.update(dt)`, call `party.update()`; then read `party.players` (`{ id, name, color, kind: 'phone' | 'local', connected }`), `party.inputs[id]` (`{ x, y, a, b }`, the same from a phone pad and a local controller) and `party.pressed(id, 'a')`.
 - **Who sees what.** `party.public` goes to every phone (prompt, choices, whose turn); `party.view(id)` goes only to that player's phone (their hand, secret role, private score); everything else stays on the TV. **Secrets never go in `party.public`.** Both are sent as changes only: write them freely.
 - **Phone → TV:** the phone screen calls `controller.send(data)` (→ `party.on('msg', ({ from, data }) => …)`) for choices and text, `controller.input({...})` for held controls.
@@ -223,7 +223,7 @@ If you're truly unable to make art, remove the `art` field: the check will gener
 
 | Command | What it does |
 |---|---|
-| `npm run new-game <id> [--vite] [--online \| --party [--controller pad\|custom]] [--players 2-4] [--name "Title"]` | Scaffold a game (`--online`: online multiplayer starter; `--party`: TV + phones party starter) |
+| `npm run new-game <id> [--vite] [--online \| --party [--controller pad\|custom\|motion]] [--players 2-4] [--name "Title"]` | Scaffold a game (`--online`: online multiplayer starter; `--party`: TV + phones party starter) |
 | `npm run dev <id>` | Play it in a browser with live reload (http://localhost:5173). Online games: a local relay starts too, so open two windows. Party games: phones on the same Wi-Fi scan the lobby's QR code |
 | `npm run check [id]` | Validate, build, headless play test (gamepad, keyboard, touch, pause, a 16:9 window at DPR 2; online games also play two copies through a local relay; party games bring headless phones that join, play and reconnect), render art. Must pass before pushing. |
 | `npm run art:shots <id>` | Render the game's art pages (cover, hero, `art/gallery.html`) and a cover thumbnail to PNG to look at |

@@ -75,6 +75,14 @@ A great small game is often a **familiar genre + one twist + a theme**: "a Break
 - **v1:** 2–4 players on one screen, a join screen (each slot says `${input.label('a')} to join` and fills when that pad presses it), one arena mode, round wins to 3, `players: "2-4"` and the `"local multiplayer"` tag. A disconnected pad pauses the game (`input.onPause`) and its slot shows "reconnect".
 - **Stretch:** several modes or arenas, handicaps, solo practice vs. simple bots.
 
+### Motion party (phone as the controller)
+*Wii Sports, WarioWare: Smooth Moves, motion bowling and batting games.*
+- **Loop:** a cue on the TV (a pitch, a beat, a corner, the pins) → a physical motion with the phone → an instant verdict with juice → next try or next player.
+- **Fun:** Sensation, Fellowship (everyone watches the swing), Challenge (timing, the hook).
+- **Controls:** `--party --controller motion`: tilt (tray, lean), a steering wheel, swings, flicks, shakes, grip-and-release, plus one big phone button. Gravity-based inputs and timed events work; **pointing at the screen doesn't** (see [motion.md](motion.md)). Every station also plays with stick, keyboard, mouse and touch.
+- **v1:** 3–6 short stations or one sport with turns; calibration in each countdown; a phone status chip and strength meter; best scores per player. Tune with fake sensors, then real phones on the https build.
+- **Stretch:** per-player timing calibration, a Sensor Bench, tournaments across stations.
+
 ---
 
 ## Scoping rule of thumb
