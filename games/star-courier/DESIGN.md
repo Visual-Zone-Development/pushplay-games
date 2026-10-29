@@ -2,7 +2,7 @@
 
 > Pilot a tiny courier ship through an asteroid field, grabbing parcels before the 60-second clock runs out.
 
-*Status: shipped · Version: 1.2.0*
+*Status: shipped · Version: 1.2.1*
 
 This is the sample game. It is also a worked example of the brief every game gets: see [`docs/game-design/`](../../docs/game-design/).
 
@@ -82,6 +82,7 @@ This is the sample game. It is also a worked example of the brief every game get
 - Kept deliberately small as the template's sample. The unchecked items are good first tasks for `improve-game`.
 
 ## Changelog
+- 1.2.1: A rock hit that ends the round no longer leaves the game-over screen shaking.
 - 1.2.0: Art pass: lit, inked sprites from `art.js` (ship, rocks, parcels), nebula backdrop with a planet, glow and exhaust, bundled fonts; cover and hero drawn by the game's own art code.
 - 1.1.0: Runtime v2: settings screen, sound effects, auto-pause, mouse and touch flight, input-aware prompts, versioned save.
 - 1.0.0: First version.

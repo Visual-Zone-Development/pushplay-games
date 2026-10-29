@@ -202,12 +202,14 @@ function play(dt) {
   if (state.time <= 0) {
     state.time = 0
     state.screen = 'gameover'
+    state.shake = 0
     overMenu.select('again')
     audio.tone({ freq: 330, dur: 0.5, type: 'triangle', slide: -200 })
     if (state.score > save.data.best) {
       save.data.best = state.score
       save.save()
     }
+    return // the round is over: nothing else moves or hits this frame
   }
 
   state.parcels = state.parcels.map((p) => {
@@ -282,7 +284,9 @@ function drawShip(x, y, angle, scale = 1, burn = 0.3) {
 
 function draw() {
   ctx.save()
-  if (state.shake > 0) ctx.translate((Math.random() - 0.5) * 16 * state.shake, (Math.random() - 0.5) * 16 * state.shake)
+  // Shake only counts down in play(), so it only applies there: a hit that ends the round must not
+  // leave the game-over screen shaking.
+  if (state.shake > 0 && state.screen === 'playing') ctx.translate((Math.random() - 0.5) * 16 * state.shake, (Math.random() - 0.5) * 16 * state.shake)
   ctx.fillStyle = PAL.space
   ctx.fillRect(-20, -20, W + 40, H + 40)
   ctx.drawImage(ART.backdrop.canvas, 0, 0, W, H)
