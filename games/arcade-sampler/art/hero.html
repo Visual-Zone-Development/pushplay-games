@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Arcade Sampler hero</title>
+    <style>
+      html, body { margin: 0; width: 1920px; height: 450px; overflow: hidden; background: #140f2e; }
+      canvas { position: absolute; inset: 0; width: 1920px; height: 450px; }
+      .fade { position: absolute; inset: 0; background: linear-gradient(90deg, rgba(10,7,24,0.75), rgba(10,7,24,0) 48%); }
+    </style>
+  </head>
+  <body>
+    <canvas id="c" width="3840" height="900"></canvas>
+    <div class="fade"></div>
+    <script type="module">
+      import { drawScene } from './scene.js'
+      drawScene(document.getElementById('c'), 1920, 450, { cx: 1330, cy: 220, cw: 230 })
+    </script>
+  </body>
+</html>

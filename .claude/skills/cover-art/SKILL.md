@@ -18,7 +18,7 @@ Follow AGENTS.md (*Art*) and [art-directions.md](../../../docs/game-design/art-d
 
 Also: a full background (no transparency), 2–4 main colours from the game's palette plus a text colour, fonts only from `Chakra Petch` (600, 700), `Rubik` (400, 700, 900), `Bungee`, `Lilita One`, `Press Start 2P`, no external images or links (`data:` images are fine). Pixel-art games can use `art/cover.html` drawing with the game's own sprite code (set `"cover": "art/cover.html"`).
 
-**Best: draw both with the game's own art code.** If the game's drawing lives in one module (`art.js`, or the 3D model code), make `art/cover.html` and `art/hero.html` import it and compose a scene at their sizes, with the cover title as an HTML `<h1>` in a bundled font over a thick `-webkit-text-stroke` copy for the outline. The library art then always matches the game. Worked example: `games/star-courier/art/`. Set `"art": { "cover": "art/cover.html", "hero": "art/hero.html" }`.
+**Best: draw both with the game's own art code.** If the game's drawing lives in one module (`art.js`, or the 3D model code), make `art/cover.html` and `art/hero.html` import it and compose a scene at their sizes, with the cover title as an HTML `<h1>` in a bundled font over a thick `-webkit-text-stroke` copy for the outline. The library art then always matches the game. Worked examples: `games/arcade-sampler/art/` (cabinets drawn by each game's own `icon()`) and `games/motion-lab/art/`. Set `"art": { "cover": "art/cover.html", "hero": "art/hero.html" }`.
 
 ## 2. Compose for a thumbnail
 1. **Pick one idea:** the hero object doing the core verb (a ship mid-dodge, a frog mid-jump), plus one hint of the challenge (an asteroid, a boss shadow). Not a collage.

@@ -1,0 +1,30 @@
+{
+  "$schema": "../../.github/pushplay/manifest.schema.json",
+  "id": "motion-lab",
+  "name": "Motion Lab",
+  "description": "Turn your phone into a motion controller and test it across six quick stations: tilt a marble through mazes, swing for home runs, flick to slash fruit, shake a maraca on the beat and steer a kart with your phone as the wheel, with a live Sensor Bench showing exactly what your phone sends.",
+  "version": "1.8.0",
+  "entry": {
+    "web": "index.html"
+  },
+  "art": {
+    "cover": "art/cover.html",
+    "hero": "art/hero.html"
+  },
+  "controls": "gamepad",
+  "inputs": [
+    "gamepad",
+    "keyboard",
+    "mouse",
+    "touch"
+  ],
+  "players": "1",
+  "tags": [
+    "party",
+    "motion controls",
+    "arcade",
+    "sports",
+    "score attack"
+  ],
+  "party": true
+}

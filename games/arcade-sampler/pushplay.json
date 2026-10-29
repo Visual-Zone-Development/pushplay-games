@@ -1,0 +1,29 @@
+{
+  "$schema": "../../.github/pushplay/manifest.schema.json",
+  "id": "arcade-sampler",
+  "name": "Arcade Sampler",
+  "description": "Six tiny, complete games in one arcade cabinet, each a different genre in its own art style: deliver parcels in space, hop through a garden, merge jars, outwit a CPU in a tactics duel, explore pixel-art rooms and survive a neon arena with a friend. Medals and best scores on every cabinet.",
+  "version": "1.0.0",
+  "entry": {
+    "web": "index.html"
+  },
+  "controls": "gamepad",
+  "inputs": [
+    "gamepad",
+    "keyboard",
+    "mouse",
+    "touch"
+  ],
+  "players": "1-2",
+  "tags": [
+    "arcade",
+    "platformer",
+    "puzzle",
+    "strategy",
+    "local multiplayer"
+  ],
+  "art": {
+    "cover": "art/cover.html",
+    "hero": "art/hero.html"
+  }
+}

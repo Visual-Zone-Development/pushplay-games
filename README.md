@@ -4,14 +4,17 @@ Ask an AI for a game, and it shows up on your Steam Deck, or in PushPlay on a Li
 
 **One repo holds as many games as you like.** Every folder in `games/` is a game, and each one gets its own tile, art and updates in the library. Push and GitHub Actions builds the games that changed: it plays each one headlessly to catch crashes and renders its cover art on every branch, and publishes from the default branch to this repo's **pushplay-latest** release. The [PushPlay](https://pushplay.gg) launcher watches that release, so new games and updates appear on their own: watch the repo once and every game you add later shows up too.
 
-Comes with one sample game, **Star Courier**. Keep it, change it, or delete its folder once you have your own.
+Comes with two sample games. Keep them, change them, or delete their folders once you have your own:
+
+- **Arcade Sampler**: six tiny, complete games in one cabinet, each a different genre in its own art style: Star Courier (arcade, lit vector), Hop Garden (platformer), Merge Jars (puzzle), Tiny Tactics (turn-based duel vs. the computer), Keyhole (pixel-art adventure rooms) and Neon Ring (twin-stick arena, two players). All drawn in code, each in one file in `games/arcade-sampler/games/`.
+- **Motion Lab**: a party game where your phone is the controller: tilt a marble maze, swing for home runs, slash fruit, shake maracas and steer a kart, with a live Sensor Bench. Players join by scanning a QR code. Make your own with `npm run new-game <id> --party --controller motion` and [`docs/game-design/motion.md`](docs/game-design/motion.md).
 
 Good for prototypes, playtests, and games made just for you.
 
 ## Set up your own
 
 1. Click **Use this template → Create a new repository**. Private is fine. (Use the template rather than forking: forks have Actions turned off and can't be private.)
-2. Open the new repo's **Actions** tab and run **Build games** once (or just push anything) to publish the sample.
+2. Open the new repo's **Actions** tab and run **Build games** once (or just push anything) to publish the samples.
 3. In PushPlay (Steam Deck, Linux, Windows or Mac): **Add game → My repositories**, sign in with your phone, and watch this repo. [Install PushPlay](https://pushplay.gg/download) first if you haven't.
 
 ## One repo, many games
@@ -61,7 +64,7 @@ A `pushplay.json` ([fields](AGENTS.md#manifest-gamesidpushplayjson)) is optional
 
 ```sh
 npm run setup                   # dependencies + headless browser
-npm run new-game my-game        # or --vite for npm packages
+npm run new-game my-game        # or --vite for npm packages, --party [--controller motion] for TV + phones
 npm run dev my-game             # play at http://localhost:5173 (--host to try it on a phone; ?debug for the state overlay)
 npm run check my-game           # what CI runs; also renders the art
 npm run art:shots my-game       # render the cover, banner and art/gallery.html to PNG to look at

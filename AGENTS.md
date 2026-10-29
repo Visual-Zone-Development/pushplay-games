@@ -215,7 +215,7 @@ Guidelines:
 - No external images or links inside the SVG. Embedded `<image href="data:...">` is fine.
 - For a pixel-art or canvas look, an `art/cover.html` page that draws with the game's own code also works. Set `"cover": "art/cover.html"`. The page is rendered at exactly 720×500, after `load`.
 
-The best covers are drawn by the game's own art code: `art/cover.html` and `art/hero.html` import the module the game draws with, so the library art always matches the game (see the `cover-art` skill and `games/star-courier/art/`). `npm run art:shots <id>` renders them, any `art/gallery.html` contact sheet and a tile-size thumbnail to look at.
+The best covers are drawn by the game's own art code: `art/cover.html` and `art/hero.html` import the module the game draws with, so the library art always matches the game (see the `cover-art` skill and `games/arcade-sampler/art/`). `npm run art:shots <id>` renders them, any `art/gallery.html` contact sheet and a tile-size thumbnail to look at.
 
 If you're truly unable to make art, remove the `art` field: the check will generate a basic cover from a screenshot. Hand-made art is strongly preferred.
 
