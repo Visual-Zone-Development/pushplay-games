@@ -27,9 +27,9 @@ What separates a complete game from a toy. Copy the items that apply into the ga
 ## Screens and flow
 
 - [ ] **Title screen** with the name, a start prompt built from `input.label('a')` (it reads "Tap" on touch), a pause hint from `input.label('menu')`, and the best score. If gameplay needs a controller or keyboard, the title says so.
-- [ ] **Pause** on `menu` (Start, Esc, P, and the on-screen pause button for mouse and touch), with exactly **Resume, Restart, Settings, Quit to title**. The game is fully frozen while paused.
+- [ ] **Pause** on `menu` (Start, Esc, P, and the on-screen pause button for mouse and touch), with exactly **Resume, Restart, Settings, Quit to title** (inside the launcher, `menu.js` adds **Quit to library** last). The game is fully frozen while paused.
 - [ ] **Auto-pause** via `input.onPause` (launcher overlay, lost focus, hidden tab, all controllers gone) lands on the pause screen and saves.
-- [ ] **No exit of its own**: nothing bound to F10, Start+Select or a held Esc (the launcher quits the game); `window.pushplay?.quit()` only behind an explicit "Quit game" item, if at all.
+- [ ] **No exit of its own**: nothing bound to F10, Start+Select or a held Esc, and no "exit to launcher" item: the pause menu's Quit to library comes from `menu.js` (see *Leaving your game* in AGENTS.md). A pause menu not built with `menu.js` adds it itself, only when `window.pushplay?.quit` exists.
 - [ ] **Every menu works with every input**: controller, keyboard, mouse and touch, via `menu.js` (move, choose, back, hover, click, tap; left/right for values). `b` is back, `menu` pauses; they are never swapped.
 - [ ] **Game over / results** screen that's satisfying to look at (tally animation, stats), with retry in one press.
 - [ ] **Settings** from `settings.js`, reachable from title and pause: master / music / SFX volume, reduced shake / flash, text size, plus difficulty or other game items as `extra`. Saved under `<id>-settings-v1`.

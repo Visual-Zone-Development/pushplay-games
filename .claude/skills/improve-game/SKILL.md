@@ -63,7 +63,7 @@ Follow AGENTS.md. Design material lives in `docs/game-design/`.
    - the difficulty curve, read from `TUNING` and the spawn and ramp code
    - the **AGENTS.md rules checklist** (older games often predate it; each miss is a fix to propose):
      - menus on `menu.js`, including touch; pause menu = Resume / Restart / Settings / Quit to title; Settings (master/music/SFX, reduced shake, text size via `settings.js`) reachable from title and pause
-     - `menu` pauses (Start / Esc / P / on-screen button), `b` is back and otherwise free; no F10, Start+Select or held-Esc binding; no `pushplay.quit()` outside a "Quit game" item
+     - `menu` pauses (Start / Esc / P / on-screen button), `b` is back and otherwise free; no F10, Start+Select or held-Esc binding; no exit of its own (the pause menu's Quit to library comes from `menu.js`)
      - `input.onPause` → `paused`; `window.__game = { state, TUNING }` with `state.screen`
      - `fitCanvas` for scaling (no hand-written resize, DPR capped at 2, letterbox colour set); cursor hidden only during gameplay
      - prompts from `input.label` / `drawPrompts`, no literal "A", "Space", "LB/RB"

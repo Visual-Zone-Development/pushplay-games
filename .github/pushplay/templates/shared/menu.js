@@ -1,4 +1,4 @@
-// pushplay runtime v2 — replaced by `npm run update-kit`; don't edit, extend from game.js.
+// pushplay runtime v3 — replaced by `npm run update-kit`; don't edit, extend from game.js.
 //
 // A vertical menu that works the same with a controller, a keyboard, a mouse and touch:
 //   d-pad / stick / arrows / WASD move, A / Space / Enter choose, B / Backspace / right-click
@@ -15,8 +15,14 @@
 //   { id: 'volume', label: 'Volume', type: 'range', value: 0.8, min: 0, max: 1, step: 0.1, format: (v) => `${Math.round(v * 100)}%` }
 //   { id: 'size', label: 'Text size', type: 'choice', value: 1, options: [{ value: 1, label: 'Normal' }, { value: 1.5, label: 'Large' }] }
 // Read them back with menu.value('music').
+//
+// Inside the launcher, a pause menu (any menu with a 'resume' item) also ends with "Quit to
+// library", so players can always find the way back to their games. It quits through the
+// launcher; the game never sees the choice. Outside the launcher it isn't added. Opt out (or in,
+// for a pause menu without 'resume') with createMenu(items, { quitToLibrary: false | true }).
 
 const VALUE_TYPES = new Set(['toggle', 'range', 'choice'])
+export const QUIT_TO_LIBRARY = 'quit-to-library'
 
 /**
  * items: [{ id, label, disabled?, type?, value?, ... }]. Options: center x and top y of the menu in
@@ -24,6 +30,18 @@ const VALUE_TYPES = new Set(['toggle', 'range', 'choice'])
  */
 export function createMenu(items, options = {}) {
   const o = { x: 640, y: 420, width: 420, height: 64, gap: 14, wrap: true, accent: '#ffb547', text: '#eef0f5', idle: 'rgba(255,255,255,0.08)', ...options }
+  const launcher = globalThis.pushplay
+  if ((o.quitToLibrary ?? items.some((i) => i.id === 'resume')) && typeof launcher?.quit === 'function') {
+    items.push({ id: QUIT_TO_LIBRARY, label: 'Quit to library' })
+    // Half a row higher, so the longer menu stays centred where the game put it.
+    o.y -= (o.height + o.gap) / 2
+  }
+  /** Quit to library goes straight to the launcher. */
+  const choose = (id) => {
+    if (id !== QUIT_TO_LIBRARY) return id
+    launcher.quit()
+    return null
+  }
   let selected = Math.max(0, items.findIndex((i) => !i.disabled))
   let hovered = -1
 
@@ -99,13 +117,13 @@ export function createMenu(items, options = {}) {
           selected = over
           const item = items[over]
           if (VALUE_TYPES.has(item.type)) change(item, p.x < o.x ? -1 : 1)
-          else return item.id
+          else return choose(item.id)
         }
       }
 
       if (input.pressed('a') && current && !current.disabled) {
         if (current.type === 'toggle' || current.type === 'choice') change(current, 1)
-        else if (current.type !== 'range') return current.id
+        else if (current.type !== 'range') return choose(current.id)
       }
       if (input.pressed('b') || input.pressed('menu')) return 'back'
       return null
