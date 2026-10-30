@@ -92,6 +92,7 @@ Every game plays with controller, keyboard, mouse and touch; menus are menu.js. 
 - Each game exposes a small debug hook (`run.debug` / `run._dbg` / `run.sim`) used by its test scripts.
 
 ## Changelog
+- 1.3.1: Build kit v5. Inside the launcher the pause menu ends with **Quit to library** (added by `menu.js`), so players can always find their way back to their games.
 - 1.3.0: A twelfth game, Sunset Drift: a pseudo-3D racer drawn in plain canvas (a road of projected segments with curves, hills and fog), three laps against five rivals, drifts that charge a boost, and a synthwave look. The hall's 4×3 grid is full; it joins the cover in the middle of the fan.
 - 1.2.0: Five more games (Rooftop Run, Letter Drop, Tiny Towers, Mini Putt, Lazy Lake); the hall is a 4×3 grid and the cover features seven of the eleven.
 - 1.1.0: From playtest feedback. Tiny Tactics makes each step of a turn clear: a ① Unit → ② Move → ③ Act indicator with one plain instruction, an action menu after moving (Attack / Heal / Wait / Undo move), target picking with a damage preview, acted units dimmed with a ✓, "Your turn" / "Enemy turn" banners, and first-battle tips. Keyhole gives you a sword (from the keeper) with a pixel slash animation (`x`, or `b`; tap a slime with mouse or touch), slimes have 2 HP, hit flash, knockback and a death poof, chase when near, and room 3's door stays sealed until all three are beaten.

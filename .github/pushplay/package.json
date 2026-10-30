@@ -1,9 +1,9 @@
 {
   "name": "pushplay-build-kit",
-  "version": "4.0.0",
+  "version": "5.0.0",
   "private": true,
   "type": "module",
-  "description": "PushPlay build kit v4",
+  "description": "PushPlay build kit v5",
   "dependencies": {
     "@fontsource/bungee": "5.3.0",
     "@fontsource/chakra-petch": "5.3.0",
