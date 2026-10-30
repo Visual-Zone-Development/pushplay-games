@@ -1,4 +1,4 @@
-// Arcade Sampler: six small, complete games in one cabinet, each a different genre in a
+// Arcade Sampler: twelve small, complete games in one cabinet, each a different genre in a
 // different art style. This file is the hub: title, the cabinet hall, a ready screen, pause,
 // results, settings, saves and medals. Each game is a module in games/ (see games/README.md for
 // the interface) and only plays; the hub owns everything around it.
@@ -22,9 +22,10 @@ import rooftopRun from './games/rooftop-run.js'
 import lazyLake from './games/lazy-lake.js'
 import tinyTowers from './games/tiny-towers.js'
 import letterDrop from './games/letter-drop.js'
+import sunsetDrift from './games/sunset-drift.js'
 
 const ID = 'arcade-sampler'
-const GAMES = [starCourier, hopGarden, rooftopRun, mergeJars, letterDrop, tinyTactics, tinyTowers, keyhole, neonRing, miniPutt, lazyLake]
+const GAMES = [starCourier, hopGarden, rooftopRun, mergeJars, letterDrop, tinyTactics, tinyTowers, keyhole, neonRing, miniPutt, lazyLake, sunsetDrift]
 /** The hub's numbers; each game's own TUNING is under its id. */
 const TUNING = { readyTime: 1.6, ...Object.fromEntries(GAMES.map((g) => [g.id, g.TUNING])) }
 const C = { bg: '#140f2e', bg2: '#22184d', ink: '#f6f1ff', quiet: '#a79fd0', dark: '#0a0718', gold: '#ffd23f', pink: '#ff5c8a', teal: '#2ad1c9' }

@@ -6,7 +6,7 @@ Ask an AI for a game, and it shows up on your Steam Deck, or in PushPlay on a Li
 
 Comes with two sample games. Keep them, change them, or delete their folders once you have your own:
 
-- **Arcade Sampler**: eleven tiny, complete games in one cabinet, each a different genre in its own art style: Star Courier (arcade), Hop Garden (platformer), Rooftop Run (one-button runner), Merge Jars and Letter Drop (puzzles), Tiny Tactics (turn-based duel vs. the computer), Tiny Towers (tower defense), Keyhole (pixel-art adventure with sword fights), Neon Ring (twin-stick arena, two players), Mini Putt (mini golf) and Lazy Lake (fishing). All drawn in code, each in one file in `games/arcade-sampler/games/`.
+- **Arcade Sampler**: twelve tiny, complete games in one cabinet, each a different genre in its own art style: Star Courier (arcade), Hop Garden (platformer), Rooftop Run (one-button runner), Merge Jars and Letter Drop (puzzles), Tiny Tactics (turn-based duel vs. the computer), Tiny Towers (tower defense), Keyhole (pixel-art adventure with sword fights), Neon Ring (twin-stick arena, two players), Mini Putt (mini golf), Lazy Lake (fishing) and Sunset Drift (a pseudo-3D synthwave racer). All drawn in code, each in one file in `games/arcade-sampler/games/`.
 - **Motion Lab**: a party game where your phone is the controller: tilt a marble maze, swing for home runs, slash fruit, shake maracas and steer a kart, with a live Sensor Bench. Players join by scanning a QR code. Make your own with `npm run new-game <id> --party --controller motion` and [`docs/game-design/motion.md`](docs/game-design/motion.md).
 
 Good for prototypes, playtests, and games made just for you.

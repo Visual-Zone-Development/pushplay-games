@@ -7,9 +7,10 @@ import tinyTactics from '../games/tiny-tactics.js'
 import keyhole from '../games/keyhole.js'
 import neonRing from '../games/neon-ring.js'
 import lazyLake from '../games/lazy-lake.js'
+import sunsetDrift from '../games/sunset-drift.js'
 
-// Seven of the games, fanned out (all eleven would be too small to read on a library tile).
-const GAMES = [starCourier, hopGarden, mergeJars, lazyLake, tinyTactics, keyhole, neonRing]
+// Seven of the games, fanned out (all twelve would be too small to read on a library tile).
+const GAMES = [starCourier, hopGarden, lazyLake, sunsetDrift, tinyTactics, keyhole, neonRing]
 
 /** Draw into a canvas of w×h CSS px at 2×, cabinets fanned round (cx, cy) with card width cw. */
 export function drawScene(canvas, w, h, { cx, cy, cw, spread = 1 }) {

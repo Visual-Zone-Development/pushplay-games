@@ -1,8 +1,8 @@
 # Arcade Sampler: design brief
 
-> Eleven tiny, complete games in one arcade cabinet, each a different genre in a different art style: a sampler of what you can make with this kit, and a quick fix of fun.
+> Twelve tiny, complete games in one arcade cabinet, each a different genre in a different art style: a sampler of what you can make with this kit, and a quick fix of fun.
 
-*Status: shipped · Version: 1.2.0*
+*Status: shipped · Version: 1.3.0*
 
 ## Kickoff
 | Topic | Answer |
@@ -38,6 +38,7 @@
 | **Letter Drop** | word game: chain falling letter tiles into words (no typing), 21k-word offline dictionary | newspaper puzzle, wooden tiles | game-ui, grid input on every device | letter values × length × combo |
 | **Tiny Towers** | tower defense: 3 towers with upgrades, 5 waves and a boss | toy diorama | level-design (waves), enemy-ai (paths), build menus | kills + lives + win |
 | **Mini Putt** | mini golf: aim, power swing or slingshot drag, 6 holes (banks, slope, windmill, pond, bumpers) | felt and wood toy course | physics-feel (swept collisions, bounce, cup capture) | strokes under par+3 |
+| **Sunset Drift** | pseudo-3D racer: 3 laps vs 5 CPU rivals; hold drift through curves to charge a boost, let go to fire it | synthwave (striped sun, magenta grid, neon palms) | camera (segment-projected road, hills, parallax), physics-feel (centrifugal pull, drift), enemy-ai (racing line, avoidance, rubber band) | place + drifts + passes |
 | **Lazy Lake** | cozy fishing: cast, hook in time, keep the line's tension in the zone; 4 species, a saved catalogue; dusk falls over the round | golden-hour lake | a tension mechanic, ambient environments, time of day | fish points |
 
 ## Core loop
@@ -54,6 +55,7 @@ Every game plays with controller, keyboard, mouse and touch; menus are menu.js. 
 | Tiny Tactics | move cursor | select / act | back | tap tiles |
 | Keyhole | walk | talk / use | | tap to walk there, tap NPC to talk |
 | Neon Ring | move; right stick (or mouse) aims | dash | | drag to move, auto-aim at the nearest |
+| Sunset Drift | steer (down / `lt` brakes) | hold to drift, let go to boost (`x`, `rt` too) | brake | mouse: point to steer, hold the button to drift; touch: drag to steer, hold the DRIFT button |
 
 `menu` pauses everywhere (Resume, Restart, Settings, Back to the hub, Quit to title). Second player in Neon Ring: a second pad presses `a` to join.
 
@@ -81,6 +83,7 @@ Every game plays with controller, keyboard, mouse and touch; menus are menu.js. 
 - Tiny Towers [800, 2200, 3000]: a basic arrow layout ≈ bronze, mixed builds ≈ silver, gold needs the boss to die.
 - Mini Putt [1000, 1600, 2200]: sloppy bot ≈ 1100, careless ≈ 2000, careful ≈ 3000.
 - Lazy Lake [500, 950, 1450]: casual bot median 585, good 1405.
+- Sunset Drift [1000, 2400, 3300]: a no-drift bot that brakes for hairpins finishes 3rd ≈ 1075; drifting only the hard curves wins ≈ 2970; drifting every curve ≈ 3350.
 - Neon Ring [1500, 4000, 7000]: bronze ≈ reaching the first boss, silver ≈ wave 8, gold ≈ beating wave 10.
 
 ## Known gaps
@@ -89,6 +92,7 @@ Every game plays with controller, keyboard, mouse and touch; menus are menu.js. 
 - Each game exposes a small debug hook (`run.debug` / `run._dbg` / `run.sim`) used by its test scripts.
 
 ## Changelog
+- 1.3.0: A twelfth game, Sunset Drift: a pseudo-3D racer drawn in plain canvas (a road of projected segments with curves, hills and fog), three laps against five rivals, drifts that charge a boost, and a synthwave look. The hall's 4×3 grid is full; it joins the cover in the middle of the fan.
 - 1.2.0: Five more games (Rooftop Run, Letter Drop, Tiny Towers, Mini Putt, Lazy Lake); the hall is a 4×3 grid and the cover features seven of the eleven.
 - 1.1.0: From playtest feedback. Tiny Tactics makes each step of a turn clear: a ① Unit → ② Move → ③ Act indicator with one plain instruction, an action menu after moving (Attack / Heal / Wait / Undo move), target picking with a damage preview, acted units dimmed with a ✓, "Your turn" / "Enemy turn" banners, and first-battle tips. Keyhole gives you a sword (from the keeper) with a pixel slash animation (`x`, or `b`; tap a slime with mouse or touch), slimes have 2 HP, hit flash, knockback and a death poof, chase when near, and room 3's door stays sealed until all three are beaten.
 - 1.0.0: First version: six games (Star Courier moved in from its own folder), the cabinet hall with medals, ready countdown, results, cover and banner drawn by the games' own icons.
