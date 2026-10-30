@@ -6,7 +6,9 @@ browser and type the four-letter room code. Controllers plugged into the machine
 so the same game plays with phones, pads, or a mix.
 
 Scaffold one with `npm run new-game <id> --party`, adding `--controller custom` when phones need
-a screen of their own (a quiz answer, a hand of cards, a drawing pad).
+a screen of their own (a quiz answer, a hand of cards, a drawing pad), or `--controller motion`
+when the phone's motion sensors are the controller (tilt, a steering wheel, swings; see
+[motion.md](motion.md)).
 
 ## How it works
 
@@ -74,8 +76,13 @@ about 12 KB are refused, so send a long drawing in a few parts. The TV redraws t
 
 **Phones as gamepads (brawlers, racers).** Use the stock pad (`--controller pad`) and read
 `party.inputs[id]` like local controllers. Phone input takes 50–150 ms to reach the TV, which
-is fine for party brawlers and bumper games and wrong for precise aiming or rhythm. Keep the
-action on the TV, where everyone's looking.
+is fine for party brawlers and bumper games and wrong for precise aiming. Keep the action on
+the TV, where everyone's looking.
+
+**Phones as motion controllers (tilt, steer, swing, bowl).** Use `--controller motion` and the
+`motion-controls` skill. Gestures are detected and timed on the phone, and the TV syncs to the
+phone's clock, so timing games (batting, rhythm) work despite the delay; pointing at the screen
+doesn't (see [motion.md](motion.md)). Motion Lab is the worked example.
 
 **Turn-based with spectators.** Leave the party unlocked so late arrivals join as watchers, or
 `party.lock()` once the game starts. Seats of players who drop (locked phone, Wi-Fi) are kept

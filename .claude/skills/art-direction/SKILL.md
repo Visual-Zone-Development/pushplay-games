@@ -145,7 +145,7 @@ are in `docs/game-design/art-directions.md`.
 | **Ink wash / sumi-e** (action, samurai, mythic) | rice paper, black ink, one red seal | paper `#efe9dc`, ink, a single red | `paper`, `brush` for terrain and slashes, red `inkBlot` seals for UI |
 | **Cartographer** (strategy, tactics, exploration) | map paper, ink lines, wax seals | parchment, faded blue water, red routes | `paper` full screen, `brush` routes, `stamp` for hatching or forests, `paperCard` panels |
 | **Neon / synthwave** (racers, shooters, rhythm) | glass, chrome, light | near-black, two hot complementary neons | `backdrop.js` city / grid layers (environments), glow drawn twice (wide translucent + thin bright), scanline or grain overlay |
-| **Lit vector** (arcade, space, shooters; Star Courier) | enamel shapes, ink edges, nebula or sky | dark cool backdrop, one saturated hero colour, one glowing accent | three-tone shading from one light, ink edge, baked additive glow, `wash`-style backdrop, vignette (see `games/star-courier/art.js`) |
+| **Lit vector** (arcade, space, shooters; Star Courier) | enamel shapes, ink edges, nebula or sky | dark cool backdrop, one saturated hero colour, one glowing accent | three-tone shading from one light, ink edge, baked additive glow, `wash`-style backdrop, vignette (see `games/arcade-sampler/games/star-courier/art.js`) |
 | **Clean modern** (puzzle, sports, casual, UI-heavy) | flat surfaces, soft shadows | one brand colour + neutrals | flat fills, generous spacing, one soft drop shadow, a geometric sans |
 | **Grim / horror** (survival, roguelike, mystery) | stone, rust, fog | desaturated darks, one sickly or blood accent | heavy vignette, fog haze, grain overlay, light pools as the only bright areas |
 | **Pixel art** (RPG, action, tactics, platformers) | pixels on a fixed grid, hue-shifted ramps | per the game's pixel spec | the **pixel-art** skill (characters, animations, tiles, UI) |
@@ -176,7 +176,7 @@ Same as model-asset, but for whole screens:
 - A dark ink edge (the darkest palette colour, 2–4 px, filled before the colours) separates every sprite from
   any textured background and survives scaling down; a 1 px highlight on the edges facing the light finishes it.
 - Things that rotate keep the world's light: draw the surface rotated, then the shading unrotated, clipped to
-  the same outline (`drawRock` in `games/star-courier/art.js`).
+  the same outline (`drawRock` in `games/arcade-sampler/games/star-courier/art.js`).
 - Keep one art module that the game, `art/cover.html`, `art/hero.html` and an `art/gallery.html` contact sheet
   all import, so the library art can't drift from the game (Battle Drones' HUD icons are renders of its models
   for the same reason). `npm run art:shots <id>` renders them all, plus the cover at tile size.

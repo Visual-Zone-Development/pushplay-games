@@ -14,8 +14,9 @@ const JOIN = /^\/j\/[A-Za-z]{4}\/?$/
 /**
  * Returns a request handler for the shell's GET routes, or null for anything else.
  * @param {string} dir the shell's files (apps/relay/public)
+ * @param {{ name: string }} brand fills {{NAME}} in its pages, so the name lives in brand.json only
  */
-export function shellHandler(dir) {
+export function shellHandler(dir, brand) {
   return async (req, res) => {
     if (req.method !== 'GET' && req.method !== 'HEAD') return false
     const path = new URL(req.url, 'http://shell').pathname
@@ -28,6 +29,7 @@ export function shellHandler(dir) {
       return false
     }
     const ext = name.slice(name.lastIndexOf('.'))
+    if (ext === '.html') body = body.toString('utf8').replaceAll('{{NAME}}', brand.name)
     const host = req.headers.host ?? ''
     const headers = {
       'content-type': TYPES[ext],

@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Motion Lab cover</title>
+    <style>
+      @font-face { font-family: 'Lilita One'; src: url('../assets/fonts/lilita-one.woff2') format('woff2'); }
+      html, body { margin: 0; width: 720px; height: 500px; overflow: hidden; background: #0f1630; }
+      canvas { position: absolute; inset: 0; width: 720px; height: 500px; }
+      h1 { position: absolute; left: 0; right: 0; top: 18px; margin: 0; text-align: center; font: 104px/1 'Lilita One', sans-serif; letter-spacing: 2px; }
+      h1 span { color: #ff8a3d; }
+      .edge { color: #0a0f22; -webkit-text-stroke: 20px #0a0f22; }
+      .edge span { color: #0a0f22; }
+      .fill { background: linear-gradient(#ffffff, #d6dcff); -webkit-background-clip: text; background-clip: text; color: transparent; }
+      .fill span { background: linear-gradient(#ffd0a8, #ff8a3d 55%, #e2621a); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    </style>
+  </head>
+  <body>
+    <canvas id="c" width="1440" height="1000"></canvas>
+    <h1 class="edge">MOTION <span>LAB</span></h1>
+    <h1 class="fill">MOTION <span>LAB</span></h1>
+    <script type="module">
+      import { drawScene } from './scene.js'
+      drawScene(document.getElementById('c'), 720, 500, { px: 360, py: 262, k: 0.72, skip: ['kart'] })
+    </script>
+  </body>
+</html>

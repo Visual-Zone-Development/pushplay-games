@@ -6,6 +6,15 @@
 // Messages inside the relay's `send` payload (d), host → phone:
 //   {k:'cb', h, i, n, s}   controller chunk i of n (n = 0: "use the one you have", h = its hash)
 //   anything else          passed to the controller
+// Controller ↔ join page, besides the relay: a controller that wants the phone's motion sensors
+// posts {type:'motion', on:true}; the join page asks for permission only then (iOS needs a tap
+// on this page, so it shows an "Allow motion" button), answers {type:'motion', state:'on' |
+// 'ask' | 'denied' | 'unsupported' | 'insecure'} ('ask': waiting for that tap; 'insecure': the page
+// isn't https, so the browser hides the sensors) and streams {type:'motion', r:{b, g, x, y, z}, s:[…]}
+// until {type:'motion', on:false}. r: tilt in degrees and the strongest movement in m/s² since the
+// last reading. s: every sensor event since then, {age, a:[x,y,z], g:[x,y,z], w:[alpha,beta,gamma],
+// o:[b,g,a]} (age in ms before the message was posted, a without gravity, g with it, w the rotation
+// rate in deg/s, o the latest orientation), so a controller can detect gestures at the full sensor rate.
 // phone → host:
 //   {k:'hi', h}            "I'm (back) here; I have controller h": the host replies with the
 //                          controller if needed, then everything the controller should show
@@ -228,13 +237,14 @@ function mount(html) {
   frameReady = false
   frame = document.createElement('iframe')
   frame.setAttribute('sandbox', 'allow-scripts')
-  frame.setAttribute('allow', 'fullscreen')
+  frame.setAttribute('allow', 'fullscreen; accelerometer; gyroscope')
   frame.src = '/frame.html'
   frame.html = html
   $('stage').append(frame)
 }
 
 function unmount() {
+  motionOff()
   frame?.remove()
   frame = null
   frameReady = false
@@ -257,7 +267,102 @@ addEventListener('message', (e) => {
     notice(null)
   } else if (m.type === 'send') send({ t: 'send', d: m.d })
   else if (m.type === 'vibrate') navigator.vibrate?.(Math.min(1000, Number(m.ms) || 0))
+  else if (m.type === 'motion') m.on ? motionOn() : motionOff()
 })
+
+// ---- motion sensors, only for controllers that ask ----------------------------------------
+
+const motion = { wanted: false, granted: false, listening: false, tilt: null, peak: null, samples: [], timer: null, button: null, seen: false }
+const toFrame = (d) => frame?.contentWindow?.postMessage({ type: 'motion', ...d }, '*')
+
+function motionOn() {
+  motion.wanted = true
+  if (!window.isSecureContext) return toFrame({ state: 'insecure' })
+  if (typeof DeviceOrientationEvent === 'undefined') return toFrame({ state: 'unsupported' })
+  if (motion.listening) return toFrame({ state: 'on' })
+  const ask = [DeviceOrientationEvent, globalThis.DeviceMotionEvent].filter((E) => typeof E?.requestPermission === 'function')
+  // Once allowed, iOS keeps it for the page: later challenges start without asking again.
+  if (!ask.length || motion.granted) return listen()
+  // iOS: permission needs a tap on this page, not inside the controller's frame.
+  motion.button?.remove()
+  const b = document.createElement('button')
+  b.type = 'button'
+  b.textContent = 'Allow motion controls'
+  b.style.cssText = 'position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:20;padding:16px 24px;min-height:56px;border-radius:16px;background:#ffb547;color:#0d0f14;font-weight:800;font-size:18px;box-shadow:0 6px 24px rgba(0,0,0,.4)'
+  b.onclick = async () => {
+    b.remove()
+    motion.button = null
+    try {
+      const results = await Promise.all(ask.map((E) => E.requestPermission()))
+      if (results.every((r) => r === 'granted')) {
+        motion.granted = true
+        if (motion.wanted) listen()
+      }
+      else toFrame({ state: 'denied' })
+    } catch {
+      toFrame({ state: 'denied' })
+    }
+  }
+  motion.button = b
+  document.body.append(b)
+  toFrame({ state: 'ask' })
+}
+
+function listen() {
+  motion.listening = true
+  addEventListener('deviceorientation', onTilt)
+  addEventListener('devicemotion', onMove)
+  motion.timer = setInterval(flushMotion, 16)
+  toFrame({ state: 'on' })
+  // Desktop browsers have the API but no sensor: no events ever arrive.
+  setTimeout(() => {
+    if (motion.listening && !motion.seen) {
+      toFrame({ state: 'unsupported' })
+      motionOff()
+    }
+  }, 1500)
+}
+
+function motionOff() {
+  motion.wanted = false
+  motion.button?.remove()
+  motion.button = null
+  if (!motion.listening) return
+  motion.listening = false
+  removeEventListener('deviceorientation', onTilt)
+  removeEventListener('devicemotion', onMove)
+  clearInterval(motion.timer)
+}
+
+function onTilt(e) {
+  if (e.beta === null) return
+  motion.seen = true
+  motion.tilt = { b: e.beta, g: e.gamma, a: e.alpha }
+}
+const vec = (v, ...k) => (v && typeof v[k[0]] === 'number' ? k.map((n) => Math.round(v[n] * 100) / 100) : null)
+function onMove(e) {
+  const a = vec(e.acceleration, 'x', 'y', 'z')
+  const g = vec(e.accelerationIncludingGravity, 'x', 'y', 'z')
+  const w = vec(e.rotationRate, 'alpha', 'beta', 'gamma')
+  if (!a && !g && !w) return
+  motion.seen = true
+  if (a) {
+    const m = Math.hypot(...a)
+    if (!motion.peak || m > motion.peak.m) motion.peak = { m, x: a[0], y: a[1], z: a[2] }
+  }
+  const t = motion.tilt
+  motion.samples.push({ t: e.timeStamp || performance.now(), a, g, w, o: t ? [t.b, t.g, t.a ?? null] : null })
+  if (motion.samples.length > 64) motion.samples.shift()
+}
+function flushMotion() {
+  if (!motion.tilt && !motion.peak && !motion.samples.length) return
+  const r = (n) => Math.round((n ?? 0) * 10) / 10
+  const p = motion.peak ?? { x: 0, y: 0, z: 0 }
+  const at = performance.now()
+  const s = motion.samples.splice(0).map(({ t, ...rest }) => ({ age: Math.round((at - t) * 10) / 10, ...rest }))
+  toFrame({ r: { b: r(motion.tilt?.b), g: r(motion.tilt?.g), x: r(p.x), y: r(p.y), z: r(p.z) }, s })
+  motion.peak = null
+}
 
 // ---- niceties ----------------------------------------------------------------------------
 

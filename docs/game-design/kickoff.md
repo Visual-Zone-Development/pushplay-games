@@ -29,7 +29,7 @@ Rules:
 
 Follow-ups that replace a round-2 slot when they apply:
 - **Online:** how many players (`--players 2-4`), co-op or versus, quick match or friends only.
-- **Party:** phones as plain gamepads or a custom phone screen (`--controller pad|custom`), player count.
+- **Party:** phones as plain gamepads, a custom phone screen, or motion controllers that you tilt, turn or swing (`--controller pad|custom|motion`, see [motion.md](motion.md)), player count.
 - **Local multiplayer:** co-op or versus, shared camera or one screen arena.
 
 ## Round 3: details (ask only what's still open, skip the round if nothing is)

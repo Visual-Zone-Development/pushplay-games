@@ -2,7 +2,7 @@
 // work with no internet. Same room logic as the hosted relay (relay-rooms.mjs is copied from it),
 // and the same party join page (relay-shell.mjs, relay-public/), so phones on the same Wi-Fi can
 // join a party game in development.
-import { existsSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { createServer } from 'node:http'
 import { networkInterfaces } from 'node:os'
 import { join } from 'node:path'
@@ -14,6 +14,7 @@ const here = (vendored, source) => (existsSync(join(import.meta.dirname, vendore
 const { Relay } = await import(pathToFileURL(here('relay-rooms.mjs', 'src/rooms.mjs')).href)
 const { shellHandler } = await import(pathToFileURL(here('relay-shell.mjs', 'src/shell.mjs')).href)
 const SHELL_DIR = here('relay-public', 'public')
+const BRAND = JSON.parse(readFileSync(here('brand.json', 'brand.json'), 'utf8'))
 
 /** This machine's address on the local network, for phones on the same Wi-Fi. */
 export function lanAddress() {
@@ -30,7 +31,7 @@ export async function startLocalRelay(port = 0, { lan = false } = {}) {
   const lanIp = lan ? lanAddress() : null
   let base = ''
   const relay = new Relay({ onTraffic: (n) => (stats.bytes += n), joinUrl: (code) => `${base}/j/${code}` })
-  const shell = shellHandler(SHELL_DIR)
+  const shell = shellHandler(SHELL_DIR, BRAND)
   const server = createServer(async (req, res) => {
     if (!(await shell(req, res))) res.writeHead(404).end()
   })

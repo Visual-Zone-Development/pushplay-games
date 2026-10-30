@@ -1,0 +1,30 @@
+{
+  "$schema": "../../.github/pushplay/manifest.schema.json",
+  "id": "arcade-sampler",
+  "name": "Arcade Sampler",
+  "description": "Twelve tiny, complete games in one arcade cabinet, each a different genre in its own art style: space deliveries, a platformer, a rooftop runner, merge and word puzzles, a tactics duel, tower defense, pixel-art rooms with sword fights, a neon arena for two, mini golf, lakeside fishing and a synthwave racer. Medals and best scores on every cabinet.",
+  "version": "1.3.0",
+  "entry": {
+    "web": "index.html"
+  },
+  "controls": "gamepad",
+  "inputs": [
+    "gamepad",
+    "keyboard",
+    "mouse",
+    "touch"
+  ],
+  "players": "1-2",
+  "tags": [
+    "arcade",
+    "platformer",
+    "puzzle",
+    "strategy",
+    "racing",
+    "local multiplayer"
+  ],
+  "art": {
+    "cover": "art/cover.html",
+    "hero": "art/hero.html"
+  }
+}

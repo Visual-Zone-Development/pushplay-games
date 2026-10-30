@@ -2,7 +2,7 @@
 
 Style presets to offer the player and then follow consistently in the game, the cover and the hero. Each one is a starting point. Tweak the palette to the theme, but keep to 2–4 main colors plus a text color.
 
-A preset sets the palette; what makes it look finished is the **light & depth** line under each one, plus the [art-direction skill](../../.claude/skills/art-direction/SKILL.md) for the whole-screen look and [cover-art](../../.claude/skills/cover-art/SKILL.md) for library art drawn with the game's own code. Star Courier (`games/star-courier/art.js`) is a worked example of a lit vector look.
+A preset sets the palette; what makes it look finished is the **light & depth** line under each one, plus the [art-direction skill](../../.claude/skills/art-direction/SKILL.md) for the whole-screen look and [cover-art](../../.claude/skills/cover-art/SKILL.md) for library art drawn with the game's own code. Star Courier (`games/arcade-sampler/games/star-courier/art.js`) is a worked example of a lit vector look, and Arcade Sampler's other games show flat bold, paper and pastel, parchment, pixel art and neon side by side.
 
 **Fonts.** The bundled art fonts are `Chakra Petch` (600, 700), `Rubik` (400, 700, 900), `Bungee`, `Lilita One` and `Press Start 2P`. They're available when the art is rendered, but **not automatically in the game**. To use the same font in-game, copy its `.woff2` from `.github/pushplay/node_modules/@fontsource/<font>/files/` (e.g. `bungee-latin-400-normal.woff2`) into `games/<id>/assets/fonts/` and load it with `@font-face` or `new FontFace()`. These fonts are OFL licensed, so note it in `assets/CREDITS.md`. Wait for `document.fonts.ready` before the first text draw, or text will flash in a fallback font.
 
