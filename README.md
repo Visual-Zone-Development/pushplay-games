@@ -2,9 +2,12 @@
 
 Ask an AI for a game, and it shows up on your Steam Deck, or in PushPlay on a Linux, Windows or Mac PC.
 
-**One repo, one game.** Make a repo from this template for each game you start. Push and GitHub Actions builds it: it plays the game headlessly to catch crashes and renders its cover art on every branch, and publishes from the default branch to this repo's **pushplay-latest** release. The [PushPlay](https://pushplay.gg) launcher watches that release, so updates appear on their own. Because each game has its own repo, each one gets its own releases, its own page, and can be listed on PushPlay's **Discover** tab.
+**One game, or a workshop of many.** Push and GitHub Actions builds your games: it plays each one headlessly to catch crashes and renders its cover art on every branch, and publishes from the default branch to this repo's **pushplay-latest** release. The [PushPlay](https://pushplay.gg) launcher watches that release, so updates appear on their own. The first game decides how the repo is used:
 
-It starts empty: ask your agent for a game, or run `npm run new-game <id>`, and the game is created at the root of the repo. For finished examples to play and learn from, see the starter games, each in its own repo and on **Discover**:
+- **One game** (`npm run new-game my-game`): the game sits at the root of the repo, with its own releases, its own page, and a listing on PushPlay's **Discover** tab. For a game you mean to publish.
+- **Workshop** (`npm run new-game my-game --workshop`): every game is a folder in `games/`, so a coding agent (on your phone or computer) can make and prototype as many as you like in one place. When one is finished, `npm run promote my-game` (or **Actions → Promote a game** from your phone) moves it into its own repo for Discover, and players keep their saves.
+
+Just ask your agent for a game: it asks which you want the first time. For finished examples to play and learn from, see the starter games, each in its own repo and on **Discover**:
 
 - **[Arcade Sampler](https://github.com/Visual-Zone-Development/arcade-sampler)**: twelve tiny, complete games in one cabinet, each a different genre in its own art style, all drawn in code.
 - **[Motion Lab](https://github.com/Visual-Zone-Development/motion-lab)**: a party game where your phone is the controller: tilt a marble maze, swing for home runs, slash fruit, shake maracas and steer a kart, with a live Sensor Bench. Make your own with `npm run new-game <id> --party --controller motion` and [`docs/game-design/motion.md`](docs/game-design/motion.md).
@@ -13,13 +16,23 @@ Good for prototypes, playtests, and games made just for you.
 
 ## Set up your own
 
-1. Click **Use this template → Create a new repository**, named after your game. Make it public if you want it on Discover; private is fine for games just for you. (Use the template rather than forking: forks have Actions turned off and can't be private.)
+1. Click **Use this template → Create a new repository**: named after your game for one game (public if you want it on Discover), or something like `my-games` for a workshop (private is fine). (Use the template rather than forking: forks have Actions turned off and can't be private.)
 2. Make the game (see *Make a game with AI* below) and push it: the **Build games** action publishes it.
-3. In PushPlay (Steam Deck, Linux, Windows or Mac): **Add game → My repositories**, sign in with your phone, and watch this repo. [Install PushPlay](https://pushplay.gg/download) first if you haven't.
+3. In PushPlay (Steam Deck, Linux, Windows or Mac): **Add game → Follow a GitHub account** and follow yourself; every repo you make from this template shows up on its own (sign in to GitHub there for private ones). [Install PushPlay](https://pushplay.gg/download) first if you haven't.
 
-## One repo per game
+## One game, or a workshop
 
-`npm run new-game <id>` puts the game at the root of the repo: `pushplay.json`, `index.html`, `game.js` and `art/` sit next to this README, and the agent's guides (`AGENTS.md`, `.claude/`, `docs/`) stay out of the build. A repo holds exactly one game; `new-game` refuses a second one. For your next idea, make another repo from this template. A failed build keeps the last good version, so a broken push never takes the game away from players.
+`npm run new-game <id>` in a fresh copy puts the game at the root of the repo: `pushplay.json`, `index.html`, `game.js` and `art/` sit next to this README, and the agent's guides (`AGENTS.md`, `.claude/`, `docs/`) stay out of the build. That repo is now that game; `new-game` refuses a second one.
+
+`npm run new-game <id> --workshop` instead makes the repo a workshop: each game is a folder in `games/`, there's no limit, and a build only rebuilds the games that changed. When a game is ready for Discover:
+
+```sh
+npm run promote my-game     # its own public repo, with the game at the root; then git push
+```
+
+It builds the new repo from this template, pushes it (the first push builds and publishes the game), takes the game out of `games/`, and records where it came from so PushPlay moves players' copies over with their saves. From your phone: **Actions → Promote a game** (add a `PROMOTE_TOKEN` secret first; see `.github/workflows/promote.yml`). Cloud agents use the `promote-game` skill.
+
+A failed build keeps the last good version, so a broken push never takes a game away from players.
 
 ## Make a game with AI
 
@@ -64,8 +77,8 @@ A `pushplay.json` ([fields](AGENTS.md#manifest-pushplayjson)) is optional everyw
 
 ```sh
 npm run setup                   # dependencies + headless browser
-npm run new-game my-game        # once per repo; or --vite for npm packages, --party [--controller motion] for TV + phones
-npm run dev                     # play at http://localhost:5173 (--host to try it on a phone; ?debug for the state overlay)
+npm run new-game my-game        # the repo's one game (--workshop for many); --vite for npm packages, --party [--controller motion] for TV + phones
+npm run dev                     # (workshop: npm run dev my-game) play at http://localhost:5173 (--host to try it on a phone; ?debug for the state overlay)
 npm run check                   # what CI runs; also renders the art
 npm run art:shots               # render the cover, banner and art/gallery.html to PNG to look at
 npm run art -- --dry            # optional: generated art with your own key (see Better art)

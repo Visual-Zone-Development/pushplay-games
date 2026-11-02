@@ -1,6 +1,6 @@
 ---
 name: new-game
-description: Create the game in this repo (one game per repo, scaffolded at the root) that plays on a Steam Deck or Legion Go through the PushPlay launcher, and on PCs with keyboard, mouse or touch. It interviews the user about the idea, writes a design brief, then builds the game and its cover and hero art. Use whenever the user asks to make, prototype or add a game.
+description: Create a game in this repo (the repo's one game at its root, or one more in a workshop of many) that plays on a Steam Deck or Legion Go through the PushPlay launcher, and on PCs with keyboard, mouse or touch. It interviews the user about the idea, writes a design brief, then builds the game and its cover and hero art. Use whenever the user asks to make, prototype or add a game.
 ---
 
 # New game
@@ -9,7 +9,10 @@ Follow AGENTS.md; this is the step-by-step version. Design material lives in `do
 
 The aim is a **complete, fun game**, not a tech demo: design first, then build in milestones.
 
-**One game per repo.** If `pushplay.json` already exists at the root, this repo already has its game: improve that one (`improve-game`), or, for a different idea, tell the user to make a new repo from the games template and start there.
+**One game, or a workshop.** Look before scaffolding:
+- `pushplay.json` at the root: this repo already is one game. Improve it (`improve-game`), or, for a different idea, tell the user to make a new repo from the games template (or a workshop) and start there.
+- A `games/` folder: a workshop. The new game goes in `games/<id>/`; paths below are relative to it, and commands take the id (`npm run check <id>`).
+- Neither (a fresh copy of the template): ask once, in the first question round, whether this repo is for **this one game** (recommended when they mean to publish it on Discover) or a **workshop** for many (recommended when they'll keep asking for new games, e.g. from a phone; finished ones move out with the `promote-game` skill). For a workshop, add `--workshop` to `new-game`.
 
 ## 1. Understand the request
 List what the request already settles (genre, theme, 2D/3D, art style, players, feel, view, reference games). Don't ask about those again, but **recap them** at the top of the first question round ("Got it: a 2D frog platformer…") so the user can correct a wrong guess.

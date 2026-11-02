@@ -1,9 +1,10 @@
-// npm run new-game <game-id> [--vite] [--online | --party [--controller pad|custom|motion]] [--players 2-4] [--name "Display Name"]
+// npm run new-game <game-id> [--workshop] [--vite] [--online | --party [--controller pad|custom|motion]] [--players 2-4] [--name "Display Name"]
 // Creates a game from the starter template: title, pause and settings screens that work with a
 // controller, a keyboard, a mouse and touch, a manifest, and placeholder art.
-//   Where: a repo with a games/ folder is a collection, so the game goes in games/<game-id>/.
-//   Otherwise (the games template) the repo becomes this one game, at the root. A repo that
-//   already has a game at the root can't take another.
+//   Where: a repo with a games/ folder is a workshop (a collection of games), so the game goes in
+//   games/<game-id>/. Otherwise the repo becomes this one game, at the root, unless --workshop
+//   asks for a workshop (it creates games/). A repo that already has a game at the root can't
+//   take another: finished workshop games move into repos like that with npm run promote.
 //   default:   plain HTML + ES modules, no build step (best for most 2D games)
 //   --vite:    a Vite project, for games that need npm packages (three.js, etc.)
 //   --online:  online multiplayer through the shared relay: net.js, a controller lobby, and a
@@ -24,6 +25,7 @@ const gamesRoot = join(ROOT, GAMES_DIR)
 
 const args = process.argv.slice(2)
 const vite = args.includes('--vite')
+const workshop = args.includes('--workshop')
 const online = args.includes('--online')
 const party = args.includes('--party')
 const valueOf = (flag) => (args.indexOf(flag) >= 0 ? args[args.indexOf(flag) + 1] : undefined)
@@ -34,7 +36,7 @@ const id = args.find((a, i) => !a.startsWith('--') && !['--name', '--players', '
 const [minPlayers, maxPlayers = minPlayers] = players.split('-').map(Number)
 
 if (!id || !/^[a-z0-9][a-z0-9-]{0,63}$/.test(id)) {
-  log('Usage: npm run new-game <game-id> [--vite] [--online | --party [--controller pad|custom|motion]] [--players 2-4] [--name "Display Name"]')
+  log('Usage: npm run new-game <game-id> [--workshop] [--vite] [--online | --party [--controller pad|custom|motion]] [--players 2-4] [--name "Display Name"]')
   log('  game-id: lowercase letters, digits and dashes, e.g. tower-panic')
   process.exit(1)
 }
@@ -51,9 +53,11 @@ if (!['pad', 'custom', 'motion'].includes(controller)) {
   process.exit(1)
 }
 if (layout() === 'single') {
-  log(`This repo is already a game (${MANIFEST_FILE} at the root): one game per repo. Start the next one in a new repo from the games template.`)
+  log(`This repo is already a game (${MANIFEST_FILE} at the root): one game per repo. Start the next one in a new repo from the games template (or a workshop: new-game --workshop there).`)
   process.exit(1)
 }
+// --workshop on a fresh repo: make it a workshop (games/), so this and later games live side by side.
+if (workshop) mkdirSync(gamesRoot, { recursive: true })
 // No games/ folder: this repo becomes the game itself.
 const single = !existsSync(gamesRoot)
 const dir = single ? ROOT : join(gamesRoot, id)
@@ -158,7 +162,7 @@ writeFileSync(join(dir, MANIFEST_FILE), JSON.stringify(manifest, null, 2) + '\n'
 if (vite) spawnSync('npm', ['install', '--no-audit', '--no-fund'], { ...npmSpawn, cwd: ROOT, stdio: 'inherit' })
 
 const kind = `${vite ? 'Vite' : 'plain HTML'}${online ? ', online' : ''}${party ? `, party with a ${controller} phone controller` : ''}`
-log(single ? `Created ${title} at the root of this repo (${kind}). This repo is now that one game.` : `Created games/${id}/ (${kind}).`)
+log(single ? `Created ${title} at the root of this repo (${kind}). This repo is now that one game.` : `Created games/${id}/ (${kind}).${workshop ? ' This repo is a workshop: make more games with new-game, and move finished ones into their own repos with npm run promote.' : ''}`)
 log('Next:')
 log(`  1. Write the game in ${at}${vite ? 'src/' : ''}game.js. Keep its title, pause and settings screens:`)
 log(`     input.js, menu.js, fit.js, audio.js, save.js, settings.js and prompts.js make them work with every input.`)
