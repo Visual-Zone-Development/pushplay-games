@@ -5,7 +5,7 @@ description: Make a party game in games/ that uses each phone's motion sensors a
 
 # Motion controls
 
-Follow AGENTS.md (*Party games*). Read **[motion.md](../../../docs/game-design/motion.md)** first (what phones can and can't do, and why) and [party.md](../../../docs/game-design/party.md) for the party API. The worked examples are `games/motion-lab/` (six stations and a live Sensor Bench) and, in repos that have it, `games/toybox-bowling/` (grip, swing, release, with several players). Never edit the party runtime files; `controller.html` and `motion.js` are yours.
+Follow AGENTS.md (*Party games*). Read **[motion.md](../../../docs/game-design/motion.md)** first (what phones can and can't do, and why) and [party.md](../../../docs/game-design/party.md) for the party API. The worked examples are [Motion Lab](https://github.com/Visual-Zone-Development/motion-lab) (six stations and a live Sensor Bench) and, in repos that have it, `games/toybox-bowling/` (grip, swing, release, with several players). Never edit the party runtime files; `controller.html` and `motion.js` are yours.
 
 ## 1. Pick gestures phones can do
 Map every verb in the design to one row of motion.md's tables. Rules that came from real playtests:

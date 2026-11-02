@@ -4,17 +4,17 @@ Ask an AI for a game, and it shows up on your Steam Deck, or in PushPlay on a Li
 
 **One repo holds as many games as you like.** Every folder in `games/` is a game, and each one gets its own tile, art and updates in the library. Push and GitHub Actions builds the games that changed: it plays each one headlessly to catch crashes and renders its cover art on every branch, and publishes from the default branch to this repo's **pushplay-latest** release. The [PushPlay](https://pushplay.gg) launcher watches that release, so new games and updates appear on their own: watch the repo once and every game you add later shows up too.
 
-Comes with two sample games. Keep them, change them, or delete their folders once you have your own:
+It starts empty: ask your agent for a game, or run `npm run new-game <id>`. For finished examples to play and learn from, see the starter games, each in its own repo and on PushPlay's **Discover** tab:
 
-- **Arcade Sampler**: twelve tiny, complete games in one cabinet, each a different genre in its own art style: Star Courier (arcade), Hop Garden (platformer), Rooftop Run (one-button runner), Merge Jars and Letter Drop (puzzles), Tiny Tactics (turn-based duel vs. the computer), Tiny Towers (tower defense), Keyhole (pixel-art adventure with sword fights), Neon Ring (twin-stick arena, two players), Mini Putt (mini golf), Lazy Lake (fishing) and Sunset Drift (a pseudo-3D synthwave racer). All drawn in code, each in one file in `games/arcade-sampler/games/`.
-- **Motion Lab**: a party game where your phone is the controller: tilt a marble maze, swing for home runs, slash fruit, shake maracas and steer a kart, with a live Sensor Bench. Players join by scanning a QR code. Make your own with `npm run new-game <id> --party --controller motion` and [`docs/game-design/motion.md`](docs/game-design/motion.md).
+- **[Arcade Sampler](https://github.com/Visual-Zone-Development/arcade-sampler)**: twelve tiny, complete games in one cabinet, each a different genre in its own art style, all drawn in code.
+- **[Motion Lab](https://github.com/Visual-Zone-Development/motion-lab)**: a party game where your phone is the controller: tilt a marble maze, swing for home runs, slash fruit, shake maracas and steer a kart, with a live Sensor Bench. Make your own with `npm run new-game <id> --party --controller motion` and [`docs/game-design/motion.md`](docs/game-design/motion.md).
 
 Good for prototypes, playtests, and games made just for you.
 
 ## Set up your own
 
 1. Click **Use this template → Create a new repository**. Private is fine. (Use the template rather than forking: forks have Actions turned off and can't be private.)
-2. Open the new repo's **Actions** tab and run **Build games** once (or just push anything) to publish the samples.
+2. Make your first game (see *Make a game with AI* below) and push it: the **Build games** action publishes it.
 3. In PushPlay (Steam Deck, Linux, Windows or Mac): **Add game → My repositories**, sign in with your phone, and watch this repo. [Install PushPlay](https://pushplay.gg/download) first if you haven't.
 
 ## One repo, many games
