@@ -1,6 +1,6 @@
 ---
 name: level-design
-description: Design and build the content of a game in games/ — hand-made levels, enemy waves, procedural or seeded generation, difficulty curves, pacing and boss or finale moments — so the game keeps introducing something new and ramps fairly. Use for "add more levels", "it gets boring after a minute", "too easy / too hard later on", "make a level editor format", "add procedural maps", or the content part of a new game. For tuning a single number use improve-game; for feel use game-feel.
+description: Design and build the content of the game in this repo — hand-made levels, enemy waves, procedural or seeded generation, difficulty curves, pacing and boss or finale moments — so the game keeps introducing something new and ramps fairly. Use for "add more levels", "it gets boring after a minute", "too easy / too hard later on", "make a level editor format", "add procedural maps", or the content part of a new game. For tuning a single number use improve-game; for feel use game-feel.
 ---
 
 # Level design
@@ -38,6 +38,6 @@ All difficulty knobs (spawn rates, speeds, budgets, growth) go in `TUNING`. A di
 3. Use a repro script to capture screenshots at each level or at 10 s, 60 s, 3 min, and read them: is each stage visibly different? Is anything unreadable or overcrowded?
 4. If a bot or replay is practical, run the `playtest` skill to measure where runs end.
 5. Progress saves via `save.js` (unlocked levels, best per level); saved on every level clear and on pause.
-6. `npm run check <id>`, fix every ✗.
+6. `npm run check`, fix every ✗.
 7. Bump `version` (minor for new content), update DESIGN.md (pacing table, Changelog), commit (`<Name>: levels …`) and push.
 8. Tell the user where the new content starts and what to watch for ("does wave 6 feel like a spike?").

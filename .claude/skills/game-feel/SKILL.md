@@ -1,6 +1,6 @@
 ---
 name: game-feel
-description: Make a game in games/ feel responsive and satisfying ("juice") — movement acceleration and friction, jump tuning, hit-stop, screen shake, particles, squash and stretch, easing, impact sounds and rumble — aimed at the game's fun targets and honouring reduced shake. Use for "it feels floaty / stiff / weak", "hits have no impact", "make it juicier", "polish the feel", or the polish milestone of new-game. For animation cycles use animate-asset (if present); for new mechanics or balance use improve-game.
+description: Make the game in this repo feel responsive and satisfying ("juice") — movement acceleration and friction, jump tuning, hit-stop, screen shake, particles, squash and stretch, easing, impact sounds and rumble — aimed at the game's fun targets and honouring reduced shake. Use for "it feels floaty / stiff / weak", "hits have no impact", "make it juicier", "polish the feel", or the polish milestone of new-game. For animation cycles use animate-asset (if present); for new mechanics or balance use improve-game.
 ---
 
 # Game feel
@@ -8,7 +8,7 @@ description: Make a game in games/ feel responsive and satisfying ("juice") — 
 Follow AGENTS.md. Read the game's `DESIGN.md` first: feel serves its fun targets ([framework.md](../../../docs/game-design/framework.md)). Calm and cozy wants soft easing and gentle sound, not shake.
 
 ## 1. Find the core verb and test it alone
-Pick the one action the player does most (move, jump, shoot, place, swing). Run `npm run dev <id>` (or a repro script from [debugging.md](../../../docs/game-design/debugging.md)) and do only that verb for 30 seconds in an empty space. Write down what's wrong in plain words: *slow to start*, *slides too long*, *jump floaty*, *shot feels like nothing happened*.
+Pick the one action the player does most (move, jump, shoot, place, swing). Run `npm run dev` (or a repro script from [debugging.md](../../../docs/game-design/debugging.md)) and do only that verb for 30 seconds in an empty space. Write down what's wrong in plain words: *slow to start*, *slides too long*, *jump floaty*, *shot feels like nothing happened*.
 
 ## 2. Responsiveness first (before any effects)
 Every number below goes in `TUNING`.
@@ -42,6 +42,6 @@ Rules:
 ## 4. Check and tune
 1. Play the verb again for 30 seconds and compare with your notes from step 1. Tune one number at a time; live-tune through `window.__game.TUNING` in the dev console.
 2. Turn **Reduced shake** on in Settings: the game must still read well, with no shake, no full-screen flashes and no strobing.
-3. `npm run check <id>`, view the screenshot, fix every ✗.
+3. `npm run check`, view the screenshot, fix every ✗.
 4. Bump `version` (patch), add a Changelog line to DESIGN.md (tick the *Feel* items in Definition of done), commit (`<Name>: game feel`) and push.
 5. Tell the user what to notice: "the jump should now feel snappy; the dash freezes for a beat on a hit".

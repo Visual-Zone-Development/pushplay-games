@@ -1,6 +1,6 @@
 ---
 name: localization
-description: Translate a game in games/ into other languages — move every player-facing string into a strings table, add a Language setting that defaults to the system language, handle longer text, plurals, number formats and fonts for other scripts, and keep input prompts from input.label(). Use for "add Spanish / French / Japanese", "translate the game", "make it multilingual", or preparing a game for players in other languages.
+description: Translate the game in this repo into other languages — move every player-facing string into a strings table, add a Language setting that defaults to the system language, handle longer text, plurals, number formats and fonts for other scripts, and keep input prompts from input.label(). Use for "add Spanish / French / Japanese", "translate the game", "make it multilingual", or preparing a game for players in other languages.
 ---
 
 # Localization
@@ -27,5 +27,5 @@ Follow AGENTS.md (*Settings*, *Input hints*, *Screens and scaling*). Never edit 
 ## 4. Translate and verify
 1. Translate with care for tone (the game's voice from DESIGN.md), and flag to the user that a native speaker should review.
 2. Play every screen in each language at 1280×800 and at the largest text size; take screenshots with a repro script and read them.
-3. `npm run check <id>`, fix every ✗.
+3. `npm run check`, fix every ✗.
 4. Bump `version` (minor), add the languages to DESIGN.md and the Changelog, mention them in the manifest `description` if it helps, commit (`<Name>: <languages>`) and push.

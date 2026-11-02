@@ -100,7 +100,7 @@ pause menu calls `party.close()`, which tells every phone the game ended.
 
 ## Testing
 
-- `npm run dev <id>`: the local relay listens on your Wi-Fi, so scan the lobby's QR code with a
+- `npm run dev`: the local relay listens on your Wi-Fi, so scan the lobby's QR code with a
   real phone. Open the join address in a few browser windows (one per player) to test alone.
-- `npm run check <id>`: headless phones join by code, send input, must each see exactly their
+- `npm run check`: headless phones join by code, send input, must each see exactly their
   own `party.view(id)`, and one reloads to check it gets its seat back.

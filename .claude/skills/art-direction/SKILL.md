@@ -1,6 +1,6 @@
 ---
 name: art-direction
-description: Give a game in games/ a cohesive, polished look across the whole screen, not one asset at a time — a material vocabulary (paper and ink, painted gouache, neon glass…), value and palette structure, textured backgrounds, UI that looks like part of the world (parchment cards, brush-stroke headers, ink-blot prompts), typography pairing with bundled fonts, lighting and atmosphere, and one finishing pass that ties every layer together. Ships a surface toolkit (texture.js) and an OFL serif font. Use for "make it look like <screenshot>", "it looks flat / generic / like a tech demo", "make it prettier", "art pass", "polish the visuals", "the menus look plain", or the visual-polish milestone of new-game. Pairs with model-asset / edit-asset for individual assets and character-models for 3D characters loaded from files.
+description: Give the game in this repo a cohesive, polished look across the whole screen, not one asset at a time — a material vocabulary (paper and ink, painted gouache, neon glass…), value and palette structure, textured backgrounds, UI that looks like part of the world (parchment cards, brush-stroke headers, ink-blot prompts), typography pairing with bundled fonts, lighting and atmosphere, and one finishing pass that ties every layer together. Ships a surface toolkit (texture.js) and an OFL serif font. Use for "make it look like <screenshot>", "it looks flat / generic / like a tech demo", "make it prettier", "art pass", "polish the visuals", "the menus look plain", or the visual-polish milestone of new-game. Pairs with model-asset / edit-asset for individual assets and character-models for 3D characters loaded from files.
 ---
 
 # Art direction
@@ -116,7 +116,7 @@ with fine detail so it stays crisp at DPR 2; a full-screen `wash` can stay at 1�
 
 If `OPENAI_API_KEY`, `GEMINI_API_KEY` or `REPLICATE_API_TOKEN` is set (environment or `.env`), painted
 backgrounds, terrain textures, key art and detailed props can also be generated: write
-`games/<id>/art/prompts.json` with the Scene look as its `style`, run `npm run art -- <id> --dry` and tell
+`art/prompts.json` with the Scene look as its `style`, run `npm run art -- --dry` and tell
 the user the cost, generate 2–3, look at the contact sheet, then the rest
 ([generated-art.md](../../../docs/game-design/generated-art.md)). Bake them like any surface and keep
 the toolkit versions as fallbacks. With no key, skip this; the toolkit alone reaches the target quality.
@@ -124,7 +124,7 @@ the toolkit versions as fallbacks. With no key, skip this; the toolkit alone rea
 ## Fonts
 
 `toolkit/fonts/` has **EB Garamond** (400, 600, 400 italic; latin; SIL OFL, licence in `OFL.txt`): the
-storybook / literary / fantasy serif. Copy the files you use to `games/<id>/assets/fonts/`, add a line to
+storybook / literary / fantasy serif. Copy the files you use to `assets/fonts/`, add a line to
 `assets/CREDITS.md` ("EB Garamond, The EB Garamond Project Authors, SIL OFL 1.1"), load with
 `new FontFace(...)` and wait for it before the first text draw (`demo.js` → `fonts()` shows how). Other OFL
 fonts can be fetched with `npm pack @fontsource/<font>` and copied the same way (only the `latin` `.woff2`
@@ -164,7 +164,7 @@ Same as model-asset, but for whole screens:
 
 - Match the library art to the new look (**cover-art**; an `art/cover.html` can reuse `texture.js`).
 - Measure frame time on gameplay with the overlay on (**performance-pass** if it drops below 60 fps at DPR 2).
-- `npm run check <id>`, look at the screenshot, bump `version`, add a Changelog line to DESIGN.md, update
+- `npm run check`, look at the screenshot, bump `version`, add a Changelog line to DESIGN.md, update
   STYLE.md's Scene look, commit (`<Name>: art pass …`) and push.
 
 ## Lessons so far
@@ -179,4 +179,4 @@ Same as model-asset, but for whole screens:
   the same outline (`drawRock` in [Star Courier's `art.js`](https://github.com/Visual-Zone-Development/arcade-sampler/tree/main/games/star-courier/art.js) in Arcade Sampler).
 - Keep one art module that the game, `art/cover.html`, `art/hero.html` and an `art/gallery.html` contact sheet
   all import, so the library art can't drift from the game (Battle Drones' HUD icons are renders of its models
-  for the same reason). `npm run art:shots <id>` renders them all, plus the cover at tile size.
+  for the same reason). `npm run art:shots` renders them all, plus the cover at tile size.

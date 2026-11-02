@@ -1,4 +1,4 @@
-// npm run art -- <game-id> [asset ...] [--force] [--dry] [--list] [--max N] [--quality low|medium|high] [--provider name]
+// npm run art -- [game-id] [asset ...] [--force] [--dry] [--list] [--max N] [--quality low|medium|high] [--provider name]
 //
 // Optional: generates sprites, textures or key art for a game with YOUR image API key, from the
 // game's art/prompts.json (a style contract plus a list of assets; see
@@ -10,6 +10,7 @@
 // how to add one and exits without doing anything. Games never need it: art drawn in code is the default.
 import { existsSync, mkdirSync, readFileSync, writeFileSync, appendFileSync } from 'node:fs'
 import { join, relative } from 'node:path'
+import { layout, listGames } from '../../.github/pushplay/repo.mjs'
 
 const ROOT = join(import.meta.dirname, '../..')
 const ENV_FILE = join(ROOT, '.env')
@@ -46,13 +47,15 @@ const option = (name, fallback) => {
 }
 const optionValues = new Set(['max', 'quality', 'provider'].map((n) => option(n, null)).filter(Boolean))
 const positional = args.filter((a) => !a.startsWith('--') && !optionValues.has(a))
-const [id, ...names] = positional
+// A one-game repo needs no id: the game is the repo, and every name is an asset.
+const single = layout() === 'single'
+const [id, ...names] = single ? [listGames()[0]?.id, ...positional] : positional
 
 if (!id) {
-  console.log('Usage: npm run art -- <game-id> [asset ...] [--dry] [--list] [--force] [--max N] [--quality low|medium|high] [--provider openai|gemini|replicate]')
+  console.log('Usage: npm run art -- [game-id] [asset ...] [--dry] [--list] [--force] [--max N] [--quality low|medium|high] [--provider openai|gemini|replicate]')
   process.exit(1)
 }
-const gameDir = join(ROOT, 'games', id)
+const gameDir = single ? ROOT : join(ROOT, 'games', id)
 if (!existsSync(gameDir)) {
   console.error(`No game "${id}" in games/.`)
   process.exit(1)

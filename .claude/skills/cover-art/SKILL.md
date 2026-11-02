@@ -1,6 +1,6 @@
 ---
 name: cover-art
-description: Make or improve the library art for a game in games/ — the 720×500 cover with the title (art/cover.svg or cover.html) and the 1920×450 hero banner (art/hero.svg) — so it reads at thumbnail size, shows what the game is, uses the game's palette and bundled fonts, and keeps clear of the areas the launcher draws over. Use for "make the cover", "the cover looks bad / generic", "new banner", a failing check about placeholder art, or the art step of new-game.
+description: Make or improve the library art for the game in this repo — the 720×500 cover with the title (art/cover.svg or cover.html) and the 1920×450 hero banner (art/hero.svg) — so it reads at thumbnail size, shows what the game is, uses the game's palette and bundled fonts, and keeps clear of the areas the launcher draws over. Use for "make the cover", "the cover looks bad / generic", "new banner", a failing check about placeholder art, or the art step of new-game.
 ---
 
 # Cover art
@@ -32,9 +32,9 @@ Also: a full background (no transparency), 2–4 main colours from the game's pa
 With `OPENAI_API_KEY`, `GEMINI_API_KEY` or `REPLICATE_API_TOKEN` set, a painted backdrop or key-art scene can be generated (`npm run art`, [generated-art.md](../../../docs/game-design/generated-art.md)) and embedded in `cover.html` / `hero.html` under the game-drawn hero and the title. Keep the title as real text, never generated.
 
 ## 3. Render, look, iterate
-1. `npm run check <id>`; it renders `cover.png` and `hero.png` under `.github/pushplay/.work/out/<id>/__art/`.
+1. `npm run check`; it renders `cover.png` and `hero.png` under `.github/pushplay/.work/out/<id>/__art/`.
 2. **Open both PNGs** and judge them:
-   - Shrink test: does the cover still read at ~216×150? `npm run art:shots <id>` renders `cover-thumb.png` at that size. Is the title legible?
+   - Shrink test: does the cover still read at ~216×150? `npm run art:shots` renders `cover-thumb.png` at that size. Is the title legible?
    - Does it look like *this* game, in its palette, and not a generic placeholder?
    - Anything important in the bottom 110 px of the cover or the bottom-left of the hero?
 3. Fix and re-run until both look good: usually by enlarging the hero, simplifying the background and strengthening contrast.

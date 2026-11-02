@@ -1,6 +1,6 @@
 ---
 name: improve-game
-description: Change or improve an existing game in games/. Covers specific requests ("add a double jump", "make enemies faster", "new palette", "add co-op") and open-ended ones ("make it more fun", "it gets boring", "polish it"). Use whenever the user wants to modify a game that already exists. For crashes and bugs use debug-game.
+description: Change or improve the game in this repo. Covers specific requests ("add a double jump", "make enemies faster", "new palette", "add co-op") and open-ended ones ("make it more fun", "it gets boring", "polish it"). Use whenever the user wants to modify a game that already exists. For crashes and bugs use debug-game.
 ---
 
 # Improve game
@@ -8,7 +8,7 @@ description: Change or improve an existing game in games/. Covers specific reque
 Follow AGENTS.md. Design material lives in `docs/game-design/`.
 
 ## 0. Get context, pick a mode
-1. Find the game (`games/<id>`). Read `games/<id>/DESIGN.md` and the code relevant to the request.
+1. Read `DESIGN.md` and the code relevant to the request.
 2. **No DESIGN.md?** Reverse-engineer one from the code, using [DESIGN.template.md](../../../docs/game-design/DESIGN.template.md):
    - infer the fun targets, core loop, 8 elements and controls
    - check it against [complete-game.md](../../../docs/game-design/complete-game.md) to fill in Definition of done, ticking what already exists
@@ -34,7 +34,7 @@ Follow AGENTS.md. Design material lives in `docs/game-design/`.
    - **adding online play** to a game: copy `net.js` and `lobby.js` from `.github/pushplay/templates/online/`, follow that folder's `game.js` for the screen flow (title → lobby → playing; the pause menu is still opened by `menu` and built with `menu.js`, but it only stops your controls and offers Leave game instead of Restart), move what players see into `net.state`, set `"online": true` and add the `online multiplayer` tag
    - title, HUD and help text that mention the old behavior; prompts still come from `input.label`, not literals
    - cover and hero art, if the look changed
-4. `npm run check <id>`, fix every ✗, look at the screenshot, and redo the AGENTS.md **Verification** passes that the change touches (at least the input you changed, plus keyboard-only).
+4. `npm run check`, fix every ✗, look at the screenshot, and redo the AGENTS.md **Verification** passes that the change touches (at least the input you changed, plus keyboard-only).
 5. **Record it:**
    - bump `version` in `pushplay.json`: patch for tuning or fixes, minor for features or content
    - update DESIGN.md (affected sections plus a Changelog line)
@@ -42,7 +42,7 @@ Follow AGENTS.md. Design material lives in `docs/game-design/`.
 6. Report what changed and how to try it. Optionally suggest 1–2 related follow-ups, but don't build them unasked.
 
 ## Make it better
-1. **Look.** Run `npm run check <id>` and view the screenshot. If deeper states matter, use the repro script in [debugging.md](../../../docs/game-design/debugging.md) to capture screenshots at 10s, 60s and so on.
+1. **Look.** Run `npm run check` and view the screenshot. If deeper states matter, use the repro script in [debugging.md](../../../docs/game-design/debugging.md) to capture screenshots at 10s, 60s and so on.
 2. **Playtest debrief.** If the user has played it, ask one `AskUserQuestion` round in plain language. Skip anything they already told you.
    - **Why did you stop?** Got bored / too hard / confused / beat it / wanted more.
    - **How long did a session last?** < 2 min / 2–10 min / longer.
@@ -78,7 +78,7 @@ Follow AGENTS.md. Design material lives in `docs/game-design/`.
    - Mix quick wins (tuning, juice, missing feedback) with one bigger idea: a new mechanic, a mode (daily seed, endless, boss rush, co-op) or a meta loop.
    - Put the fix for the **biggest fun problem** first, marked "(Recommended)", even if it isn't the smallest.
 5. **Implement** the chosen items one at a time, using the Direct change steps 2–4 for each.
-6. **Verify** with the full AGENTS.md **Verification** matrix: controller, keyboard only, mouse only, touch (DevTools device mode), 1920×1080 resize at DPR 2, and `npm run check <id>` (gamepad, keyboard, touch, Start → `paused`, DPR 2 passes all green).
+6. **Verify** with the full AGENTS.md **Verification** matrix: controller, keyboard only, mouse only, touch (DevTools device mode), 1920×1080 resize at DPR 2, and `npm run check` (gamepad, keyboard, touch, Start → `paused`, DPR 2 passes all green).
 7. **Record and hand back.**
    - Bump `version`.
    - Update DESIGN.md: tick Definition of done items and add a Changelog entry.

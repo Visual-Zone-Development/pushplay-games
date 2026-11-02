@@ -1,6 +1,6 @@
 ---
 name: animate-asset
-description: Make motion in a game in games/ look natural, readable and consistent — character and creature cycles (walk, run, jump, attack, hit, death, idle), vehicles, projectiles, effects, pickups and UI — in any rendering style (2D sprites, procedural canvas, 3D) and fitted to the game's own physics and rules. Use for "the run looks robotic", "the jump feels floaty", "attacks have no weight", "everything bobs in sync", "add a death animation", or animation consistency across a game. Also load canvas2d-assets for 2D games or threejs-models for three.js code-built models.
+description: Make motion in the game in this repo look natural, readable and consistent — character and creature cycles (walk, run, jump, attack, hit, death, idle), vehicles, projectiles, effects, pickups and UI — in any rendering style (2D sprites, procedural canvas, 3D) and fitted to the game's own physics and rules. Use for "the run looks robotic", "the jump feels floaty", "attacks have no weight", "everything bobs in sync", "add a death animation", or animation consistency across a game. Also load canvas2d-assets for 2D games or threejs-models for three.js code-built models.
 ---
 
 # Animate an asset

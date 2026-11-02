@@ -1,6 +1,6 @@
 ---
 name: new-game
-description: Create a new game in this repo that plays on a Steam Deck or Legion Go through the PushPlay launcher, and on PCs with keyboard, mouse or touch. It interviews the user about the idea, writes a design brief, then builds the game and its cover and hero art. Use whenever the user asks to make, prototype or add a game.
+description: Create the game in this repo (one game per repo, scaffolded at the root) that plays on a Steam Deck or Legion Go through the PushPlay launcher, and on PCs with keyboard, mouse or touch. It interviews the user about the idea, writes a design brief, then builds the game and its cover and hero art. Use whenever the user asks to make, prototype or add a game.
 ---
 
 # New game
@@ -8,6 +8,8 @@ description: Create a new game in this repo that plays on a Steam Deck or Legion
 Follow AGENTS.md; this is the step-by-step version. Design material lives in `docs/game-design/`: read [framework.md](../../../docs/game-design/framework.md) and [complete-game.md](../../../docs/game-design/complete-game.md) before designing, and the others as needed.
 
 The aim is a **complete, fun game**, not a tech demo: design first, then build in milestones.
+
+**One game per repo.** If `pushplay.json` already exists at the root, this repo already has its game: improve that one (`improve-game`), or, for a different idea, tell the user to make a new repo from the games template and start there.
 
 ## 1. Understand the request
 List what the request already settles (genre, theme, 2D/3D, art style, players, feel, view, reference games). Don't ask about those again, but **recap them** at the top of the first question round ("Got it: a 2D frog platformer…") so the user can correct a wrong guess.
@@ -33,7 +35,7 @@ Follow [inspiration.md](../../../docs/game-design/inspiration.md): 2–3 referen
 Pick a short, catchy name and a `kebab-case` id. Then:
 1. `npm run setup` if `node_modules/` is missing.
 2. `npm run new-game <id> --name "<Name>"`, adding `--vite` for 3D or npm packages, `--online --players <min>-<max>` for online multiplayer, and `--party [--controller pad|custom] --players <min>-<max>` for a party game on a TV with phones. The starter already has title, pause and settings screens that work on every input; keep them and build the game around them. The runtime files it copies (`input.js`, `menu.js`, `fit.js`, `audio.js`, `save.js`, `settings.js`, `prompts.js`, plus `net.js` and `lobby.js` for `--online`, and `net.js`, `party.js`, `party-lobby.js`, `qr.js` and `controller.js` for `--party`) are never edited.
-3. Copy [DESIGN.template.md](../../../docs/game-design/DESIGN.template.md) to `games/<id>/DESIGN.md` and fill it in:
+3. Copy [DESIGN.template.md](../../../docs/game-design/DESIGN.template.md) to `DESIGN.md` and fill it in:
    - The **Kickoff** table holds every interview answer (or assumption).
    - Every one of the 8 formal elements is decided.
    - Each fun target maps to concrete mechanics and juice.
@@ -43,7 +45,7 @@ Pick a short, catchy name and a `kebab-case` id. Then:
 Show a compact summary (pitch, feel, loop, view, controls, look, players, v1 scope, assumptions) and ask **Build it / Change something** with `AskUserQuestion`. This is the only gate: after approval, work autonomously to the end.
 
 ## 5. Build in milestones
-Run `npm run check <id>` after each milestone and fix every ✗.
+Run `npm run check` after each milestone and fix every ✗.
 
 1. **Core loop.**
    - Put all gameplay numbers in a `TUNING` object at the top of `game.js` (`src/game.js` for `--vite`).
@@ -61,7 +63,7 @@ Run `npm run check <id>` after each milestone and fix every ✗.
 **Self-review** before moving on to art: run the `playtest` skill to check the difficulty curve and pacing, `accessibility-audit` for the Accessibility items, and `performance-pass` on the heaviest moment, then re-read DESIGN.md and tick off every Definition of done item. Build anything missing, or list it as a known gap.
 
 ## 6. Controls, manifest, art
-- **Verification matrix.** Run `npm run dev <id>` and do each pass with only that input; every one must pass:
+- **Verification matrix.** Run `npm run dev` and do each pass with only that input; every one must pass:
 
   | Pass | How | Must be true |
   |---|---|---|
@@ -70,7 +72,7 @@ Run `npm run check <id>` after each milestone and fix every ✗.
   | Mouse only | hands off the keyboard | every menu by click; the on-screen pause button pauses; gameplay too if `inputs` includes `"mouse"`; cursor visible in every menu |
   | Touch | Chrome DevTools → device toolbar with touch emulation | every menu by tap; pause button; prompts say "Tap"; gameplay too if `inputs` includes `"touch"` |
   | Scaling | resize the window to 1920×1080, then device mode at DPR 2 | centred and letterboxed in the game's colour, text crisp, nothing clipped or blurry |
-  | `npm run check <id>` | | passes: gamepad, keyboard-only, touch, Start → `__game.state.screen === 'paused'`, a 16:9 window at DPR 2 |
+  | `npm run check` | | passes: gamepad, keyboard-only, touch, Start → `__game.state.screen === 'paused'`, a 16:9 window at DPR 2 |
 
   Also confirm: menus use `menu.js`; pause menu is Resume / Restart / Settings / Quit to title; Settings is reachable from title and pause; no `F10`, Start+Select or held-Esc binding; no hard-coded button names (`input.label`, `drawPrompts`); nothing needs hover, a double-click, a scroll wheel or text entry; `window.__game.state.screen` is exposed.
 - **Manifest:**
@@ -83,7 +85,7 @@ Run `npm run check <id>` after each milestone and fix every ✗.
   - `art/cover.svg`: 720×500, big title, bottom 110px clear.
   - `art/hero.svg`: 1920×450, no text, key visual on the right.
   - Both use DESIGN.md's palette, font and hero object; see art-directions.md.
-- **Check and review:** run `npm run check <id>`, then **open the three PNGs it lists** (if the screenshot doesn't show real gameplay, see the `screenshots` skill):
+- **Check and review:** run `npm run check`, then **open the three PNGs it lists** (if the screenshot doesn't show real gameplay, see the `screenshots` skill):
   - Does the cover read at thumbnail size?
   - Is the title legible?
   - Does the screenshot show real gameplay or the title?

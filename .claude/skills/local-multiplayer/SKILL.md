@@ -1,6 +1,6 @@
 ---
 name: local-multiplayer
-description: Add or improve couch multiplayer for a game in games/ — 2–4 players on one screen with input.pads[i], a join screen where each controller presses to join, player colours and spawns, a shared camera, co-op or versus rules, catch-up mechanics, rounds and a results screen. Use for "add local co-op", "make it 2 player", "versus mode", "my friends want to play together on the Deck", or improving a local multiplayer game. For online play use online-netcode; for phones on a TV use the party game docs.
+description: Add or improve couch multiplayer for the game in this repo — 2–4 players on one screen with input.pads[i], a join screen where each controller presses to join, player colours and spawns, a shared camera, co-op or versus rules, catch-up mechanics, rounds and a results screen. Use for "add local co-op", "make it 2 player", "versus mode", "my friends want to play together on the Deck", or improving a local multiplayer game. For online play use online-netcode; for phones on a TV use the party game docs.
 ---
 
 # Local multiplayer
@@ -37,4 +37,4 @@ Follow AGENTS.md (*Local multiplayer* under *Controls*) and the Fellowship notes
 2. Per-player state in an array indexed by slot; Restart resets all players but keeps who joined.
 3. Test by hand with two controllers, or in a repro script that replaces `navigator.getGamepads` (with `page.addInitScript`) to return two fake pads whose buttons and axes follow a timeline; also test that 1 player alone still works.
 4. Unplug a pad mid-game: `input.onPause` fires only when **all** pads are gone; handle a single disconnect yourself (pause or leave the slot empty).
-5. `npm run check <id>`, fix every ✗. Bump `version` (minor), update DESIGN.md (Players, Controls, Changelog), commit (`<Name>: local multiplayer`) and push.
+5. `npm run check`, fix every ✗. Bump `version` (minor), update DESIGN.md (Players, Controls, Changelog), commit (`<Name>: local multiplayer`) and push.

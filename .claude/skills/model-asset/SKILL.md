@@ -1,6 +1,6 @@
 ---
 name: model-asset
-description: Create or rebuild a visual asset for a game in games/ — a character, creature, vehicle, building, prop, pickup, effect, tile or UI element — to match a reference or art direction, in any rendering style (2D canvas shapes, pixel-art sprites, SVG, 3D, or the user's own files). Covers the game's STYLE.md, reference breakdown, silhouette and proportions, block-out, detail, and render-and-compare rounds. For one focused change to an existing asset use edit-asset; for motion use animate-asset; also load canvas2d-assets for 2D games or threejs-models for 3D models built in three.js code.
+description: Create or rebuild a visual asset for the game in this repo — a character, creature, vehicle, building, prop, pickup, effect, tile or UI element — to match a reference or art direction, in any rendering style (2D canvas shapes, pixel-art sprites, SVG, 3D, or the user's own files). Covers the game's STYLE.md, reference breakdown, silhouette and proportions, block-out, detail, and render-and-compare rounds. For one focused change to an existing asset use edit-asset; for motion use animate-asset; also load canvas2d-assets for 2D games or threejs-models for 3D models built in three.js code.
 ---
 
 # Model an asset
@@ -89,7 +89,7 @@ Renders go to the scratchpad or a temp folder, never into the repo.
 ## 6. Finish
 
 - Update STYLE.md: the catalogue row (file, reference in words, status) and any new shared rule.
-- Check motion if it moves (animate-asset), then `npm run check <id>` and look at its screenshot.
+- Check motion if it moves (animate-asset), then `npm run check` and look at its screenshot.
 - Add a line to DESIGN.md's changelog and bump `version` in `pushplay.json`.
 - Keep the old version reachable while the user decides (e.g. `<id>Old`), then remove it.
 

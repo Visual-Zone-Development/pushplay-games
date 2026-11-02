@@ -1,6 +1,6 @@
 ---
 name: progression
-description: Add a meta loop to a game in games/ that brings players back — unlockable characters, ships or modes, upgrades bought between runs, a currency, achievements, a collection screen, daily seeded challenges and personal records — saved through save.js and balanced so runs stay fun. Use for "nothing to come back for", "add unlocks / upgrades / a shop", "add achievements", "add a daily challenge", "make it a roguelite", or the meta loop of a new game.
+description: Add a meta loop to the game in this repo that brings players back — unlockable characters, ships or modes, upgrades bought between runs, a currency, achievements, a collection screen, daily seeded challenges and personal records — saved through save.js and balanced so runs stay fun. Use for "nothing to come back for", "add unlocks / upgrades / a shop", "add achievements", "add a daily challenge", "make it a roguelite", or the meta loop of a new game.
 ---
 
 # Progression
@@ -38,5 +38,5 @@ Pick **one main loop** and at most one small extra. More systems dilute each oth
 1. A fresh save: is the first unlock reached in the first few minutes? (Use `playtest` for a measurement.)
 2. An old save from the previous version still loads and keeps its data (test the `migrate`).
 3. Every new screen works with controller, keyboard, mouse and touch.
-4. `npm run check <id>` (it warns on save keys without the game id), fix every ✗.
+4. `npm run check` (it warns on save keys without the game id), fix every ✗.
 5. Bump `version` (minor), update DESIGN.md (Meta loop, Changelog), commit (`<Name>: unlocks …`) and push.

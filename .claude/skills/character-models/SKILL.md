@@ -1,6 +1,6 @@
 ---
 name: character-models
-description: Bring a high-quality 3D character into a --vite three.js game in games/ from a model file instead of building it in code — sourcing (VRoid Studio for anime characters, Blender, CC0 packs, the user's own files), budgets for the Deck, loading GLB and VRM (@pixiv/three-vrm with spring-bone hair and cloth), animation clips, the anime / storybook toon look (stepped shading with coloured shadows, rim light, outlines that follow skinning) and a character creator (swappable parts, recolours, saved choices). Use for "I want a character that looks like <anime / JRPG screenshot>", "add a proper hero model", "character creator", "use my VRoid / Blender model", "make the 3D look cel-shaded". For crowds and simple stylised units built in code use threejs-models.
+description: Bring a high-quality 3D character into a --vite three.js game from a model file instead of building it in code — sourcing (VRoid Studio for anime characters, Blender, CC0 packs, the user's own files), budgets for the Deck, loading GLB and VRM (@pixiv/three-vrm with spring-bone hair and cloth), animation clips, the anime / storybook toon look (stepped shading with coloured shadows, rim light, outlines that follow skinning) and a character creator (swappable parts, recolours, saved choices). Use for "I want a character that looks like <anime / JRPG screenshot>", "add a proper hero model", "character creator", "use my VRoid / Blender model", "make the 3D look cel-shaded". For crowds and simple stylised units built in code use threejs-models.
 ---
 
 # Character models from files
@@ -18,7 +18,7 @@ always getting a good model file.
 ## 1. Get the model (the user supplies it)
 
 You can't download from these sites yourself; guide the user, then they put the file in
-`games/<id>/public/assets/models/`. Record the source and licence in `assets/CREDITS.md`.
+`public/assets/models/`. Record the source and licence in `assets/CREDITS.md`.
 
 | Source | Best for | Notes |
 |---|---|---|
@@ -35,7 +35,7 @@ with reduction on, or decimate in Blender. Check file size (a hero GLB/VRM shoul
 ## 2. Load it
 
 ```sh
-npm install @pixiv/three-vrm --workspace games/<id>   # only for .vrm files
+npm install @pixiv/three-vrm   # only for .vrm files
 ```
 
 ```js
@@ -115,4 +115,4 @@ const hulls = outline(model, { width: 0.012 })         // ~1–1.5 % of the char
 1. Render the character at play size and close up, in the game, next to the reference (model-asset's
    `shot.mjs` with `index.html` and keys to reach the screen).
 2. Frame time on the Deck target with the character, outline and overlay on (**performance-pass**).
-3. `npm run check <id>`, bump `version`, Changelog line, credits in `assets/CREDITS.md`, commit and push.
+3. `npm run check`, bump `version`, Changelog line, credits in `assets/CREDITS.md`, commit and push.

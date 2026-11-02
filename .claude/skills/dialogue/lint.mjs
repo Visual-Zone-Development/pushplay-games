@@ -2,7 +2,7 @@
 // too long for a handheld box, long stretches without player input, too many or too long choices,
 // variables read but never set, and speaker names that differ only in case or spacing.
 //
-//   node .claude/skills/dialogue/lint.mjs games/<id>/dialogue/*.js [--max-chars 140] [--max-run 4] [--entry intro,smith]
+//   node .claude/skills/dialogue/lint.mjs dialogue/*.js [--max-chars 140] [--max-run 4] [--entry intro,smith]
 //
 // Files are modules whose default export is the script text (export default `…`), or plain .dlg text files.
 import fs from 'node:fs'

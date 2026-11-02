@@ -1,6 +1,6 @@
 ---
 name: story-and-dialogue
-description: Add story, characters and writing to a game in games/ — a one-line premise, short story beats between levels, character barks, dialogue boxes, item and enemy names, title and game-over lines, and an ending — written for a 7–8" handheld screen, skippable, and driven by a controller. Use for "add a story", "give it characters", "add dialogue / cutscenes", "the text is boring / too long", "name things", or the Narrative or Fantasy fun target of a game.
+description: Add story, characters and writing to the game in this repo — a one-line premise, short story beats between levels, character barks, dialogue boxes, item and enemy names, title and game-over lines, and an ending — written for a 7–8" handheld screen, skippable, and driven by a controller. Use for "add a story", "give it characters", "add dialogue / cutscenes", "the text is boring / too long", "name things", or the Narrative or Fantasy fun target of a game.
 ---
 
 # Story and dialogue
@@ -37,4 +37,4 @@ Add a *Story* section to DESIGN.md:
 1. Read every beat on the 1280×800 screenshot: does it fit, at the largest `textScale` too?
 2. Advance and skip with controller, keyboard, mouse and touch.
 3. Pause mid-line, Restart mid-beat, Quit to title mid-beat: nothing breaks or replays wrongly.
-4. `npm run check <id>`, fix every ✗. Bump `version`, update DESIGN.md (Story, Changelog), commit (`<Name>: story`) and push.
+4. `npm run check`, fix every ✗. Bump `version`, update DESIGN.md (Story, Changelog), commit (`<Name>: story`) and push.

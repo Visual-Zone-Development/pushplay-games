@@ -1,10 +1,10 @@
-# PushPlay games
+# PushPlay game template
 
 Ask an AI for a game, and it shows up on your Steam Deck, or in PushPlay on a Linux, Windows or Mac PC.
 
-**One repo holds as many games as you like.** Every folder in `games/` is a game, and each one gets its own tile, art and updates in the library. Push and GitHub Actions builds the games that changed: it plays each one headlessly to catch crashes and renders its cover art on every branch, and publishes from the default branch to this repo's **pushplay-latest** release. The [PushPlay](https://pushplay.gg) launcher watches that release, so new games and updates appear on their own: watch the repo once and every game you add later shows up too.
+**One repo, one game.** Make a repo from this template for each game you start. Push and GitHub Actions builds it: it plays the game headlessly to catch crashes and renders its cover art on every branch, and publishes from the default branch to this repo's **pushplay-latest** release. The [PushPlay](https://pushplay.gg) launcher watches that release, so updates appear on their own. Because each game has its own repo, each one gets its own releases, its own page, and can be listed on PushPlay's **Discover** tab.
 
-It starts empty: ask your agent for a game, or run `npm run new-game <id>`. For finished examples to play and learn from, see the starter games, each in its own repo and on PushPlay's **Discover** tab:
+It starts empty: ask your agent for a game, or run `npm run new-game <id>`, and the game is created at the root of the repo. For finished examples to play and learn from, see the starter games, each in its own repo and on **Discover**:
 
 - **[Arcade Sampler](https://github.com/Visual-Zone-Development/arcade-sampler)**: twelve tiny, complete games in one cabinet, each a different genre in its own art style, all drawn in code.
 - **[Motion Lab](https://github.com/Visual-Zone-Development/motion-lab)**: a party game where your phone is the controller: tilt a marble maze, swing for home runs, slash fruit, shake maracas and steer a kart, with a live Sensor Bench. Make your own with `npm run new-game <id> --party --controller motion` and [`docs/game-design/motion.md`](docs/game-design/motion.md).
@@ -13,13 +13,13 @@ Good for prototypes, playtests, and games made just for you.
 
 ## Set up your own
 
-1. Click **Use this template → Create a new repository**. Private is fine. (Use the template rather than forking: forks have Actions turned off and can't be private.)
-2. Make your first game (see *Make a game with AI* below) and push it: the **Build games** action publishes it.
+1. Click **Use this template → Create a new repository**, named after your game. Make it public if you want it on Discover; private is fine for games just for you. (Use the template rather than forking: forks have Actions turned off and can't be private.)
+2. Make the game (see *Make a game with AI* below) and push it: the **Build games** action publishes it.
 3. In PushPlay (Steam Deck, Linux, Windows or Mac): **Add game → My repositories**, sign in with your phone, and watch this repo. [Install PushPlay](https://pushplay.gg/download) first if you haven't.
 
-## One repo, many games
+## One repo per game
 
-Add a game by asking for one, or with `npm run new-game <id>`; either way it gets its own folder in `games/`. There's no limit and nothing to register: the next build adds it to the release, and PushPlay adds it to the library. A build only rebuilds the games that changed, and one broken game never blocks the others. Delete a folder on the default branch and the game leaves the library (players who installed it keep their copy).
+`npm run new-game <id>` puts the game at the root of the repo: `pushplay.json`, `index.html`, `game.js` and `art/` sit next to this README, and the agent's guides (`AGENTS.md`, `.claude/`, `docs/`) stay out of the build. A repo holds exactly one game; `new-game` refuses a second one. For your next idea, make another repo from this template. A failed build keeps the last good version, so a broken push never takes the game away from players.
 
 ## Make a game with AI
 
@@ -27,7 +27,7 @@ Use any coding agent that can push to GitHub. The rules live in [`AGENTS.md`](AG
 
 > Make a game where you defend a breakroom from paper airplanes.
 
-The agent asks a few quick questions (how it should feel, 2D or 3D, art style, any assets or games you love), writes a one-page design brief for you to approve, then builds the game, designs its cover and banner art, runs the check, and pushes. Later, ask it to *improve* a game ("it gets boring after a minute") or *fix* one, and it works from the same brief. The design guides live in [`docs/game-design/`](docs/game-design/).
+The agent asks a few quick questions (how it should feel, 2D or 3D, art style, any assets or games you love), writes a one-page design brief for you to approve, then builds the game, designs its cover and banner art, runs the check, and pushes. Later, ask it to *improve* the game ("it gets boring after a minute") or *fix* one, and it works from the same brief. The design guides live in [`docs/game-design/`](docs/game-design/).
 
 | Where you are | How |
 |---|---|
@@ -40,13 +40,13 @@ Tip: some cloud sandboxes can't download the headless browser that `npm run chec
 
 ## Better art (optional): bring your own image API key
 
-Games draw their art in code by default: lit, outlined sprites, pixel art, code-built 3D models, textured backdrops, and cover and banner art made from the game's own drawing code (the `art-direction`, `pixel-art`, `threejs-models` and `cover-art` skills). No key or account is needed. Ask the agent to *"do an art pass on <game>"* whenever a game looks plain.
+Games draw their art in code by default: lit, outlined sprites, pixel art, code-built 3D models, textured backdrops, and cover and banner art made from the game's own drawing code (the `art-direction`, `pixel-art`, `threejs-models` and `cover-art` skills). No key or account is needed. Ask the agent to *"do an art pass"* whenever the game looks plain.
 
 If you'd like painted sprites, textures or key art as well, give the agent your own image API key. Generation only happens while the agent works: the images are saved into the game and bundled, and the game never calls the API.
 
 1. Get a key from **OpenAI** (`OPENAI_API_KEY`), **Google Gemini** (`GEMINI_API_KEY`) or **Replicate** (`REPLICATE_API_TOKEN`).
 2. **On your computer:** copy `.env.example` to `.env` and paste the key in. `.env` is gitignored, so it never gets pushed. **In a cloud agent** (Claude Code on the web, Codex): add the same variable to the environment's settings instead.
-3. Ask for it: *"generate painted art for <game> with my key"*. The agent writes the prompts, shows the estimated cost (`npm run art -- <id> --dry`), then generates the images, looks at them and refines them.
+3. Ask for it: *"generate painted art with my key"*. The agent writes the prompts, shows the estimated cost (`npm run art -- --dry`), then generates the images, looks at them and refines them.
 
 It costs roughly $0.003–$0.21 per image depending on the provider and quality, so about $0.50–$6 for a typical game. Each run stops at 12 images unless you allow more. Details: [`docs/game-design/generated-art.md`](docs/game-design/generated-art.md).
 
@@ -58,36 +58,36 @@ You don't need this template, an AI, or anything made for PushPlay. Any repo wor
 - **Plain HTML game** (an `index.html` at the root or in `dist/`, `docs/` or `build/`): add the topic `pushplay-game` to the repo, or a `pushplay.json`, and PushPlay plays it straight from the latest commit.
 - **A web game with a build step:** add the build kit. Copy `.github/pushplay/` and `.github/workflows/pushplay.yml` from this repo, or use **Set up auto-builds** in PushPlay, which opens a pull request for you. If the repo has a `package.json` with a `build` script, the kit runs it and ships the output (`dist/` by default).
 
-A `pushplay.json` ([fields](AGENTS.md#manifest-gamesidpushplayjson)) is optional everywhere except the template: it sets the name, art and controls.
+A `pushplay.json` ([fields](AGENTS.md#manifest-pushplayjson)) is optional everywhere except the template: it sets the name, art and controls.
 
 ## Make a game by hand
 
 ```sh
 npm run setup                   # dependencies + headless browser
-npm run new-game my-game        # or --vite for npm packages, --party [--controller motion] for TV + phones
-npm run dev my-game             # play at http://localhost:5173 (--host to try it on a phone; ?debug for the state overlay)
-npm run check my-game           # what CI runs; also renders the art
-npm run art:shots my-game       # render the cover, banner and art/gallery.html to PNG to look at
-npm run art -- my-game --dry    # optional: generated art with your own key (see Better art)
+npm run new-game my-game        # once per repo; or --vite for npm packages, --party [--controller motion] for TV + phones
+npm run dev                     # play at http://localhost:5173 (--host to try it on a phone; ?debug for the state overlay)
+npm run check                   # what CI runs; also renders the art
+npm run art:shots               # render the cover, banner and art/gallery.html to PNG to look at
+npm run art -- --dry            # optional: generated art with your own key (see Better art)
 npm run update-kit              # newest build kit, prompts and runtime files (see Notes)
 ```
 
-The starter already has a title, pause and settings screen that work with a controller, a keyboard, a mouse and touch. Its runtime files (`input.js`, `menu.js`, `fit.js`, `audio.js`, `save.js`, `settings.js`, `prompts.js`) are shared with every game and replaced by `update-kit`, so write your game in `game.js` and leave them alone.
+The starter already has a title, pause and settings screen that work with a controller, a keyboard, a mouse and touch. Its runtime files (`input.js`, `menu.js`, `fit.js`, `audio.js`, `save.js`, `settings.js`, `prompts.js`) come from the build kit and are replaced by `update-kit`, so write your game in `game.js` and leave them alone.
 
 ## How a build works
 
 The build kit in `.github/pushplay/` does everything; the workflow (`.github/workflows/pushplay.yml`) installs it and runs `ci.mjs`. The kit keeps its own dependencies (and lockfile) inside that folder, so it never touches your project's `package.json`.
 
 1. **Validate** `pushplay.json` against `.github/pushplay/manifest.schema.json` (generated from the launcher's own schema), plus the game's code: no F10 binding, save keys prefixed with the game id, `menu.js` and `input.attach` in use.
-2. **Build:** copy plain-HTML games as-is (skipping `tools/`, `mockups/`, `*.py`, `DESIGN.md` and anything in the game's `.pushplayignore`), or run `vite build` for `--vite` games.
+2. **Build:** copy a plain-HTML game as-is (skipping `tools/`, `mockups/`, `*.py`, `DESIGN.md`, the repo's `AGENTS.md`, `CLAUDE.md` and `docs/`, and anything in `.pushplayignore`), or run `vite build` for `--vite` games.
 3. **Play check:** open the game at 1280×800 in headless Chromium four times: with a virtual gamepad that presses A, moves the stick and then presses Start (the game must report `window.__game.state.screen === 'paused'`); with only a keyboard (Enter, then Esc must pause); with only touch (a tap on the title menu); and at 1920×1080 with 2× pixels (the canvas must be drawn and centred). Fail on crashes, missing files, internet requests or WebSockets, `alert()` dialogs or a blank screen. Save a screenshot.
 4. **Art:** render `art/cover.svg` (720×500) and `art/hero.svg` (1920×450) to PNG with bundled fonts, or generate them from the screenshot if the game has none.
 5. **Publish** `<id>-web.zip`, the PNGs and `pushplay-index.json` to the `pushplay-latest` release. It's a prerelease that's updated in place, not a versioned release, so it never becomes your repo's "Latest". A failed build keeps the last good version and records the error, so PushPlay can show "build failed" instead of losing the game.
 
-The workflow runs in two jobs: **build** runs the games with read-only permissions and no token in reach, and uploads the results as an artifact; **publish** (only on the default branch) takes that artifact and uploads it to the release. Other branches only build and check.
+The workflow runs in two jobs: **build** runs the game with read-only permissions and no token in reach, and uploads the results as an artifact; **publish** (only on the default branch) takes that artifact and uploads it to the release. Other branches only build and check.
 
 ## Notes
 
 - **Actions minutes:** private repos use your plan's minutes (2,000/month free). A typical build takes about 2 minutes.
-- **Updating the build kit:** repos made from the template keep the kit version they started with, and the launcher shows "build kit outdated" once a newer one exists. Run `npm run update-kit` to fetch the newest kit from the latest PushPlay release: it replaces `.github/pushplay/` and the workflow, refreshes `AGENTS.md`, `CLAUDE.md`, `.claude/skills/` and `docs/game-design/`, and swaps the runtime files in every game (files that still start with the `pushplay runtime v…` header; a hand-edited `input.js` or `menu.js` is replaced too, with a warning, so move key aliases to `input.extendKeys()` in `game.js`). It also accepts a path to a kit folder, an unpacked template repo, or a downloaded `kit.zip`. Then run `npm run check` and commit.
+- **Updating the build kit:** repos made from the template keep the kit version they started with, and the launcher shows "build kit outdated" once a newer one exists. Run `npm run update-kit` to fetch the newest kit from the latest PushPlay release: it replaces `.github/pushplay/` and the workflow, refreshes `AGENTS.md`, `CLAUDE.md`, `.claude/skills/` and `docs/game-design/`, and swaps the runtime files (files that still start with the `pushplay runtime v…` header; a hand-edited `input.js` or `menu.js` is replaced too, with a warning, so move key aliases to `input.extendKeys()` in `game.js`). It also accepts a path to a kit folder, an unpacked template repo, or a downloaded `kit.zip`. Then run `npm run check` and commit.
 - **Renaming:** names shared with the launcher (`pushplay.json`, the release tag) come from `.github/pushplay/brand.json`.
