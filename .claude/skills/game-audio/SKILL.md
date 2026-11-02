@@ -1,6 +1,6 @@
 ---
 name: game-audio
-description: Create and mix the sound for a game in games/ — generated SFX with audio.tone() and audio.noise(), bundled sound files, a music loop or sequencer that fits the mood, layering, variation and mixing on the master / music / sfx buses so everything follows the Settings sliders. Use for "add sound", "the game is silent", "make the music better", "sounds are annoying / repetitive", "add a soundtrack", or the audio part of a new game.
+description: Create and mix the sound for the game in this repo — generated SFX with audio.tone() and audio.noise(), bundled sound files, a music loop or sequencer that fits the mood, layering, variation and mixing on the master / music / sfx buses so everything follows the Settings sliders. Use for "add sound", "the game is silent", "make the music better", "sounds are annoying / repetitive", "add a soundtrack", or the audio part of a new game.
 ---
 
 # Game audio
@@ -49,4 +49,4 @@ Variation: randomise pitch ±5–10% on repeated sounds, limit how many of the s
 2. Pause silences everything (`audio.js` mutes on pause; your sequencer must also stop scheduling). Restart and Quit to title stop the run's loops.
 3. Move each Settings slider (Master, Music, SFX) to 0 and back; each must work.
 4. Play 2 minutes: is anything grating or too repetitive? Fix it.
-5. `npm run check <id>`, bump `version`, update DESIGN.md (*Audio*, Changelog), commit (`<Name>: audio`) and push.
+5. `npm run check`, bump `version`, update DESIGN.md (*Audio*, Changelog), commit (`<Name>: audio`) and push.

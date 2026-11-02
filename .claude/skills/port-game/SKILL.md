@@ -1,6 +1,6 @@
 ---
 name: port-game
-description: Bring an existing web game into games/ — the user's own HTML/JS game, a game-jam entry, a tutorial project or an open-source game with a licence that allows it — and convert it to the PushPlay rules: runtime input with controller, keyboard, mouse and touch, menu.js menus, pause, settings, fitCanvas scaling to 1280×800, saves, offline assets, a manifest and art. Use for "add my old game", "port this game", "import this repo / folder / zip", "make this HTML game work on the Deck".
+description: Bring an existing web game into this repo — the user's own HTML/JS game, a game-jam entry, a tutorial project or an open-source game with a licence that allows it — and convert it to the PushPlay rules: runtime input with controller, keyboard, mouse and touch, menu.js menus, pause, settings, fitCanvas scaling to 1280×800, saves, offline assets, a manifest and art. Use for "add my old game", "port this game", "import this repo / folder / zip", "make this HTML game work on the Deck".
 ---
 
 # Port a game
@@ -12,9 +12,9 @@ Follow AGENTS.md. The aim is the same game, now playing well on a handheld with 
 2. **Tech:** plain canvas / DOM / ES modules → a plain game; npm packages, a bundler, Phaser, three.js → `--vite`. Godot, Unity or other engine exports don't need porting: PushPlay can run them from their own repo's releases (see the README).
 3. **Inventory:** how it reads input, how it sizes the canvas, its screens, its saves (`localStorage` keys), its assets and any network use (CDNs, fonts, analytics).
 
-## 2. Set up the folder
-1. `npm run new-game <id> --name "<Name>"` (with `--vite` if needed) for the runtime files, `pushplay.json`, the starter skeleton and art placeholders.
-2. Copy the game's code and assets into the folder (`assets/` for media). Download any CDN libraries and remote fonts into the folder (or `npm install` them in a `--vite` game); the check fails on network requests.
+## 2. Set up the repo
+1. `npm run new-game <id> --name "<Name>"` (with `--vite` if needed) for the runtime files, `pushplay.json`, the starter skeleton and art placeholders, at the repo root (one game per repo; if a game is already here, port into a new repo from the template).
+2. Copy the game's code and assets in next to them (`assets/` for media). Download any CDN libraries and remote fonts into the repo (or `npm install` them in a `--vite` game); the check fails on network requests.
 3. Write `DESIGN.md` by reverse-engineering the game ([DESIGN.template.md](../../../docs/game-design/DESIGN.template.md)), with *Ported from <source>* in the Changelog.
 
 ## 3. Convert, step by step (run the game after each)
@@ -28,6 +28,6 @@ Follow AGENTS.md. The aim is the same game, now playing well on a handheld with 
 
 ## 4. Finish
 1. Manifest (`description`, `players`, `tags`, `inputs`), cover and hero art (`cover-art`).
-2. `npm run check <id>`, fix every ✗, open the screenshot and art.
+2. `npm run check`, fix every ✗, open the screenshot and art.
 3. Do the AGENTS.md verification matrix.
 4. Commit (`Add <Name> (ported)`) and push. Tell the user what changed in the controls and anything that couldn't be kept.

@@ -1,6 +1,6 @@
 ---
 name: threejs-models
-description: Build 3D characters, creatures, vehicles, machines and props in code with three.js (no modelling tool) for a --vite game in games/ — sculpted parts (lofted bodies, extruded plates, horns, armour shells, fur), hand-painted canvas textures, a small skeleton with blended procedural animation, instanced rendering for many copies, and an asset viewer for renders. Load it together with model-asset (workflow), edit-asset or animate-asset whenever a three.js game's models are made in code.
+description: Build 3D characters, creatures, vehicles, machines and props in code with three.js (no modelling tool) for a --vite game — sculpted parts (lofted bodies, extruded plates, horns, armour shells, fur), hand-painted canvas textures, a small skeleton with blended procedural animation, instanced rendering for many copies, and an asset viewer for renders. Load it together with model-asset (workflow), edit-asset or animate-asset whenever a three.js game's models are made in code.
 ---
 
 # three.js models in code
@@ -11,7 +11,7 @@ The general workflow (reference, breakdown, rounds, STYLE.md) is in **model-asse
 ## Toolkit
 
 In `toolkit/` next to this file. Copy what the game needs into its `src/` (into a `--vite` game with
-`npm install three --workspace games/<id>`); if the game already has copies, use and extend those.
+`npm install three`); if the game already has copies, use and extend those.
 
 | File | Gives you |
 |---|---|

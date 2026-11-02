@@ -47,8 +47,11 @@ async function build() {
     const before = env.BEFORE_SHA
     try {
       if (before && !/^0+$/.test(before)) return git('diff', '--name-only', before, sha).split('\n').filter(Boolean)
-      // New branch: compare with where it left the default branch.
-      return git('diff', '--name-only', git('merge-base', `origin/${defaultBranch}`, sha), sha).split('\n').filter(Boolean)
+      // New branch: compare with where it left the default branch. The first push of a brand-new
+      // repo has nothing to compare with (the branch is the default branch), so build everything.
+      const base = git('merge-base', `origin/${defaultBranch}`, sha)
+      if (base === sha) return null
+      return git('diff', '--name-only', base, sha).split('\n').filter(Boolean)
     } catch {
       return null // unknown history → build everything
     }
@@ -91,6 +94,8 @@ async function build() {
             commit: sha,
             branch,
             builtAt: new Date().toISOString(),
+            // Promoted out of a workshop: the launcher moves players' copies here, saves and all.
+            ...(m.movedFrom ? { movedFrom: m.movedFrom } : {}),
             assets: Object.fromEntries(Object.entries(built.files).map(([k, f]) => [k, { name: f.name, size: f.size, sha256: f.sha256 }])),
             error: null
           },

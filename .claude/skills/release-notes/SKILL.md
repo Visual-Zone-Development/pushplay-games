@@ -1,6 +1,6 @@
 ---
 name: release-notes
-description: Prepare an update of a game in games/ for release — check the version bump, turn the DESIGN.md Changelog and the git history into player-facing "what's new" notes, optionally show them in-game once after an update, update the repo README's game list, and write the commit message and a short post the user can share. Use for "write release notes", "what changed since last time", "prepare a release", "announce the update", or at the end of new-game or improve-game when the user wants notes.
+description: Prepare an update of the game in this repo for release — check the version bump, turn the DESIGN.md Changelog and the git history into player-facing "what's new" notes, optionally show them in-game once after an update, update the repo README's game list, and write the commit message and a short post the user can share. Use for "write release notes", "what changed since last time", "prepare a release", "announce the update", or at the end of new-game or improve-game when the user wants notes.
 ---
 
 # Release notes
@@ -8,8 +8,8 @@ description: Prepare an update of a game in games/ for release — check the ver
 Follow AGENTS.md. Pushing the default branch publishes the build to PushPlay automatically; this skill makes sure the update is described well and the version is right. It never pushes to the default branch on its own.
 
 ## 1. Gather what changed
-1. Read `games/<id>/pushplay.json` (`version`) and the Changelog in `games/<id>/DESIGN.md`.
-2. Find the last released state: the last commit on the default branch that touched the game (`git log origin/<default> -- games/<id>`), and the changes since then (`git log --oneline origin/<default>..HEAD -- games/<id>` and `git diff --stat`). For a new game, everything is new.
+1. Read `pushplay.json` (`version`) and the Changelog in `DESIGN.md`.
+2. Find the last released state: the last commit on the default branch (`git log -1 origin/<default>`), and the changes since then (`git log --oneline origin/<default>..HEAD` and `git diff --stat`). For a new game, everything is new.
 3. Check the **version bump** matches the change: patch for fixes and tuning, minor for features or content, major for a reworked game or a save or netcode break. Online and party games: bump whenever the netcode changed (only the same version plays together). Fix the version and the Changelog if they're missing or wrong.
 
 ## 2. Write the notes
@@ -37,6 +37,6 @@ If the user wants it, show the notes once after an update:
 
 ## 4. Finish
 1. If the game is new or renamed, update the list of games in the repo's `README.md` (only if the README already lists games).
-2. `npm run check <id>`, fix every ✗.
+2. `npm run check`, fix every ✗.
 3. Commit with a message like `<Name> 1.3.0: boss, ship unlocks, punchier dash` and push to the working branch.
 4. Give the user the notes ready to paste (e.g. for a group chat), and say that the update reaches PushPlay once it's on the default branch and the GitHub Action has finished.

@@ -13,7 +13,7 @@
 //   })
 //   pm.state, pm.ori { b, g, a }, pm.up [x, y, z], pm.gyro { x, y }, pm.m, pm.still, pm.hz, pm.bias, pm.angle
 //
-// Same code as games/motion-lab/controller.html and toybox-bowling: keep the copies in step.
+// Same code as controller.html in https://github.com/Visual-Zone-Development/motion-lab and toybox-bowling: keep the copies in step.
 
 // ==== phone motion =========================================================================
 /**

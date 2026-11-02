@@ -1,6 +1,6 @@
 ---
 name: boss-design
-description: Design and build a boss, mini-boss or finale encounter for a game in games/ — readable attack patterns with telegraphs, phases that escalate, punish windows, an arena, a health bar and an entrance and death that feel like an event. Use for "add a boss", "the ending is flat", "give wave 10 a big enemy", "the boss is unfair / boring", or a finale in level-design. Works for any genre (shooter, platformer, brawler, puzzle "boss" levels).
+description: Design and build a boss, mini-boss or finale encounter for the game in this repo — readable attack patterns with telegraphs, phases that escalate, punish windows, an arena, a health bar and an entrance and death that feel like an event. Use for "add a boss", "the ending is flat", "give wave 10 a big enemy", "the boss is unfair / boring", or a finale in level-design. Works for any genre (shooter, platformer, brawler, puzzle "boss" levels).
 ---
 
 # Boss design
@@ -40,4 +40,4 @@ Model the boss as a **small state machine** in `game.js`: `intro → idle → te
 2. Play it with a controller and with the keyboard; it must be beatable on both, and with mouse/touch if `inputs` includes them.
 3. Run the `playtest` skill with a greedy bot if practical: does it survive phase 1? How long does the fight last (aim for 1–3 minutes)?
 4. Pause during each phase and every attack: everything freezes; Restart resets the boss fully.
-5. `npm run check <id>`, fix every ✗. Bump `version` (minor), update DESIGN.md (Boss section, Changelog), commit (`<Name>: boss …`) and push.
+5. `npm run check`, fix every ✗. Bump `version` (minor), update DESIGN.md (Boss section, Changelog), commit (`<Name>: boss …`) and push.

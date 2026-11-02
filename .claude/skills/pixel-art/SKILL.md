@@ -1,6 +1,6 @@
 ---
 name: pixel-art
-description: Make polished, consistent pixel art for a game in games/, from 32–64 px chibis to detailed 96–128 px heroic figures (winged knights, angels, kings with folds, feathers, armour, trims and fire) — characters and creatures in 4 or 8 directions with walk, run, idle, attack, cast, jump, hurt and death animations; terrain tiles, 16-tile transitions, maps and props; and UI chrome (panels, buttons, bars, slots, dialogue boxes) — at the quality of modern pixel-art generators. Ships pixelforge.js (model a character once from 3D primitives, render it to pixel art from any direction, view and frame with hue-shifted ramps, banded shading, selective outlines and cleanup), tiles.js, pixelui.js, props.js, a showcase page and a pixel font. Use for "pixel art", "make it look like PixelLab", "8-directional sprites", "sprite sheet", "walk cycle", "tileset", "top-down RPG look", "pixel UI", or any 2D game using pixel art. Pairs with model-asset / animate-asset for workflow, art-direction for the whole-screen look.
+description: Make polished, consistent pixel art for the game in this repo, from 32–64 px chibis to detailed 96–128 px heroic figures (winged knights, angels, kings with folds, feathers, armour, trims and fire) — characters and creatures in 4 or 8 directions with walk, run, idle, attack, cast, jump, hurt and death animations; terrain tiles, 16-tile transitions, maps and props; and UI chrome (panels, buttons, bars, slots, dialogue boxes) — at the quality of modern pixel-art generators. Ships pixelforge.js (model a character once from 3D primitives, render it to pixel art from any direction, view and frame with hue-shifted ramps, banded shading, selective outlines and cleanup), tiles.js, pixelui.js, props.js, a showcase page and a pixel font. Use for "pixel art", "make it look like PixelLab", "8-directional sprites", "sprite sheet", "walk cycle", "tileset", "top-down RPG look", "pixel UI", or any 2D game using pixel art. Pairs with model-asset / animate-asset for workflow, art-direction for the whole-screen look.
 ---
 
 # Pixel art
@@ -223,7 +223,7 @@ which places the in-between colours on curves that pixel artists add by hand. Ru
 - **Bake ahead, ship PNGs:** a 160-px frame takes ~0.3 s, so a full sheet takes minutes. Put a bake page in the
   game's `tools/` (skipped by the build) that sets `window.__bake = [{ name, canvas, meta }]` and
   `window.__bakeDone = true`, then run
-  `node .claude/skills/pixel-art/bake.mjs games/<id> tools/bake.html games/<id>/assets/sprites`. The game loads
+  `node .claude/skills/pixel-art/bake.mjs . tools/bake.html assets/sprites`. The game loads
   `assets/sprites/<name>.png` and its `.json` (cell size, directions, animation layout) like any sprite sheet.
 
 **Where this stops.** Primitives and patterns get to well-lit, consistent, detailed sprites in every
@@ -324,7 +324,7 @@ Convert pixel measurements to head units (`px ÷ head height in px`) and set the
    Measured on a desktop: 48 px × 8 directions × 18 frames ≈ 0.3 s; a 64-px hero with all 47 frames ≈ 0.8 s
    (expect about twice that on a Deck). Draw the title first, then bake a few frames per tick or bake each
    animation the first time it's needed, so nothing freezes.
-7. Update STYLE.md (spec, ramps, catalogue), `npm run check <id>`, look at the screenshot, bump `version`,
+7. Update STYLE.md (spec, ramps, catalogue), `npm run check`, look at the screenshot, bump `version`,
    Changelog line, commit, push.
 
 Look at the reference sheet: serve `toolkit/` (`python3 -m http.server`) and open `showcase.html`

@@ -1,6 +1,6 @@
 ---
 name: party-phone-screen
-description: Design and build the phone side of a party game in games/ — controller.html, the one-file screen each phone runs (voting, answering, drawing, hidden hands, custom buttons) — plus what the TV shares with party.public and party.view(id). Big tap targets, one decision per screen, readable at arm's length, works with no network. Use for "design the phone screen", "phones need to vote / draw / see their cards", "the phone UI is confusing", "make a custom controller", or building a --party --controller custom game.
+description: Design and build the phone side of a party game — controller.html, the one-file screen each phone runs (voting, answering, drawing, hidden hands, custom buttons) — plus what the TV shares with party.public and party.view(id). Big tap targets, one decision per screen, readable at arm's length, works with no network. Use for "design the phone screen", "phones need to vote / draw / see their cards", "the phone UI is confusing", "make a custom controller", or building a --party --controller custom game.
 ---
 
 # Party phone screen
@@ -37,8 +37,8 @@ Drive the phone with a single `party.public.phase` value and switch the whole sc
 - Keep it light: a small DOM, CSS for layout, no frameworks.
 
 ## 4. Verify
-1. `npm run dev <id>`: open the join address in 3–4 browser windows sized like phones (DevTools device mode) and play a full round; scan the QR code with a real phone if possible.
+1. `npm run dev`: open the join address in 3–4 browser windows sized like phones (DevTools device mode) and play a full round; scan the QR code with a real phone if possible.
 2. Reload one phone mid-round: it gets its seat and screen back.
 3. Every phase has a phone screen; no phone ever shows another player's secret.
-4. `npm run check <id>` (headless phones join, play and reconnect), fix every ✗.
+4. `npm run check` (headless phones join, play and reconnect), fix every ✗.
 5. Bump `version`, update DESIGN.md (phase table, Changelog), commit (`<Name>: phone screen`) and push.

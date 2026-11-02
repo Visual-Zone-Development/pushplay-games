@@ -2,7 +2,7 @@
 
 A party game can use each phone's motion sensors: tilt it like a tray, turn it like a steering
 wheel, swing it like a bat, flick it, shake it, or grip it like a bowling ball. This guide is
-what we learned building Motion Lab and Toybox Bowling and playtesting them on real phones. The
+what we learned building [Motion Lab](https://github.com/Visual-Zone-Development/motion-lab) and Toybox Bowling and playtesting them on real phones. The
 `motion-controls` skill is the step-by-step version.
 
 Scaffold with `npm run new-game <id> --party --controller motion`. That gives you:

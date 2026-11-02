@@ -69,12 +69,19 @@ export function listGames(root = ROOT) {
 const DEFAULT_IGNORES = ['tools', 'mockups', '*.py', '__pycache__', 'DESIGN.md', '*.psd', '*.ase', '*.aseprite', '*.blend', '*.kra']
 
 /**
+ * Also never shipped when the game is the repo root (a single-game repo): the repo's agent
+ * prompts, glossary and docs sit next to the game there. Anchored, so only the root copies.
+ */
+const SINGLE_GAME_IGNORES = ['/AGENTS.md', '/CLAUDE.md', '/GLOSSARY.md', '/GLOSSARY-MAP.md', '/docs']
+
+/**
  * Patterns for files to leave out of a game's build: the defaults plus one glob per line in
  * the game's ignore file (`#` comments; a trailing `/` matches a folder). Globs match a file or
- * folder name, or a path relative to the game folder when they contain a `/`.
+ * folder name, or a path relative to the game folder when they contain a `/`; a leading `/` in
+ * the defaults anchors a pattern to the game folder itself.
  */
 export function ignorePatterns(game) {
-  const patterns = [...DEFAULT_IGNORES]
+  const patterns = [...DEFAULT_IGNORES, ...(game.rel === '' ? SINGLE_GAME_IGNORES : [])]
   const file = join(game.dir, IGNORE_FILE)
   if (existsSync(file)) {
     for (const raw of readFileSync(file, 'utf8').split('\n')) {
@@ -89,6 +96,7 @@ export function ignorePatterns(game) {
 export function ignored(rel, patterns, isDir = false) {
   const name = rel.split('/').pop()
   return patterns.some((p) => {
+    if (p.startsWith('/')) return rel === p.slice(1)
     const dirOnly = p.endsWith('/')
     const pattern = dirOnly ? p.slice(0, -1) : p
     if (dirOnly && !isDir) return false

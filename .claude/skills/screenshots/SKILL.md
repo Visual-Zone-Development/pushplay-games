@@ -1,6 +1,6 @@
 ---
 name: screenshots
-description: Make a game in games/ look its best in the PushPlay library screenshot (the build captures the game about 3 seconds after starting it) and capture extra screenshots or short clips of the best moments to share. Use for "the library screenshot is boring / shows nothing", "the screenshot is just the title", "make screenshots", "record a GIF / clip", or before announcing a game.
+description: Make the game in this repo look its best in the PushPlay library screenshot (the build captures the game about 3 seconds after starting it) and capture extra screenshots or short clips of the best moments to share. Use for "the library screenshot is boring / shows nothing", "the screenshot is just the title", "make screenshots", "record a GIF / clip", or before announcing a game.
 ---
 
 # Screenshots
@@ -8,7 +8,7 @@ description: Make a game in games/ look its best in the PushPlay library screens
 Follow AGENTS.md. **How the library screenshot is made:** the build opens the game at 1280×800, presses A on the title (up to three times while `state.screen` is still `title`), waits until about 3 s have passed, and saves that frame as `screenshot.png`. The build **replaces** `art.screenshots` in the shipped manifest with that one image, so listing your own files there has no effect. The way to a good library screenshot is a good first 3 seconds of play.
 
 ## 1. Look at the current one
-Run `npm run check <id>` and open `.github/pushplay/.work/out/<id>/__art/screenshot.png`. It should show **real gameplay**: the hero, the world, a threat or goal, and the HUD. Common problems:
+Run `npm run check` and open `.github/pushplay/.work/out/<id>/__art/screenshot.png`. It should show **real gameplay**: the hero, the world, a threat or goal, and the HUD. Common problems:
 
 | Shows | Fix |
 |---|---|

@@ -82,7 +82,7 @@ the TV, where everyone's looking.
 **Phones as motion controllers (tilt, steer, swing, bowl).** Use `--controller motion` and the
 `motion-controls` skill. Gestures are detected and timed on the phone, and the TV syncs to the
 phone's clock, so timing games (batting, rhythm) work despite the delay; pointing at the screen
-doesn't (see [motion.md](motion.md)). Motion Lab is the worked example.
+doesn't (see [motion.md](motion.md)). [Motion Lab](https://github.com/Visual-Zone-Development/motion-lab) is the worked example.
 
 **Turn-based with spectators.** Leave the party unlocked so late arrivals join as watchers, or
 `party.lock()` once the game starts. Seats of players who drop (locked phone, Wi-Fi) are kept
@@ -100,7 +100,7 @@ pause menu calls `party.close()`, which tells every phone the game ended.
 
 ## Testing
 
-- `npm run dev <id>`: the local relay listens on your Wi-Fi, so scan the lobby's QR code with a
+- `npm run dev`: the local relay listens on your Wi-Fi, so scan the lobby's QR code with a
   real phone. Open the join address in a few browser windows (one per player) to test alone.
-- `npm run check <id>`: headless phones join by code, send input, must each see exactly their
+- `npm run check`: headless phones join by code, send input, must each see exactly their
   own `party.view(id)`, and one reloads to check it gets its seat back.

@@ -1,6 +1,10 @@
-// npm run new-game <game-id> [--vite] [--online | --party [--controller pad|custom|motion]] [--players 2-4] [--name "Display Name"]   (collection repos only)
-// Creates games/<game-id>/ from the starter template: title, pause and settings screens that
-// work with a controller, a keyboard, a mouse and touch, a manifest, and placeholder art.
+// npm run new-game <game-id> [--workshop] [--vite] [--online | --party [--controller pad|custom|motion]] [--players 2-4] [--name "Display Name"]
+// Creates a game from the starter template: title, pause and settings screens that work with a
+// controller, a keyboard, a mouse and touch, a manifest, and placeholder art.
+//   Where: a repo with a games/ folder is a workshop (a collection of games), so the game goes in
+//   games/<game-id>/. Otherwise the repo becomes this one game, at the root, unless --workshop
+//   asks for a workshop (it creates games/). A repo that already has a game at the root can't
+//   take another: finished workshop games move into repos like that with npm run promote.
 //   default:   plain HTML + ES modules, no build step (best for most 2D games)
 //   --vite:    a Vite project, for games that need npm packages (three.js, etc.)
 //   --online:  online multiplayer through the shared relay: net.js, a controller lobby, and a
@@ -21,6 +25,7 @@ const gamesRoot = join(ROOT, GAMES_DIR)
 
 const args = process.argv.slice(2)
 const vite = args.includes('--vite')
+const workshop = args.includes('--workshop')
 const online = args.includes('--online')
 const party = args.includes('--party')
 const valueOf = (flag) => (args.indexOf(flag) >= 0 ? args[args.indexOf(flag) + 1] : undefined)
@@ -31,7 +36,7 @@ const id = args.find((a, i) => !a.startsWith('--') && !['--name', '--players', '
 const [minPlayers, maxPlayers = minPlayers] = players.split('-').map(Number)
 
 if (!id || !/^[a-z0-9][a-z0-9-]{0,63}$/.test(id)) {
-  log('Usage: npm run new-game <game-id> [--vite] [--online | --party [--controller pad|custom|motion]] [--players 2-4] [--name "Display Name"]')
+  log('Usage: npm run new-game <game-id> [--workshop] [--vite] [--online | --party [--controller pad|custom|motion]] [--players 2-4] [--name "Display Name"]')
   log('  game-id: lowercase letters, digits and dashes, e.g. tower-panic')
   process.exit(1)
 }
@@ -48,13 +53,26 @@ if (!['pad', 'custom', 'motion'].includes(controller)) {
   process.exit(1)
 }
 if (layout() === 'single') {
-  log(`This repo is a single game (${MANIFEST_FILE} at the root), so it can't hold more games.`)
+  log(`This repo is already a game (${MANIFEST_FILE} at the root): one game per repo. Start the next one in a new repo from the games template (or a workshop: new-game --workshop there).`)
   process.exit(1)
 }
-const dir = join(gamesRoot, id)
-if (existsSync(dir)) {
+// --workshop on a fresh repo: make it a workshop (games/), so this and later games live side by side.
+if (workshop) mkdirSync(gamesRoot, { recursive: true })
+// No games/ folder: this repo becomes the game itself.
+const single = !existsSync(gamesRoot)
+const dir = single ? ROOT : join(gamesRoot, id)
+/** Where the game's files are, for messages: '' at the root, 'games/<id>/' in a collection. */
+const at = single ? '' : `${GAMES_DIR}/${id}/`
+if (!single && existsSync(dir)) {
   log(`games/${id} already exists.`)
   process.exit(1)
+}
+if (single) {
+  const taken = ['index.html', 'game.js', 'src', 'art', 'vite.config.js'].filter((f) => existsSync(join(ROOT, f)))
+  if (taken.length) {
+    log(`This repo already has ${taken.join(', ')} at the root. Move them aside (or start from a fresh copy of the games template) before making a game here.`)
+    process.exit(1)
+  }
 }
 
 const title = name ?? id.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
@@ -64,6 +82,7 @@ const fill = (text) =>
     .replaceAll('{{NAME}}', title)
     .replaceAll('{{ID}}', id)
     .replaceAll('{{SLUG}}', brand.slug)
+    .replaceAll('{{BRAND}}', brand.name)
     .replaceAll('{{MIN_PLAYERS}}', String(minPlayers))
     .replaceAll('{{MAX_PLAYERS}}', String(maxPlayers))
 
@@ -97,7 +116,7 @@ for (const file of RUNTIME_FILES) writeFileSync(join(codeDir, file), fill(readFi
 copyTemplate(join(templates, 'shared/art'), join(dir, 'art'))
 
 const manifest = {
-  $schema: `../../${KIT_DIR}/manifest.schema.json`,
+  $schema: `${single ? './' : '../../'}${KIT_DIR}/manifest.schema.json`,
   id,
   name: title,
   description: '',
@@ -117,10 +136,20 @@ if (vite) {
   const html = readFileSync(join(codeDir, 'index.html'), 'utf8').replace('./game.js', './src/game.js')
   writeFileSync(join(dir, 'index.html'), html)
   rmSync(join(codeDir, 'index.html'))
-  writeFileSync(
-    join(dir, 'package.json'),
-    JSON.stringify({ name: id, private: true, type: 'module', scripts: { dev: 'vite', build: 'vite build' } }, null, 2) + '\n'
-  )
+  if (single) {
+    // The repo's own package.json holds the kit's scripts (dev, check…); add the build next to them.
+    const file = join(ROOT, 'package.json')
+    const pkg = existsSync(file) ? JSON.parse(readFileSync(file, 'utf8')) : { private: true, type: 'module' }
+    pkg.name = id
+    pkg.scripts = { ...pkg.scripts, build: 'vite build' }
+    pkg.devDependencies = { vite: pkg.devDependencies?.vite ?? '^7.3.7', ...pkg.devDependencies }
+    writeFileSync(file, JSON.stringify(pkg, null, 2) + '\n')
+  } else {
+    writeFileSync(
+      join(dir, 'package.json'),
+      JSON.stringify({ name: id, private: true, type: 'module', scripts: { dev: 'vite', build: 'vite build' } }, null, 2) + '\n'
+    )
+  }
   // Relative base so the build works from any folder.
   writeFileSync(join(dir, 'vite.config.js'), `import { defineConfig } from 'vite'\n\nexport default defineConfig({ base: './' })\n`)
   manifest.build = { preset: 'vite', output: 'dist' }
@@ -128,21 +157,24 @@ if (vite) {
 
 writeFileSync(join(dir, MANIFEST_FILE), JSON.stringify(manifest, null, 2) + '\n')
 
-// A Vite game is an npm workspace; refresh package-lock.json so CI's install matches. Commit it.
+// Refresh package-lock.json so CI's install matches (a Vite game is the root package or an npm
+// workspace). Commit it.
 if (vite) spawnSync('npm', ['install', '--no-audit', '--no-fund'], { ...npmSpawn, cwd: ROOT, stdio: 'inherit' })
 
-log(`Created games/${id}/ (${vite ? 'Vite' : 'plain HTML'}${online ? ', online' : ''}${party ? `, party with a ${controller} phone controller` : ''}).`)
+const kind = `${vite ? 'Vite' : 'plain HTML'}${online ? ', online' : ''}${party ? `, party with a ${controller} phone controller` : ''}`
+log(single ? `Created ${title} at the root of this repo (${kind}). This repo is now that one game.` : `Created games/${id}/ (${kind}).${workshop ? ' This repo is a workshop: make more games with new-game, and move finished ones into their own repos with npm run promote.' : ''}`)
 log('Next:')
-log(`  1. Write the game in games/${id}/${vite ? 'src/' : ''}game.js. Keep its title, pause and settings screens:`)
+log(`  1. Write the game in ${at}${vite ? 'src/' : ''}game.js. Keep its title, pause and settings screens:`)
 log(`     input.js, menu.js, fit.js, audio.js, save.js, settings.js and prompts.js make them work with every input.`)
 if (online) log(`     Online: the host runs the rules in hostUpdate() and writes net.state; everyone draws net.view. Don't edit net.js or lobby.js.`)
 if (party) {
   log(`     Party: the TV runs everything. party.public goes to every phone, party.view(id) to one phone only.`)
-  log(`     The phone screen is games/${id}/${vite ? 'public/' : ''}controller.html. Don't edit party.js, party-lobby.js, qr.js, controller.js or net.js.`)
+  log(`     The phone screen is ${at}${vite ? 'public/' : ''}controller.html. Don't edit party.js, party-lobby.js, qr.js, controller.js or net.js.`)
   if (controller === 'motion') log(`     Motion: const motion = createMotion(party) from motion.js; motion.update(dt) each frame, then motion.of(id).tilt / .wheel / .swings. Read docs/game-design/motion.md.`)
 }
-log(`  2. Fill in "description" and "tags" in games/${id}/${MANIFEST_FILE} (drop inputs gameplay can't support).`)
-log(`  3. Replace games/${id}/art/cover.svg and hero.svg with real art.`)
-log(`  4. npm run dev ${id}   → play it in a browser (add ?debug to the URL for the state overlay)`)
-log(`  5. npm run check ${id} → must pass before pushing`)
-if (vite) log(`  npm packages: npm install <pkg> --workspace games/${id}`)
+const target = single ? '' : ` ${id}`
+log(`  2. Fill in "description" and "tags" in ${at}${MANIFEST_FILE} (drop inputs gameplay can't support).`)
+log(`  3. Replace ${at}art/cover.svg and hero.svg with real art.`)
+log(`  4. npm run dev${target}   → play it in a browser (add ?debug to the URL for the state overlay)`)
+log(`  5. npm run check${target} → must pass before pushing`)
+if (vite) log(`  npm packages: npm install <pkg>${single ? '' : ` --workspace games/${id}`}`)

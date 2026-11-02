@@ -1,6 +1,6 @@
 ---
 name: cover-art
-description: Make or improve the library art for a game in games/ — the 720×500 cover with the title (art/cover.svg or cover.html) and the 1920×450 hero banner (art/hero.svg) — so it reads at thumbnail size, shows what the game is, uses the game's palette and bundled fonts, and keeps clear of the areas the launcher draws over. Use for "make the cover", "the cover looks bad / generic", "new banner", a failing check about placeholder art, or the art step of new-game.
+description: Make or improve the library art for the game in this repo — the 720×500 cover with the title (art/cover.svg or cover.html) and the 1920×450 hero banner (art/hero.svg) — so it reads at thumbnail size, shows what the game is, uses the game's palette and bundled fonts, and keeps clear of the areas the launcher draws over. Use for "make the cover", "the cover looks bad / generic", "new banner", a failing check about placeholder art, or the art step of new-game.
 ---
 
 # Cover art
@@ -18,7 +18,7 @@ Follow AGENTS.md (*Art*) and [art-directions.md](../../../docs/game-design/art-d
 
 Also: a full background (no transparency), 2–4 main colours from the game's palette plus a text colour, fonts only from `Chakra Petch` (600, 700), `Rubik` (400, 700, 900), `Bungee`, `Lilita One`, `Press Start 2P`, no external images or links (`data:` images are fine). Pixel-art games can use `art/cover.html` drawing with the game's own sprite code (set `"cover": "art/cover.html"`).
 
-**Best: draw both with the game's own art code.** If the game's drawing lives in one module (`art.js`, or the 3D model code), make `art/cover.html` and `art/hero.html` import it and compose a scene at their sizes, with the cover title as an HTML `<h1>` in a bundled font over a thick `-webkit-text-stroke` copy for the outline. The library art then always matches the game. Worked examples: `games/arcade-sampler/art/` (cabinets drawn by each game's own `icon()`) and `games/motion-lab/art/`. Set `"art": { "cover": "art/cover.html", "hero": "art/hero.html" }`.
+**Best: draw both with the game's own art code.** If the game's drawing lives in one module (`art.js`, or the 3D model code), make `art/cover.html` and `art/hero.html` import it and compose a scene at their sizes, with the cover title as an HTML `<h1>` in a bundled font over a thick `-webkit-text-stroke` copy for the outline. The library art then always matches the game. Worked examples: [Arcade Sampler's `art/`](https://github.com/Visual-Zone-Development/arcade-sampler/tree/main/art) (cabinets drawn by each game's own `icon()`) and [Motion Lab's `art/`](https://github.com/Visual-Zone-Development/motion-lab/tree/main/art). Set `"art": { "cover": "art/cover.html", "hero": "art/hero.html" }`.
 
 ## 2. Compose for a thumbnail
 1. **Pick one idea:** the hero object doing the core verb (a ship mid-dodge, a frog mid-jump), plus one hint of the challenge (an asteroid, a boss shadow). Not a collage.
@@ -32,9 +32,9 @@ Also: a full background (no transparency), 2–4 main colours from the game's pa
 With `OPENAI_API_KEY`, `GEMINI_API_KEY` or `REPLICATE_API_TOKEN` set, a painted backdrop or key-art scene can be generated (`npm run art`, [generated-art.md](../../../docs/game-design/generated-art.md)) and embedded in `cover.html` / `hero.html` under the game-drawn hero and the title. Keep the title as real text, never generated.
 
 ## 3. Render, look, iterate
-1. `npm run check <id>`; it renders `cover.png` and `hero.png` under `.github/pushplay/.work/out/<id>/__art/`.
+1. `npm run check`; it renders `cover.png` and `hero.png` under `.github/pushplay/.work/out/<id>/__art/`.
 2. **Open both PNGs** and judge them:
-   - Shrink test: does the cover still read at ~216×150? `npm run art:shots <id>` renders `cover-thumb.png` at that size. Is the title legible?
+   - Shrink test: does the cover still read at ~216×150? `npm run art:shots` renders `cover-thumb.png` at that size. Is the title legible?
    - Does it look like *this* game, in its palette, and not a generic placeholder?
    - Anything important in the bottom 110 px of the cover or the bottom-left of the hero?
 3. Fix and re-run until both look good: usually by enlarging the hero, simplifying the background and strengthening contrast.

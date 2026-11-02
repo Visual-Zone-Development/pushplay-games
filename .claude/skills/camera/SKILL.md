@@ -1,6 +1,6 @@
 ---
 name: camera
-description: Build and tune the camera for a game in games/, 2D or 3D — smooth follow with dead zones and look-ahead, room or screen locks, framing several players or a boss, zoom, bounds, shake that respects reduced shake, and in three.js third-person, top-down, isometric or fixed cameras that avoid walls and keep the action readable on a handheld. Use for "the camera is jerky / makes me sick", "I can't see what's coming", "the camera goes through walls", "zoom out for co-op", "frame the boss", or a new game's camera.
+description: Build and tune the camera for the game in this repo, 2D or 3D — smooth follow with dead zones and look-ahead, room or screen locks, framing several players or a boss, zoom, bounds, shake that respects reduced shake, and in three.js third-person, top-down, isometric or fixed cameras that avoid walls and keep the action readable on a handheld. Use for "the camera is jerky / makes me sick", "I can't see what's coming", "the camera goes through walls", "zoom out for co-op", "frame the boss", or a new game's camera.
 ---
 
 # Camera
@@ -38,5 +38,5 @@ Keep a camera object `{ x, y, zoom }`; draw the world with `ctx.translate(640 - 
 1. Play the hardest moving part of the game: can you always see what's coming? Never lose the player off screen?
 2. Check at 1280×800 and a 16:9 window (fitCanvas letterboxes, the camera itself doesn't change).
 3. Pause freezes the camera; Restart snaps it to the start (no slide from the old position).
-4. All camera numbers in `TUNING.camera`. `npm run check <id>`, view the screenshot, fix every ✗.
+4. All camera numbers in `TUNING.camera`. `npm run check`, view the screenshot, fix every ✗.
 5. Bump `version`, add a Changelog line, commit (`<Name>: camera`) and push.

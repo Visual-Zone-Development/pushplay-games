@@ -1,20 +1,28 @@
 # Making games in this repo
 
-This repo is a collection of small games. Each folder in `games/` is one game, and there can be as many as the owner likes: a new game is a new folder, never a new repo. When you push, GitHub Actions builds every game that changed and publishes it, and the **PushPlay** launcher on the owner's handheld (a Steam Deck or a Lenovo Legion Go running SteamOS) or PC picks it up automatically. Whatever you make here gets played **on a handheld, with a controller, on the couch**, and sometimes on a PC with a keyboard, a mouse or a touchscreen. Design for that.
+This repo is **one game, or a workshop of many**. It starts empty, and the first `npm run new-game` decides which:
+
+- **One game** (`npm run new-game <id>`): the game sits at the repo root (`pushplay.json`, `index.html`, `game.js`, `art/` next to this file). One game per repo is what gives a game its own releases and a listing on PushPlay's **Discover** tab. `new-game` refuses a second game here.
+- **Workshop** (`npm run new-game <id> --workshop`, or any repo that already has a `games/` folder): every game is a folder in `games/<id>/`, so one agent session can make and prototype as many as the owner likes. When a game is finished, `npm run promote <id>` moves it into its own one-game repo (see the `promote-game` skill); players keep their saves.
+
+**Paths in this file and in the skills are written for one game at the root.** In a workshop, the game's files are under `games/<id>/` (`games/<id>/pushplay.json`, `games/<id>/DESIGN.md`, `games/<id>/art/`), and commands take the id: `npm run check <id>`, `npm run dev <id>`, `npm run art:shots <id>`, `npm run art -- <id>`, `npm install <pkg> --workspace games/<id>`. Work only on the game you were asked about.
+
+When you push, GitHub Actions builds every game that changed and publishes it, and the **PushPlay** launcher on the owner's handheld (a Steam Deck or a Lenovo Legion Go running SteamOS) or PC picks it up automatically. Whatever you make here gets played **on a handheld, with a controller, on the couch**, and sometimes on a PC with a keyboard, a mouse or a touchscreen. Design for that.
 
 ## Workflow (follow it every time)
 
-0. **Kickoff interview and design brief first.** A complete, fun game beats a quick tech demo. Before writing any code for a new game, ask the user the questions in [`docs/game-design/kickoff.md`](docs/game-design/kickoff.md), a few at a time, with your recommended option first. Every required topic needs an answer: **concept / genre, 2D or 3D, art style, players (solo, local, online or party), how it should *feel*, camera / view, session length and structure, and games it should feel like**; then whatever is still open (audience and difficulty, assets, sound, theme, progression). Don't re-ask what the request already says. Only when the user says "surprise me" or "you decide" do you choose these yourself, recording each as an assumption. Once step 1 has created the folder, write `games/<id>/DESIGN.md` from [`docs/game-design/DESIGN.template.md`](docs/game-design/DESIGN.template.md). The design guides in [`docs/game-design/`](docs/game-design/) cover the 8 formal elements and 8 kinds of fun ([framework](docs/game-design/framework.md)), genre loops, art styles, researching inspiration, and the [definition of done](docs/game-design/complete-game.md) every game should meet.
-1. **New game:** `npm run new-game <game-id>` (add `--vite` if you need npm packages like three.js, `--online --players 2-4` for online multiplayer, `--party` for a party game played on a TV with phones). The id is lowercase-with-dashes and becomes the folder name. This creates a working starter with title, pause and settings screens that already work on controller, keyboard, mouse and touch: `game.js`, the runtime files (`input.js`, `menu.js`, `fit.js`, `audio.js`, `save.js`, `settings.js`, `prompts.js`, plus `net.js` and `lobby.js` in an `--online` game, or `net.js`, `party.js`, `party-lobby.js`, `qr.js` and `controller.js` in a `--party` game), `pushplay.json` and placeholder art.
-2. **Build the game** in that folder. Only touch other games, `.github/` or root files if the user asked you to. Never edit the runtime files (see *Runtime files*).
+0. **Kickoff interview and design brief first.** A complete, fun game beats a quick tech demo. Before writing any code for a new game, ask the user the questions in [`docs/game-design/kickoff.md`](docs/game-design/kickoff.md), a few at a time, with your recommended option first. Every required topic needs an answer: **concept / genre, 2D or 3D, art style, players (solo, local, online or party), how it should *feel*, camera / view, session length and structure, and games it should feel like**; then whatever is still open (audience and difficulty, assets, sound, theme, progression). Don't re-ask what the request already says. Only when the user says "surprise me" or "you decide" do you choose these yourself, recording each as an assumption. Once step 1 has created the game, write `DESIGN.md` from [`docs/game-design/DESIGN.template.md`](docs/game-design/DESIGN.template.md). The design guides in [`docs/game-design/`](docs/game-design/) cover the 8 formal elements and 8 kinds of fun ([framework](docs/game-design/framework.md)), genre loops, art styles, researching inspiration, and the [definition of done](docs/game-design/complete-game.md) every game should meet.
+1. **New game:** `npm run new-game <game-id>` (add `--vite` if you need npm packages like three.js, `--online --players 2-4` for online multiplayer, `--party` for a party game played on a TV with phones). The id is lowercase-with-dashes and is the game's permanent id (save keys and its PushPlay listing use it). In an empty repo, ask the user once whether this repo is for **this one game** (recommended when they mean to publish it) or a **workshop** for many (add `--workshop`; recommended when they'll keep asking for new games, e.g. from a phone). This creates a working starter (at the root, or in `games/<id>/`) with title, pause and settings screens that already work on controller, keyboard, mouse and touch: `game.js`, the runtime files (`input.js`, `menu.js`, `fit.js`, `audio.js`, `save.js`, `settings.js`, `prompts.js`, plus `net.js` and `lobby.js` in an `--online` game, or `net.js`, `party.js`, `party-lobby.js`, `qr.js` and `controller.js` in a `--party` game), `pushplay.json` and placeholder art.
+2. **Build the game.** Only touch `.github/`, `AGENTS.md`, `CLAUDE.md`, `.claude/` or `docs/` if the user asked you to. If the repo is already one game (a `pushplay.json` at the root), that's the one to work on: `new-game` refuses a second, and a new idea belongs in a new repo from the template (or in a workshop). In a workshop, only touch other games if asked. Never edit the runtime files (see *Runtime files*).
 3. **Fill in `pushplay.json`:** a real `description`, `players`, `tags`, `inputs`, and anything else that applies (see *Manifest*).
 4. **Make the art:** replace `art/cover.svg` and `art/hero.svg` (see *Art*). This is required; the check fails on placeholder art.
-5. **Run `npm run check <game-id>` and fix everything it reports.** It builds the game, plays it headlessly at 1280×800 with a virtual gamepad, then keyboard-only (Enter, then Esc must pause), then touch (taps the title menu), presses Start and expects `window.__game.state.screen === 'paused'`, renders it again in a 16:9 window at 2× pixels (1280×720 at DPR 2), and renders the art to PNG. It fails on crashes, network requests, dialogs, blank screens, placeholder art, missing `tags` or `inputs`, an F10 binding and a pause that doesn't happen; it warns on console errors, save keys that don't start with the game id, and when `menu.js` isn't imported or `input.attach` isn't called. The touch pass taps the title menu through `window.__game.titleMenu` (the starter exposes it), so keep that getter if you move the title menu.
+5. **Run `npm run check` and fix everything it reports.** It builds the game, plays it headlessly at 1280×800 with a virtual gamepad, then keyboard-only (Enter, then Esc must pause), then touch (taps the title menu), presses Start and expects `window.__game.state.screen === 'paused'`, renders it again in a 16:9 window at 2× pixels (1280×720 at DPR 2), and renders the art to PNG. It fails on crashes, network requests, dialogs, blank screens, placeholder art, missing `tags` or `inputs`, an F10 binding and a pause that doesn't happen; it warns on console errors, save keys that don't start with the game id, and when `menu.js` isn't imported or `input.attach` isn't called. The touch pass taps the title menu through `window.__game.titleMenu` (the starter exposes it), so keep that getter if you move the title menu.
 6. **Look at the output images** it prints (`.github/pushplay/.work/out/<id>/__art/cover.png`, `hero.png`, `screenshot.png`). If you can view images, check that the art reads well at small size and that the screenshot shows the game, not an error or empty screen. Iterate until they look good.
 7. **Verify by hand** against the matrix in *Verification* below (controller, keyboard only, mouse only, touch, resize).
-8. **Commit and push** (one commit per game is fine). Pushing the default branch publishes the build; other branches only run the check.
+8. **Commit and push.** Pushing the default branch publishes the build; other branches only run the check.
+9. **Finished workshop game?** When the user says it's ready for Discover or its own repo, promote it (the `promote-game` skill).
 
-**Changing an existing game:** read its `DESIGN.md` first and keep changes consistent with it. Bump `version`, add a line to its Changelog, and run the check. For bugs, see [`docs/game-design/debugging.md`](docs/game-design/debugging.md).
+**Changing a game:** read its `DESIGN.md` first and keep changes consistent with it. Bump `version`, add a line to its Changelog, and run the check. For bugs, see [`docs/game-design/debugging.md`](docs/game-design/debugging.md).
 
 First time in a fresh checkout: `npm run setup` (installs dependencies and the headless browser).
 
@@ -24,7 +32,7 @@ If your environment can't install the browser (some cloud sandboxes block the do
 
 ### Runtime files (don't edit)
 
-`input.js`, `menu.js`, `fit.js`, `audio.js`, `save.js`, `settings.js` and `prompts.js` in each game folder (plus `net.js` and `lobby.js` in an online game, and `party.js`, `party-lobby.js`, `qr.js`, `controller.js` and `net.js` in a party game) start with the header `pushplay runtime vN — replaced by npm run update-kit; don't edit`. They are shared code: `npm run update-kit` overwrites them in every game, so any edit is lost. Import them; never change them. Game-specific key aliases go through `input.extendKeys({ KeyR: 'y' })` in `game.js`.
+`input.js`, `menu.js`, `fit.js`, `audio.js`, `save.js`, `settings.js` and `prompts.js` (plus `net.js` and `lobby.js` in an online game, and `party.js`, `party-lobby.js`, `qr.js`, `controller.js` and `net.js` in a party game) start with the header `pushplay runtime vN — replaced by npm run update-kit; don't edit`. They are shared code: `npm run update-kit` overwrites them, so any edit is lost. Import them; never change them. Game-specific key aliases go through `input.extendKeys({ KeyR: 'y' })` in `game.js`.
 
 ### Controls: every input, alone
 
@@ -128,7 +136,7 @@ Every game has a Settings screen, **reachable from the title and from the pause 
 
 ### Offline and self-contained
 
-- No CDNs, remote fonts, analytics or network calls. Bundle everything inside the game folder (or install it with npm in a `--vite` game). The check fails on internet requests and on WebSockets.
+- No CDNs, remote fonts, analytics or network calls. Bundle everything inside this repo (or install it with npm in a `--vite` game). The check fails on internet requests and on WebSockets.
 - Exception: online multiplayer, with `"online": true` in the manifest. Scaffold it with `--online`: it plays through the shared relay with no setup, and only the relay connection is allowed. Follow [`docs/game-design/multiplayer.md`](docs/game-design/multiplayer.md) and don't edit the provided `net.js` or `lobby.js` (see *Online multiplayer*).
 - Same for party games (`"party": true`, scaffolded with `--party`): phones join through the same relay (see *Party games*).
 - Saves persist per game on the handheld via `localStorage` (see *Saves*).
@@ -162,8 +170,8 @@ The Deck and the Legion Go have mid-range integrated GPUs. Aim for a steady 60fp
 ### Tech
 
 - Default: plain HTML + ES modules (`<script type="module">`) and canvas.
-- Use `--vite` when you need npm packages (three.js, Phaser, physics engines). Install with `npm install <pkg> --workspace games/<id>` and commit `package-lock.json`.
-- Keep a game self-contained in its folder. Don't commit or ship working files: `tools/`, `mockups/`, `*.py`, `__pycache__/`, reference images. The build skips those plus `DESIGN.md`; list anything else to skip in a `.pushplayignore` in the game folder.
+- Use `--vite` when you need npm packages (three.js, Phaser, physics engines). Install with `npm install <pkg>` and commit `package-lock.json`.
+- Keep the game self-contained in this repo. The build ships the game's files and skips the rest: `tools/`, `mockups/`, `*.py`, `__pycache__/`, `DESIGN.md`, and the repo's `AGENTS.md`, `CLAUDE.md` and `docs/`. List anything else to skip (reference images, notes) in `.pushplayignore` at the root.
 - For 3D games (three.js), follow the budgets in [`docs/game-design/3d.md`](docs/game-design/3d.md).
 - Put all gameplay numbers in a `TUNING` object at the top of `game.js`, so tuning later is quick. Clamp `dt` (`Math.min(1/20, …)`).
 
@@ -178,17 +186,17 @@ Do all of these before pushing; `npm run check` covers them headlessly, you cove
 | Mouse only | hands off the keyboard | every menu by click; pause button works; gameplay if `inputs` includes `"mouse"` |
 | Touch | DevTools device mode (touch emulation) | every menu by tap; pause button; prompts say "Tap"; gameplay if `inputs` includes `"touch"` |
 | Scaling | resize the window to 1920×1080, then DevTools device mode at DPR 2 | centred, letterboxed in the right colour, crisp text, no blur or clipping |
-| `npm run check <id>` | | passes, screenshot shows real content, `window.__game.state.screen` exposed |
+| `npm run check` | | passes, screenshot shows real content, `window.__game.state.screen` exposed |
 
 ## Assets
 
-Games can be fully procedural, or use the user's own sprites, audio, models and fonts. Copy them into `games/<id>/assets/` (never link outside the folder or to the internet), record where each came from and its license in `assets/CREDITS.md`, and keep files small (sprite sheets ≤ 2048px, music ≤ ~3 MB, < 30 MB total). Details: [`docs/game-design/assets.md`](docs/game-design/assets.md). Painted sprites and textures can also be generated with the user's own image API key (`npm run art`, see [`docs/game-design/generated-art.md`](docs/game-design/generated-art.md)); the images are bundled, never fetched at runtime.
+Games can be fully procedural, or use the user's own sprites, audio, models and fonts. Copy them into `assets/` (never link to the internet), record where each came from and its license in `assets/CREDITS.md`, and keep files small (sprite sheets ≤ 2048px, music ≤ ~3 MB, < 30 MB total). Details: [`docs/game-design/assets.md`](docs/game-design/assets.md). Painted sprites and textures can also be generated with the user's own image API key (`npm run art`, see [`docs/game-design/generated-art.md`](docs/game-design/generated-art.md)); the images are bundled, never fetched at runtime.
 
-## Manifest (`games/<id>/pushplay.json`)
+## Manifest (`pushplay.json`)
 
 ```json
 {
-  "$schema": "../../.github/pushplay/manifest.schema.json",
+  "$schema": "./.github/pushplay/manifest.schema.json",
   "id": "star-courier",
   "name": "Star Courier",
   "description": "Pilot a tiny courier ship through an asteroid field, grabbing parcels before the clock runs out.",
@@ -203,10 +211,10 @@ Games can be fully procedural, or use the user's own sprites, audio, models and 
 }
 ```
 
-- `id` must equal the folder name.
+- `id`: set by `new-game` (in a workshop it's also the folder name); never change it (players' saves and the PushPlay listing follow it).
 - `description`: 1–3 sentences in plain language: what you do and what makes it fun. It's shown in the library.
 - `players`: like `"1"` or `"1-4"`.
-- `tags` (**required**; the check fails without it): 2–5 lowercase words players can filter the library by: genre first (`"racing"`, `"puzzle"`, `"platformer"`, `"shooter"`), then setting or style (`"space"`, `"pixel art"`, `"cozy"`), and `"local multiplayer"` if it supports more than one player. Reuse tags other games in `games/` already use when they fit, so filters group them. Letters, digits, spaces, `-`, `&` and `'`, up to 24 characters each, at most 8.
+- `tags` (**required**; the check fails without it): 2–5 lowercase words players can filter the library by: genre first (`"racing"`, `"puzzle"`, `"platformer"`, `"shooter"`), then setting or style (`"space"`, `"pixel art"`, `"cozy"`), and `"local multiplayer"` if it supports more than one player. Letters, digits, spaces, `-`, `&` and `'`, up to 24 characters each, at most 8.
 - `inputs` (**required**): which inputs the whole game, gameplay included, is playable with: any of `"gamepad"`, `"keyboard"`, `"mouse"`, `"touch"`. Menus must always support all four regardless; only drop `"mouse"` or `"touch"` when gameplay genuinely can't work with them, and say so on the title screen. `"gamepad"` and `"keyboard"` are always present.
 - `version`: bump it when you make a notable change.
 - Vite games also have `"build": { "preset": "vite", "output": "dist" }` (the scaffold adds it).
@@ -228,25 +236,27 @@ Guidelines:
 - No external images or links inside the SVG. Embedded `<image href="data:...">` is fine.
 - For a pixel-art or canvas look, an `art/cover.html` page that draws with the game's own code also works. Set `"cover": "art/cover.html"`. The page is rendered at exactly 720×500, after `load`.
 
-The best covers are drawn by the game's own art code: `art/cover.html` and `art/hero.html` import the module the game draws with, so the library art always matches the game (see the `cover-art` skill and `games/arcade-sampler/art/`). `npm run art:shots <id>` renders them, any `art/gallery.html` contact sheet and a tile-size thumbnail to look at.
+The best covers are drawn by the game's own art code: `art/cover.html` and `art/hero.html` import the module the game draws with, so the library art always matches the game (see the `cover-art` skill and [Arcade Sampler's `art/`](https://github.com/Visual-Zone-Development/arcade-sampler/tree/main/art)). `npm run art:shots` renders them, any `art/gallery.html` contact sheet and a tile-size thumbnail to look at.
 
 If you're truly unable to make art, remove the `art` field: the check will generate a basic cover from a screenshot. Hand-made art is strongly preferred.
 
 ## Commands
 
+`npm run promote <id> [-- --repo owner/name] [--private] [--keep]`: in a workshop, move a finished game into its own repo (see the `promote-game` skill).
+
 | Command | What it does |
 |---|---|
-| `npm run new-game <id> [--vite] [--online \| --party [--controller pad\|custom\|motion]] [--players 2-4] [--name "Title"]` | Scaffold a game (`--online`: online multiplayer starter; `--party`: TV + phones party starter) |
-| `npm run dev <id>` | Play it in a browser with live reload (http://localhost:5173). Online games: a local relay starts too, so open two windows. Party games: phones on the same Wi-Fi scan the lobby's QR code |
-| `npm run check [id]` | Validate, build, headless play test (gamepad, keyboard, touch, pause, a 16:9 window at DPR 2; online games also play two copies through a local relay; party games bring headless phones that join, play and reconnect), render art. Must pass before pushing. |
-| `npm run art:shots <id>` | Render the game's art pages (cover, hero, `art/gallery.html`) and a cover thumbnail to PNG to look at |
-| `npm run art -- <id> [--dry]` | Optional: generate painted art from `art/prompts.json` with your own image API key (`.env` or environment; prints the cost first) |
-| `npm run update-kit` | Refresh the build kit, these prompts and the runtime files in every game (only when the user asks) |
+| `npm run new-game <id> [--vite] [--online \| --party [--controller pad\|custom\|motion]] [--players 2-4] [--name "Title"]` | Make a game: the repo's one game, or one more in a workshop with `--workshop` / an existing `games/` (`--online`: online multiplayer starter; `--party`: TV + phones party starter) |
+| `npm run dev` | Play it in a browser with live reload (http://localhost:5173). Online games: a local relay starts too, so open two windows. Party games: phones on the same Wi-Fi scan the lobby's QR code |
+| `npm run check` | Validate, build, headless play test (gamepad, keyboard, touch, pause, a 16:9 window at DPR 2; online games also play two copies through a local relay; party games bring headless phones that join, play and reconnect), render art. Must pass before pushing. |
+| `npm run art:shots` | Render the game's art pages (cover, hero, `art/gallery.html`) and a cover thumbnail to PNG to look at |
+| `npm run art -- [--dry]` | Optional: generate painted art from `art/prompts.json` with your own image API key (`.env` or environment; prints the cost first) |
+| `npm run update-kit` | Refresh the build kit, these prompts and the runtime files (only when the user asks) |
 
 ## Don'ts
 
-- Don't edit `.github/` unless asked: it holds the build kit and workflow shared by every game.
-- Don't edit the runtime files in a game folder (`input.js`, `menu.js`, `fit.js`, `audio.js`, `save.js`, `settings.js`, `prompts.js`, `net.js` / `lobby.js` in online games, and `party.js` / `party-lobby.js` / `qr.js` / `controller.js` in party games).
+- Don't edit `.github/` unless asked: it holds the build kit and workflow.
+- Don't edit the runtime files (`input.js`, `menu.js`, `fit.js`, `audio.js`, `save.js`, `settings.js`, `prompts.js`, `net.js` / `lobby.js` in online games, and `party.js` / `party-lobby.js` / `qr.js` / `controller.js` in party games).
 - Don't bind F10, Start+Select or a held Esc; don't build an "exit to launcher" of your own (`menu.js` adds Quit to library to the pause menu inside the launcher).
-- Don't commit `node_modules/`, `dist/`, or a game's own `tools/`, `mockups/`, `*.py` or `__pycache__/` (the repo-level `tools/` folder is shared tooling and belongs in git).
-- Don't delete or rewrite other games.
+- Don't commit `node_modules/`, `dist/`, `mockups/`, `*.py` or `__pycache__/` (the repo's `tools/` folder is shared tooling and belongs in git; the build never ships it).
+- Don't start a second game in a one-game repo; don't delete or rewrite other games in a workshop.

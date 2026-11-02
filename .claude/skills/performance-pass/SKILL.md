@@ -1,6 +1,6 @@
 ---
 name: performance-pass
-description: Measure and fix frame rate, stutter, load time and memory for a game in games/ so it holds a steady 60 fps on a Steam Deck and Legion Go at DPR 2 — frame-time profiling, object pooling, removing per-frame allocations, canvas 2D draw costs (shadowBlur, text, gradients, cached sprites), three.js budgets (draw calls, triangles, textures, instancing), and bundle size. Use for "it lags", "fps drops when lots happens", "slow on the Deck", "loads slowly", or a performance check before shipping. For crashes and other bugs use debug-game.
+description: Measure and fix frame rate, stutter, load time and memory for the game in this repo so it holds a steady 60 fps on a Steam Deck and Legion Go at DPR 2 — frame-time profiling, object pooling, removing per-frame allocations, canvas 2D draw costs (shadowBlur, text, gradients, cached sprites), three.js budgets (draw calls, triangles, textures, instancing), and bundle size. Use for "it lags", "fps drops when lots happens", "slow on the Deck", "loads slowly", or a performance check before shipping. For crashes and other bugs use debug-game.
 ---
 
 # Performance pass
@@ -36,5 +36,5 @@ Targets: a steady 16.7 ms frame; no single frame over ~33 ms during play; no gro
 1. Re-measure the same worst case at DPR 1 and DPR 2; report before → after numbers.
 2. Play 5 minutes: no stutter creeping in, memory steady.
 3. Gameplay must not change: the same seed gives the same run.
-4. `npm run check <id>`, fix every ✗.
+4. `npm run check`, fix every ✗.
 5. Bump `version` (patch), add a Changelog line with the numbers, commit (`<Name>: performance`) and push. Tell the user what to notice on the device ("the boss explosion should no longer hitch").

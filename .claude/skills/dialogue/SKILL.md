@@ -1,6 +1,6 @@
 ---
 name: dialogue
-description: Write and build conversations for a game in games/ — NPC dialogue with branching choices, conditions and remembered flags, character voices matched to the game's references, portraits and moods, voice blips, and a dialogue box that works with controller, keyboard, mouse and touch and matches the art style. Ships a readable script format and runner (dialogue-script.js), the box (dialogue.js) and a script linter (lint.mjs). Use for "add dialogue", "NPCs should talk", "add conversations / choices", "a dialogue system", "branching dialogue", "make the characters sound different", "the dialogue is flat / too long". For the story bible, premise and between-level story beats use story-and-dialogue; for translation use localization.
+description: Write and build conversations for the game in this repo — NPC dialogue with branching choices, conditions and remembered flags, character voices matched to the game's references, portraits and moods, voice blips, and a dialogue box that works with controller, keyboard, mouse and touch and matches the art style. Ships a readable script format and runner (dialogue-script.js), the box (dialogue.js) and a script linter (lint.mjs). Use for "add dialogue", "NPCs should talk", "add conversations / choices", "a dialogue system", "branching dialogue", "make the characters sound different", "the dialogue is flat / too long". For the story bible, premise and between-level story beats use story-and-dialogue; for translation use localization.
 ---
 
 # Dialogue
@@ -155,13 +155,13 @@ Full reference at the top of `toolkit/dialogue-script.js`. In short:
 
 ## 8. Verify
 
-1. `node .claude/skills/dialogue/lint.mjs games/<id>/dialogue/*.js --entry <nodes the game starts>` and fix every ✗.
+1. `node .claude/skills/dialogue/lint.mjs dialogue/*.js --entry <nodes the game starts>` and fix every ✗.
 2. Read every conversation on the 1280×800 screen, at the largest Text size too: nothing clipped, nothing over three lines.
 3. Play each conversation with controller, keyboard only, mouse only and touch: advance, skip, choose, log.
 4. Pause mid-line and mid-choice; Restart and Quit to title mid-conversation: nothing replays wrongly, and
    flags only change when they should.
 5. Check the voice: cover the names and read a scene. Can you tell who's speaking, and does it match the
    *Dialogue voice* in DESIGN.md?
-6. `npm run check <id>`, bump `version`, add a Changelog line, commit (`<Name>: dialogue …`) and push.
+6. `npm run check`, bump `version`, add a Changelog line, commit (`<Name>: dialogue …`) and push.
 
 `toolkit/demo.html` shows the box in its four states (typing, markup, choices, log) with a stand-in input.
