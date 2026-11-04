@@ -11,7 +11,7 @@ This repo is a collection of small games. Each folder in `games/` is one game, a
 4. **Make the art:** replace `art/cover.svg` and `art/hero.svg` (see *Art*). This is required; the check fails on placeholder art.
 5. **Run `npm run check <game-id>` and fix everything it reports.** It builds the game, plays it headlessly at 1280×800 with a virtual gamepad, then keyboard-only (Enter, then Esc must pause), then touch (taps the title menu), presses Start and expects `window.__game.state.screen === 'paused'`, renders it again in a 16:9 window at 2× pixels (1280×720 at DPR 2), and renders the art to PNG. It fails on crashes, network requests, dialogs, blank screens, placeholder art, missing `tags` or `inputs`, an F10 binding and a pause that doesn't happen; it warns on console errors, save keys that don't start with the game id, and when `menu.js` isn't imported or `input.attach` isn't called. The touch pass taps the title menu through `window.__game.titleMenu` (the starter exposes it), so keep that getter if you move the title menu.
 6. **Look at the output images** it prints (`.github/pushplay/.work/out/<id>/__art/cover.png`, `hero.png`, `screenshot.png`). If you can view images, check that the art reads well at small size and that the screenshot shows the game, not an error or empty screen. Iterate until they look good.
-7. **Verify by hand** against the matrix in *Verification* below (controller, keyboard only, mouse only, touch, resize).
+7. **Verify by hand** against the matrix in *Verification* below (controller, keyboard only, mouse only, touch, resize). If your agent has the `input-walkthrough` skill (Claude Code with the toolkit plugin this repo enables), run it first: it plays every screen and the gameplay headlessly with each input alone and reports what's broken where. It doesn't replace trying the game on a real device.
 8. **Commit and push** (one commit per game is fine). Pushing the default branch publishes the build; other branches only run the check.
 
 **Changing an existing game:** read its `DESIGN.md` first and keep changes consistent with it. Bump `version`, add a line to its Changelog, and run the check. For bugs, see [`docs/game-design/debugging.md`](docs/game-design/debugging.md).
@@ -179,6 +179,7 @@ Do all of these before pushing; `npm run check` covers them headlessly, you cove
 | Touch | DevTools device mode (touch emulation) | every menu by tap; pause button; prompts say "Tap"; gameplay if `inputs` includes `"touch"` |
 | Scaling | resize the window to 1920×1080, then DevTools device mode at DPR 2 | centred, letterboxed in the right colour, crisp text, no blur or clipping |
 | `npm run check <id>` | | passes, screenshot shows real content, `window.__game.state.screen` exposed |
+| Every screen, every input | the `input-walkthrough` skill, if your agent has it | every screen works with each input alone, or the report explains why not |
 
 ## Assets
 
