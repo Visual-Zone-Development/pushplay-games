@@ -1,0 +1,27 @@
+{
+  "$schema": "../../.github/pushplay/manifest.schema.json",
+  "id": "overclock",
+  "name": "Overclock",
+  "description": "Boss-rush roguelite platformer. Dash, wall-jump and charge your arm cannon to take down Talon, a wall-climbing raptor mech, then bolt one of its parts onto your robot and fight it again, stronger, until it breaks you.",
+  "version": "0.1.0",
+  "entry": {
+    "web": "index.html"
+  },
+  "art": {
+    "cover": "art/cover.svg",
+    "hero": "art/hero.svg"
+  },
+  "controls": "gamepad",
+  "inputs": [
+    "gamepad",
+    "keyboard"
+  ],
+  "players": "1",
+  "tags": [
+    "platformer",
+    "action",
+    "roguelite",
+    "boss rush",
+    "pixel art"
+  ]
+}
