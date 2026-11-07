@@ -1,8 +1,10 @@
 // Runs in GitHub Actions in two stages, so game code never runs with a token in reach:
 //   STAGE=build    builds and checks the games a push changed; writes zips, art and
 //                  build-results.json to the work folder (uploaded as a workflow artifact).
-//   STAGE=publish  (default branch only) uploads those to the rolling release the launcher
-//                  watches, using the `gh` CLI with the workflow's token, and updates the index.
+//   STAGE=publish  (default and `beta` branches only) uploads those to the rolling release the
+//                  launcher watches, using the `gh` CLI with the workflow's token, and updates the
+//                  index. The default branch publishes to RELEASE_TAG (stable), `beta` to
+//                  BETA_RELEASE_TAG (the beta channel, with its own index).
 // With no STAGE both run in one go (local runs and tests).
 //
 // The release holds one index (INDEX_ASSET) plus, per game: <id>-web.zip, <id>-cover.png,
@@ -13,7 +15,7 @@
 import { execFileSync, spawnSync } from 'node:child_process'
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { INDEX_ASSET, KIT_DIR, KIT_VERSION, RELAY_URL, RELEASE_TAG } from './config.mjs'
+import { BETA_RELEASE_TAG, INDEX_ASSET, KIT_DIR, KIT_VERSION, RELAY_URL, RELEASE_TAG, releaseTagFor } from './config.mjs'
 import { distDir, layout, listGames, log, ROOT, validateIndex, WORK_DIR } from './repo.mjs'
 
 const env = process.env
@@ -149,23 +151,31 @@ async function onlinePass(out, manifest) {
 
 // --- Stage 2: merge into the release index and upload ---
 async function publish(results) {
+  // Local runs and tests (no STAGE) publish like the default branch, whatever the branch is called.
+  const releaseTag = releaseTagFor(results.branch, defaultBranch) ?? (stage === 'all' ? RELEASE_TAG : null)
+  const beta = releaseTag === BETA_RELEASE_TAG
+  if (!releaseTag) {
+    log(`Branch ${results.branch} only builds and checks; nothing published.`)
+    return
+  }
+  log(`Publishing to ${releaseTag}`)
   const scratch = join(WORK_DIR, 'release')
   mkdirSync(scratch, { recursive: true })
   const indexPath = join(scratch, INDEX_ASSET)
   let index = { version: 1, games: {} }
   if (dryRun) {
     if (existsSync(indexPath)) index = JSON.parse(readFileSync(indexPath, 'utf8'))
-  } else if (!ghOk('release', 'view', RELEASE_TAG)) {
-    gh('release', 'create', RELEASE_TAG, '--prerelease', '--target', results.sha, '--title', 'Game builds', '--notes',
-      'Rolling game builds, updated automatically on every push. Not a versioned release.')
-    log(`Created release ${RELEASE_TAG}`)
-  } else if (ghOk('release', 'download', RELEASE_TAG, '--pattern', INDEX_ASSET, '--dir', scratch, '--clobber')) {
+  } else if (!ghOk('release', 'view', releaseTag)) {
+    gh('release', 'create', releaseTag, '--prerelease', '--target', results.sha, '--title', beta ? 'Beta game builds' : 'Game builds', '--notes',
+      `Rolling ${beta ? 'beta ' : ''}game builds, updated automatically on every push${beta ? ' to the beta branch' : ''}. Not a versioned release.`)
+    log(`Created release ${releaseTag}`)
+  } else if (ghOk('release', 'download', releaseTag, '--pattern', INDEX_ASSET, '--dir', scratch, '--clobber')) {
     index = JSON.parse(readFileSync(indexPath, 'utf8'))
   }
 
   for (const r of results.games) {
     if (r.ok) {
-      if (!dryRun) gh('release', 'upload', RELEASE_TAG, '--clobber', ...r.files.map((f) => join(distDir, f)))
+      if (!dryRun) gh('release', 'upload', releaseTag, '--clobber', ...r.files.map((f) => join(distDir, f)))
       index.games[r.id] = r.entry
       log(`✓ ${r.id} ${dryRun ? 'built (dry run)' : 'published'}`)
     } else {
@@ -175,7 +185,7 @@ async function publish(results) {
     }
   }
 
-  // Games deleted on the default branch disappear from the launcher.
+  // Games deleted on the published branch (default or beta) disappear from that channel.
   const games = listGames()
   if (results.branch === defaultBranch || stage === 'publish') {
     for (const id of Object.keys(index.games)) if (!games.some((g) => g.id === id)) delete index.games[id]
@@ -188,7 +198,7 @@ async function publish(results) {
   const problems = validateIndex(index)
   if (problems.length) throw new Error(`the index the kit produced is invalid (a kit bug, please report it):\n${problems.join('\n')}`)
   writeFileSync(indexPath, JSON.stringify(index, null, 2) + '\n')
-  if (!dryRun) gh('release', 'upload', RELEASE_TAG, '--clobber', indexPath)
+  if (!dryRun) gh('release', 'upload', releaseTag, '--clobber', indexPath)
 }
 
 // --- Summary on the workflow run page ---

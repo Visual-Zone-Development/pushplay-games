@@ -117,7 +117,8 @@ with fine detail so it stays crisp at DPR 2; a full-screen `wash` can stay at 1�
 If `OPENAI_API_KEY`, `GEMINI_API_KEY` or `REPLICATE_API_TOKEN` is set (environment or `.env`), painted
 backgrounds, terrain textures, key art and detailed props can also be generated: write
 `art/prompts.json` with the Scene look as its `style`, run `npm run art -- --dry` and tell
-the user the cost, generate 2–3, look at the contact sheet, then the rest
+the user the cost. Wait for them to agree, then generate 2–3 with `--approve <$>`, look at the contact
+sheet, tell them the cost of the rest and ask again before generating it
 ([generated-art.md](../../../docs/game-design/generated-art.md)). Bake them like any surface and keep
 the toolkit versions as fallbacks. With no key, skip this; the toolkit alone reaches the target quality.
 

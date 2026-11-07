@@ -8,6 +8,7 @@
     "pushplay.json"
   ],
   "releaseTag": "pushplay-latest",
+  "betaReleaseTag": "pushplay-beta",
   "indexAsset": "pushplay-index.json",
   "art": {
     "cover": {
@@ -29,5 +30,9 @@
   "launcherRepo": "Visual-Zone-Development/pushplay",
   "releasesRepo": "Visual-Zone-Development/pushplay-releases",
   "updateSigningKey": "RWQtMJddfR0tJ8HSbRtgEdSyF29npjrIqcSlG9jvmohZ+/V/gOfc93dh",
-  "relayUrl": "wss://relay.pushplay.gg"
+  "relayUrl": "wss://relay.pushplay.gg",
+  "apiUrl": "https://api.pushplay.gg",
+  "releaseKeys": {
+    "2026-1": "62Ukc3RJM2aT1L/c50kIr7l4//y2elW4RTJ5KasFeaA="
+  }
 }

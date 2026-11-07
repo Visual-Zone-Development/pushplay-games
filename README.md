@@ -59,7 +59,7 @@ If you'd like painted sprites, textures or key art as well, give the agent your 
 
 1. Get a key from **OpenAI** (`OPENAI_API_KEY`), **Google Gemini** (`GEMINI_API_KEY`) or **Replicate** (`REPLICATE_API_TOKEN`).
 2. **On your computer:** copy `.env.example` to `.env` and paste the key in. `.env` is gitignored, so it never gets pushed. **In a cloud agent** (Claude Code on the web, Codex): add the same variable to the environment's settings instead.
-3. Ask for it: *"generate painted art with my key"*. The agent writes the prompts, shows the estimated cost (`npm run art -- --dry`), then generates the images, looks at them and refines them.
+3. Ask for it: *"generate painted art with my key"*. The agent writes the prompts and tells you the estimated cost (`npm run art -- --dry`). Only after you agree does it generate the images, look at them and refine them. Every later batch or redo is quoted and asked about again: `npm run art` refuses to charge anything an agent hasn't been given approval for, and in a terminal it asks you first.
 
 It costs roughly $0.003–$0.21 per image depending on the provider and quality, so about $0.50–$6 for a typical game. Each run stops at 12 images unless you allow more. Details: [`docs/game-design/generated-art.md`](docs/game-design/generated-art.md).
 

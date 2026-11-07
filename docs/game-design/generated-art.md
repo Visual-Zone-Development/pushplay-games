@@ -34,6 +34,28 @@ A typical game needs 10–30 images plus retries, about **$0.50–$6**. Battle D
 
 `npm run art` prints an estimate before it calls anything, stops at 12 images per run unless you pass `--max`, defaults to medium quality and skips images that already exist. `--dry` shows the prompts and the estimate without calling anything.
 
+### Nothing is charged until you agree to the cost
+
+Every run that would spend money stops first and shows what it costs:
+
+- **In a terminal**, it asks `This charges about $0.60 to your openai account. Generate 12 image(s)? [y/N]`. Anything but `y` cancels.
+- **For an agent or CI** (no terminal to answer), it stops at the estimate and exits with code 2. It only generates when given `--approve <$>` and that amount covers the estimate. If the run turns out to cost more than was approved (more assets, higher quality), it refuses again.
+
+**Agents:** never pass `--approve` on your own. Run `--dry`, tell the user how many images, which ones and the estimated cost, and wait for them to agree to that amount in the conversation. Then run with `--approve <that amount>`. Every later run (a re-prompt, `--force`, the next batch) is a new charge and needs its own agreement. Approving one batch doesn't approve the rest.
+
+```mermaid
+flowchart LR
+  run[npm run art] --> est[print estimate]
+  est --> dry{--dry?}
+  dry -- yes --> stop0[show prompts, charge nothing]
+  dry -- no --> appr{--approve covers estimate?}
+  appr -- yes --> gen[generate]
+  appr -- "no flag, terminal" --> ask{you answer y?}
+  ask -- yes --> gen
+  ask -- no --> stop1[cancel, charge nothing]
+  appr -- "no flag, agent or CI / too low" --> stop2[exit 2, charge nothing]
+```
+
 ## The prompt catalog: `art/prompts.json`
 
 Write one shared style contract plus reusable clauses, then one short line per asset. Every image comes from the same description, so the set reads as one game (the pattern of Battle Drones' `catalog.py`).
@@ -70,8 +92,9 @@ Two parts generated in one image (a hull and its turret, a sheet of 3×3 decorat
 
 ```sh
 npm run art -- --dry          # prompts + cost estimate, no calls
-npm run art --                # generate everything that's missing (max 12 per run)
-npm run art -- courier --force  # redo one asset
+npm run art --                # generate everything that's missing (max 12 per run); asks before charging
+npm run art -- --approve 0.60 # agents: generate once the user has agreed to about $0.60
+npm run art -- courier --force  # redo one asset (also asks)
 npm run art -- --list         # which assets exist
 ```
 

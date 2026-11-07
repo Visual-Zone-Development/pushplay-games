@@ -18,7 +18,7 @@ When you push, GitHub Actions builds every game that changed and publishes it, a
 4. **Make the art:** replace `art/cover.svg` and `art/hero.svg` (see *Art*). This is required; the check fails on placeholder art.
 5. **Run `npm run check` and fix everything it reports.** It builds the game, plays it headlessly at 1280×800 with a virtual gamepad, then keyboard-only (Enter, then Esc must pause), then touch (taps the title menu), presses Start and expects `window.__game.state.screen === 'paused'`, renders it again in a 16:9 window at 2× pixels (1280×720 at DPR 2), and renders the art to PNG. It fails on crashes, network requests, dialogs, blank screens, placeholder art, missing `tags` or `inputs`, an F10 binding and a pause that doesn't happen; it warns on console errors, save keys that don't start with the game id, and when `menu.js` isn't imported or `input.attach` isn't called. The touch pass taps the title menu through `window.__game.titleMenu` (the starter exposes it), so keep that getter if you move the title menu.
 6. **Look at the output images** it prints (`.github/pushplay/.work/out/<id>/__art/cover.png`, `hero.png`, `screenshot.png`). If you can view images, check that the art reads well at small size and that the screenshot shows the game, not an error or empty screen. Iterate until they look good.
-7. **Verify by hand** against the matrix in *Verification* below (controller, keyboard only, mouse only, touch, resize).
+7. **Verify by hand** against the matrix in *Verification* below (controller, keyboard only, mouse only, touch, resize). If your agent has the `input-walkthrough` skill (Claude Code with the toolkit plugin this repo enables), run it first: it plays every screen and the gameplay headlessly with each input alone and reports what's broken where. It doesn't replace trying the game on a real device.
 8. **Commit and push.** Pushing the default branch publishes the build; other branches only run the check.
 9. **Finished workshop game?** When the user says it's ready for Discover or its own repo, promote it (the `promote-game` skill).
 
@@ -187,10 +187,13 @@ Do all of these before pushing; `npm run check` covers them headlessly, you cove
 | Touch | DevTools device mode (touch emulation) | every menu by tap; pause button; prompts say "Tap"; gameplay if `inputs` includes `"touch"` |
 | Scaling | resize the window to 1920×1080, then DevTools device mode at DPR 2 | centred, letterboxed in the right colour, crisp text, no blur or clipping |
 | `npm run check` | | passes, screenshot shows real content, `window.__game.state.screen` exposed |
+| Every screen, every input | the `input-walkthrough` skill, if your agent has it | every screen works with each input alone, or the report explains why not |
 
 ## Assets
 
 Games can be fully procedural, or use the user's own sprites, audio, models and fonts. Copy them into `assets/` (never link to the internet), record where each came from and its license in `assets/CREDITS.md`, and keep files small (sprite sheets ≤ 2048px, music ≤ ~3 MB, < 30 MB total). Details: [`docs/game-design/assets.md`](docs/game-design/assets.md). Painted sprites and textures can also be generated with the user's own image API key (`npm run art`, see [`docs/game-design/generated-art.md`](docs/game-design/generated-art.md)); the images are bundled, never fetched at runtime.
+
+**Never spend the user's money without their agreement.** Before anything that charges them (image generation or any other paid API), tell them what it costs and wait for a yes in the conversation. For `npm run art`: run `--dry`, give them the number of images and the estimate, and only after they agree run it with `--approve <that amount>`. Each new batch, redo or `--force` is a new charge and needs a new yes.
 
 ## Manifest (`pushplay.json`)
 
@@ -250,7 +253,7 @@ If you're truly unable to make art, remove the `art` field: the check will gener
 | `npm run dev` | Play it in a browser with live reload (http://localhost:5173). Online games: a local relay starts too, so open two windows. Party games: phones on the same Wi-Fi scan the lobby's QR code |
 | `npm run check` | Validate, build, headless play test (gamepad, keyboard, touch, pause, a 16:9 window at DPR 2; online games also play two copies through a local relay; party games bring headless phones that join, play and reconnect), render art. Must pass before pushing. |
 | `npm run art:shots` | Render the game's art pages (cover, hero, `art/gallery.html`) and a cover thumbnail to PNG to look at |
-| `npm run art -- [--dry]` | Optional: generate painted art from `art/prompts.json` with your own image API key (`.env` or environment; prints the cost first) |
+| `npm run art -- [--dry] [--approve <$>]` | Optional: generate painted art from `art/prompts.json` with your own image API key (`.env` or environment). It never charges before the user agrees: it asks in a terminal and, for agents, needs `--approve` covering the estimate |
 | `npm run update-kit` | Refresh the build kit, these prompts and the runtime files (only when the user asks) |
 
 ## Don'ts

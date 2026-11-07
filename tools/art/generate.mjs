@@ -1,4 +1,8 @@
-// npm run art -- [game-id] [asset ...] [--force] [--dry] [--list] [--max N] [--quality low|medium|high] [--provider name]
+// npm run art -- [game-id] [asset ...] [--force] [--dry] [--list] [--max N] [--quality low|medium|high] [--provider name] [--approve <$>]
+//
+// It never spends money before the person paying knows. In a terminal it shows the cost and asks first.
+// Anywhere else (an agent, CI) it stops at the estimate unless --approve <$> covers it, and an agent
+// passes --approve only after the person has agreed to that amount.
 //
 // Optional: generates sprites, textures or key art for a game with YOUR image API key, from the
 // game's art/prompts.json (a style contract plus a list of assets; see
@@ -11,6 +15,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync, appendFileSync } from 'node:fs'
 import { join, relative } from 'node:path'
 import { layout, listGames } from '../../.github/pushplay/repo.mjs'
+import { createInterface } from 'node:readline/promises'
 
 const ROOT = join(import.meta.dirname, '../..')
 const ENV_FILE = join(ROOT, '.env')
@@ -45,14 +50,14 @@ const option = (name, fallback) => {
   const i = args.indexOf(`--${name}`)
   return i >= 0 && args[i + 1] && !args[i + 1].startsWith('--') ? args[i + 1] : fallback
 }
-const optionValues = new Set(['max', 'quality', 'provider'].map((n) => option(n, null)).filter(Boolean))
+const optionValues = new Set(['max', 'quality', 'provider', 'approve'].map((n) => option(n, null)).filter(Boolean))
 const positional = args.filter((a) => !a.startsWith('--') && !optionValues.has(a))
 // A one-game repo needs no id: the game is the repo, and every name is an asset.
 const single = layout() === 'single'
 const [id, ...names] = single ? [listGames()[0]?.id, ...positional] : positional
 
 if (!id) {
-  console.log('Usage: npm run art -- [game-id] [asset ...] [--dry] [--list] [--force] [--max N] [--quality low|medium|high] [--provider openai|gemini|replicate]')
+  console.log('Usage: npm run art -- [game-id] [asset ...] [--dry] [--list] [--force] [--max N] [--quality low|medium|high] [--provider openai|gemini|replicate] [--approve <$>]')
   process.exit(1)
 }
 const gameDir = single ? ROOT : join(ROOT, 'games', id)
@@ -121,10 +126,12 @@ if (!todo.length) {
 }
 const keyedFor = (a) => !!a.transparent && !provider?.nativeAlpha
 const price = PRICES[provider?.name ?? 'openai']?.[quality] ?? 0.05
-console.log(`${todo.length} asset(s) to generate${provider ? ` with ${provider.name} (${provider.model}, ${quality})` : ''}: about $${(todo.length * price).toFixed(2)} at ~$${price}/image.`)
+const estimate = (todo.length * price).toFixed(2)
+console.log(`${todo.length} asset(s) to generate${provider ? ` with ${provider.name} (${provider.model}, ${quality})` : ''}: about $${estimate} at ~$${price}/image.`)
 
 if (flag('dry')) {
   for (const a of todo) console.log(`\n• ${a.id} (${a.size ?? '1024x1024'}${a.transparent ? ', transparent' : ''})\n  ${promptFor(a, keyedFor(a))}`)
+  console.log(`\nNothing was generated or charged. Generating these costs about $${estimate} on your ${provider?.name ?? 'image provider'} account.`)
   process.exit(0)
 }
 if (!hasKey) {
@@ -138,7 +145,7 @@ No image API key is set, so nothing was generated. That's fine: every game can d
 
 On your computer: copy .env.example to .env at the repo root and fill one in (.env is gitignored).
 In a cloud agent (Claude Code on the web, Codex): add it to the environment's variables.
-Then run: npm run art -- ${id} --dry   (see the prompts and cost), and without --dry to generate.`)
+Then run: npm run art -- ${single ? "" : id + " "}--dry   (see the prompts and cost), and without --dry to generate.`)
   process.exit(0)
 }
 const max = Number(option('max', 12))
@@ -146,6 +153,7 @@ if (todo.length > max) {
   console.error(`That's more than --max ${max} images in one run. Generate a few first and look at them, or pass --max ${todo.length}.`)
   process.exit(1)
 }
+if (!(await approved())) process.exit(2)
 
 // ---- generate --------------------------------------------------------------------------------
 
@@ -208,6 +216,34 @@ if (failed.length) {
 }
 
 // ---- bookkeeping -----------------------------------------------------------------------------
+
+/**
+ * The person paying must know the cost before anything is charged. --approve <$> means they agreed to
+ * at most that amount. Without it a terminal asks, and anything else (an agent, CI) stops here.
+ */
+async function approved() {
+  const given = option('approve', null)
+  if (given !== null) {
+    const limit = Number(String(given).replace(/^\$/, ''))
+    if (Number.isFinite(limit) && limit >= Number(estimate)) return true
+    console.error(`\nNot generating: this run costs about $${estimate}, more than the $${given} approved. Nothing was charged.`)
+    return false
+  }
+  if (process.stdin.isTTY && process.stdout.isTTY) {
+    const rl = createInterface({ input: process.stdin, output: process.stdout })
+    const answer = await rl.question(`This charges about $${estimate} to your ${provider.name} account. Generate ${todo.length} image(s)? [y/N] `)
+    rl.close()
+    if (/^y(es)?$/i.test(answer.trim())) return true
+    console.log('Cancelled. Nothing was charged.')
+    return false
+  }
+  console.error(`
+Not generating yet: this would charge about $${estimate} to the ${provider.name} account for ${todo.length} image(s):
+  ${todo.map((a) => a.id).join(', ')}
+Nothing was charged. Ask the person who pays whether to spend about $${estimate}. Only once they agree, run:
+  npm run art -- ${args.join(' ')} --approve ${estimate}`)
+  return false
+}
 
 function rel(p) {
   return relative(process.cwd(), p) || '.'

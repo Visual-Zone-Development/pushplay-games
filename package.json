@@ -15,7 +15,8 @@
     "update-kit": "node .github/pushplay/update-kit.mjs",
     "art": "node tools/art/generate.mjs",
     "art:shots": "node tools/art/shots.mjs",
-    "promote": "node tools/promote/promote.mjs"
+    "promote": "node tools/promote/promote.mjs",
+    "test": "node --test \"tools/**/*.test.mjs\""
   },
   "devDependencies": {
     "vite": "^7.3.7"
