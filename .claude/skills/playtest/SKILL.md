@@ -1,6 +1,6 @@
 ---
 name: playtest
-description: Playtest a game in games/ without a human — drive it headlessly with scripted or bot inputs, capture screenshots over time, measure how long runs last, where players die and how the score grows, and turn that into a balance and fun report with concrete TUNING changes. Use for "is it balanced?", "playtest it", "is it too hard", "check the difficulty curve", "does it get boring", or before shipping a new game. It reports and proposes; changes go through improve-game or level-design.
+description: Playtest the game in this repo without a human — drive it headlessly with scripted or bot inputs, capture screenshots over time, measure how long runs last, where players die and how the score grows, and turn that into a balance and fun report with concrete TUNING changes. Use for "is it balanced?", "playtest it", "is it too hard", "check the difficulty curve", "does it get boring", or before shipping a new game. It reports and proposes; changes go through improve-game or level-design.
 ---
 
 # Playtest
@@ -16,7 +16,7 @@ Pick 3–6 questions from the design, for example:
 - Does the score or progress grow at the rate the design expects?
 
 ## 2. Build a playtest script (scratch, never in the game folder)
-Start from the repro script in [debugging.md](../../../docs/game-design/debugging.md): the build kit's Playwright, `npm run dev <id>`, a virtual gamepad on a timeline. Then add:
+Start from the repro script in [debugging.md](../../../docs/game-design/debugging.md): the build kit's Playwright, `npm run dev`, a virtual gamepad on a timeline. Then add:
 - **Bots of 2–3 skill levels.** Read `window.__game.state` each tick and choose inputs: *idle* (presses nothing, finds the floor of difficulty), *random* (mashes and wanders), *greedy* (moves toward pickups and away from the nearest threat, with a reaction delay of 150–300 ms). Keep each bot to a few dozen lines.
 - **Seeds:** run each bot on 5–10 seeds (`?seed=n`) if the game is seeded; otherwise run more times.
 - **Fast-forward:** if the game exposes it, raise a time-scale in `TUNING` to run faster; otherwise just run in real time with a timeout (e.g. 3 min per run).

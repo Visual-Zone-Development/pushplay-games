@@ -22,6 +22,10 @@
       "type": "string",
       "maxLength": 64
     },
+    "movedFrom": {
+      "type": "string",
+      "pattern": "^[\\w.-]{1,100}\\/[\\w.-]{1,100}$"
+    },
     "type": {
       "type": "string",
       "enum": [

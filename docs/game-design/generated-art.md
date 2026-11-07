@@ -56,7 +56,7 @@ flowchart LR
   appr -- "no flag, agent or CI / too low" --> stop2[exit 2, charge nothing]
 ```
 
-## The prompt catalog: `games/<id>/art/prompts.json`
+## The prompt catalog: `art/prompts.json`
 
 Write one shared style contract plus reusable clauses, then one short line per asset. Every image comes from the same description, so the set reads as one game (the pattern of Battle Drones' `catalog.py`).
 
@@ -91,17 +91,17 @@ Two parts generated in one image (a hull and its turret, a sheet of 3×3 decorat
 ## Commands
 
 ```sh
-npm run art -- <id> --dry          # prompts + cost estimate, no calls
-npm run art -- <id>                # generate everything that's missing (max 12 per run); asks before charging
-npm run art -- <id> --approve 0.60 # agents: generate once the user has agreed to about $0.60
-npm run art -- <id> courier --force  # redo one asset (also asks)
-npm run art -- <id> --list         # which assets exist
+npm run art -- --dry          # prompts + cost estimate, no calls
+npm run art --                # generate everything that's missing (max 12 per run); asks before charging
+npm run art -- --approve 0.60 # agents: generate once the user has agreed to about $0.60
+npm run art -- courier --force  # redo one asset (also asks)
+npm run art -- --list         # which assets exist
 ```
 
 Each run:
 
-- Saves the raw images to `games/<id>/art/raw/`, which is added to `.pushplayignore` automatically so it isn't shipped.
-- Writes the processed PNGs (keyed, trimmed, scaled) to `games/<id>/assets/art/`.
+- Saves the raw images to `art/raw/`, which is added to `.pushplayignore` automatically so it isn't shipped.
+- Writes the processed PNGs (keyed, trimmed, scaled) to `assets/art/`.
 - Updates a *Generated art* section in `assets/CREDITS.md`.
 - Writes a contact sheet to `.github/pushplay/.work/out/<id>/__shots/generated.png`.
 

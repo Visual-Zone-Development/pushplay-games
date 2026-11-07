@@ -2,7 +2,7 @@
 // without a phone. It loads the page with a stub `controller`, posts sensor samples the way the
 // join page does, and collects what the page sends.
 //
-//   node .claude/skills/motion-controls/toolkit/fake-sensors.mjs games/<id>/controller.html
+//   node .claude/skills/motion-controls/toolkit/fake-sensors.mjs controller.html
 //   (or public/controller.html in a --vite game). Edit the scenarios at the bottom for your gestures.
 //
 // A scenario is a function of time t (s) returning { a: [x, y, z] m/s² without gravity,

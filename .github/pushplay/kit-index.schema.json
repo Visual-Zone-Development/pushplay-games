@@ -99,6 +99,9 @@
           "builtAt": {
             "type": "string"
           },
+          "movedFrom": {
+            "type": "string"
+          },
           "assets": {
             "anyOf": [
               {

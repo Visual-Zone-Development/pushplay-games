@@ -1,6 +1,6 @@
-// npm run art:shots <game-id>
+// npm run art:shots [game-id]   (the id only in a repo with several games in games/)
 // Renders a game's art pages to PNG so you (or the agent) can look at them: every .html and .svg in
-// games/<id>/art/ (cover, hero, gallery and any others) at its own size, plus a thumbnail of the
+// the game's art/ folder (cover, hero, gallery and any others) at its own size, plus a thumbnail of the
 // cover at library-tile size. Needs no API key. Output: .github/pushplay/.work/out/<id>/__shots/
 import { mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
@@ -8,12 +8,13 @@ import { dirname, join, relative } from 'node:path'
 import { launchBrowser } from '../../.github/pushplay/pipeline.mjs'
 import { serve } from '../../.github/pushplay/server.mjs'
 import { ART, ART_FONTS } from '../../.github/pushplay/config.mjs'
-import { findGame, outDir } from '../../.github/pushplay/repo.mjs'
+import { findGame, layout, listGames, outDir } from '../../.github/pushplay/repo.mjs'
 
-const id = process.argv[2]
+// A one-game repo needs no id: the game is the repo.
+const id = process.argv[2] ?? (layout() === 'single' ? listGames()[0]?.id : undefined)
 const game = id && findGame(id)
 if (!game) {
-  console.error(id ? `No game "${id}" in games/.` : 'Usage: npm run art:shots <game-id>')
+  console.error(id ? `No game "${id}" here.` : 'Usage: npm run art:shots <game-id>   (repos with several games)')
   process.exit(1)
 }
 const artDir = join(game.dir, 'art')

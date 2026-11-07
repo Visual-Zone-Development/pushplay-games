@@ -1,6 +1,6 @@
 ---
 name: environments
-description: Design and build the world a game in games/ takes place in, for any genre, camera and art style — side-view stages, top-down maps and rooms, isometric boards, tracks, arenas, space, cities, interiors and 3D scenes — readable play spaces, landmarks and composition, tiles that join up automatically (edge, blob and corner autotiling), natural scattering, levels written as text, parallax backdrops, skies and time of day, atmospheric depth, ambient motion and weather, all matched to the game's references. Ships a renderer-agnostic toolkit (autotile.js, scatter.js, levelmap.js, backdrop.js) and a squint-test readability tool. Use for "make the world / background / level look better", "add a background", "the map looks tiled / repetitive / empty", "I can't tell where I can walk", "add parallax", "day and night", "build a town / dungeon / track / arena", or any environment art. Pairs with pixel-art (pixel terrain and props), art-direction (whole-screen look), level-design (layout and pacing), camera and performance-pass.
+description: Design and build the world the game in this repo takes place in, for any genre, camera and art style — side-view stages, top-down maps and rooms, isometric boards, tracks, arenas, space, cities, interiors and 3D scenes — readable play spaces, landmarks and composition, tiles that join up automatically (edge, blob and corner autotiling), natural scattering, levels written as text, parallax backdrops, skies and time of day, atmospheric depth, ambient motion and weather, all matched to the game's references. Ships a renderer-agnostic toolkit (autotile.js, scatter.js, levelmap.js, backdrop.js) and a squint-test readability tool. Use for "make the world / background / level look better", "add a background", "the map looks tiled / repetitive / empty", "I can't tell where I can walk", "add parallax", "day and night", "build a town / dungeon / track / arena", or any environment art. Pairs with pixel-art (pixel terrain and props), art-direction (whole-screen look), level-design (layout and pacing), camera and performance-pass.
 ---
 
 # Environments
@@ -122,7 +122,7 @@ Recipes by camera, as starting points to adapt to the measured style:
    and blocked areas > palette > texture density and edges > detail. Fix, re-render, repeat.
 4. Check scale against a character, every camera position the game uses, the largest and smallest
    areas, and frame time (performance-pass).
-5. Update STYLE.md, bump `version`, add a Changelog line, `npm run check <id>`, commit and push.
+5. Update STYLE.md, bump `version`, add a Changelog line, `npm run check`, commit and push.
 
 `toolkit/demo.html` shows four game types (side view, top-down, space, a city at dusk in pixel mode) built
 from the same toolkit with placeholder vector art.

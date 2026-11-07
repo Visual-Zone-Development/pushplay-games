@@ -1,6 +1,6 @@
 ---
 name: online-netcode
-description: Make an online multiplayer game in games/ feel good despite network delay, using the kit's net.js (the host runs the game) — instant local feedback, smoothing, generous and fair hit rules, what belongs in net.state versus net.event, private views for secrets, bandwidth limits, joins and leaves mid-match, and testing with two copies. Use for "online feels laggy", "hits don't register", "players teleport", "too much bandwidth", "add online play", or any change to an --online game's networking.
+description: Make an online multiplayer game feel good despite network delay, using the kit's net.js (the host runs the game) — instant local feedback, smoothing, generous and fair hit rules, what belongs in net.state versus net.event, private views for secrets, bandwidth limits, joins and leaves mid-match, and testing with two copies. Use for "online feels laggy", "hits don't register", "players teleport", "too much bandwidth", "add online play", or any change to an --online game's networking.
 ---
 
 # Online netcode
@@ -8,7 +8,7 @@ description: Make an online multiplayer game in games/ feel good despite network
 Follow AGENTS.md (*Online multiplayer*) and **read [multiplayer.md](../../../docs/game-design/multiplayer.md) first**: it has the full `net.js` API. Never edit `net.js` or `lobby.js`. The model is fixed: every copy calls `net.setInput(...)`; only the host runs the rules in `hostUpdate(dt)`, reading `net.inputs[id]` and writing `net.state`; every copy draws `net.view`.
 
 ## 1. Find what feels bad
-Run `npm run dev <id>` and play in **two browser windows** (the dev relay starts automatically); also play as the non-host, which is where lag shows. Note: is it **input delay** (my action shows late), **jitter** (others jump around), **unfair hits** (I got hit when I'd dodged), or **bandwidth** (the check warns above about 20 KB/s for two players)? `window.__kitNet` shows status, players and bytes sent.
+Run `npm run dev` and play in **two browser windows** (the dev relay starts automatically); also play as the non-host, which is where lag shows. Note: is it **input delay** (my action shows late), **jitter** (others jump around), **unfair hits** (I got hit when I'd dodged), or **bandwidth** (the check warns above about 20 KB/s for two players)? `window.__kitNet` shows status, players and bytes sent.
 
 ## 2. Fixes by symptom
 | Symptom | Fix |
@@ -33,6 +33,6 @@ About 80 ms plus network delay sits between the host and other players. Good fit
 
 ## 5. Verify
 1. Two windows by hand, as host and as guest; then with one window throttled (DevTools → Network → slow 4G) to feel delay.
-2. `npm run check <id>` plays two copies together through a local relay; fix every ✗ and the bandwidth warning.
+2. `npm run check` plays two copies together through a local relay; fix every ✗ and the bandwidth warning.
 3. **Bump `version`** whenever the netcode or state shape changes: only builds with the same version play together.
 4. Update DESIGN.md (Changelog), commit (`<Name>: netcode …`) and push.

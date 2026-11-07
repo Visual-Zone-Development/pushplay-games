@@ -14,7 +14,7 @@ shared parts and animation timing.
 ## Where they go
 
 ```
-games/<id>/
+
   assets/
     sprites/   PNG / WebP sprite sheets and images
     audio/     OGG / MP3 / WAV sound effects and music

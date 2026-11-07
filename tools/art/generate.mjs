@@ -1,4 +1,4 @@
-// npm run art -- <game-id> [asset ...] [--force] [--dry] [--list] [--max N] [--quality low|medium|high] [--provider name] [--approve <$>]
+// npm run art -- [game-id] [asset ...] [--force] [--dry] [--list] [--max N] [--quality low|medium|high] [--provider name] [--approve <$>]
 //
 // It never spends money before the person paying knows. In a terminal it shows the cost and asks first.
 // Anywhere else (an agent, CI) it stops at the estimate unless --approve <$> covers it, and an agent
@@ -14,6 +14,7 @@
 // how to add one and exits without doing anything. Games never need it: art drawn in code is the default.
 import { existsSync, mkdirSync, readFileSync, writeFileSync, appendFileSync } from 'node:fs'
 import { join, relative } from 'node:path'
+import { layout, listGames } from '../../.github/pushplay/repo.mjs'
 import { createInterface } from 'node:readline/promises'
 
 const ROOT = join(import.meta.dirname, '../..')
@@ -51,13 +52,15 @@ const option = (name, fallback) => {
 }
 const optionValues = new Set(['max', 'quality', 'provider', 'approve'].map((n) => option(n, null)).filter(Boolean))
 const positional = args.filter((a) => !a.startsWith('--') && !optionValues.has(a))
-const [id, ...names] = positional
+// A one-game repo needs no id: the game is the repo, and every name is an asset.
+const single = layout() === 'single'
+const [id, ...names] = single ? [listGames()[0]?.id, ...positional] : positional
 
 if (!id) {
-  console.log('Usage: npm run art -- <game-id> [asset ...] [--dry] [--list] [--force] [--max N] [--quality low|medium|high] [--provider openai|gemini|replicate] [--approve <$>]')
+  console.log('Usage: npm run art -- [game-id] [asset ...] [--dry] [--list] [--force] [--max N] [--quality low|medium|high] [--provider openai|gemini|replicate] [--approve <$>]')
   process.exit(1)
 }
-const gameDir = join(ROOT, 'games', id)
+const gameDir = single ? ROOT : join(ROOT, 'games', id)
 if (!existsSync(gameDir)) {
   console.error(`No game "${id}" in games/.`)
   process.exit(1)
@@ -142,7 +145,7 @@ No image API key is set, so nothing was generated. That's fine: every game can d
 
 On your computer: copy .env.example to .env at the repo root and fill one in (.env is gitignored).
 In a cloud agent (Claude Code on the web, Codex): add it to the environment's variables.
-Then run: npm run art -- ${id} --dry   (see the prompts and cost), and without --dry to generate.`)
+Then run: npm run art -- ${single ? "" : id + " "}--dry   (see the prompts and cost), and without --dry to generate.`)
   process.exit(0)
 }
 const max = Number(option('max', 12))

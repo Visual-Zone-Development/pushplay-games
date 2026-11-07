@@ -2,7 +2,7 @@
 // render, too slow for game start, so render them once here and ship the PNGs.
 //
 //   node .claude/skills/pixel-art/bake.mjs <root-dir> <page> [out-dir]
-//   e.g. node .claude/skills/pixel-art/bake.mjs games/my-rpg tools/bake.html games/my-rpg/assets/sprites
+//   e.g. node .claude/skills/pixel-art/bake.mjs . tools/bake.html assets/sprites
 //
 // <root-dir> is served over HTTP; <page> (relative to it) renders the sheets and sets
 //   window.__bake = [{ name, canvas, meta? }, …]   then   window.__bakeDone = true

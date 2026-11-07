@@ -11,7 +11,7 @@ export const brand = JSON.parse(readFileSync(existsSync(vendored) ? vendored : s
  * Bumped whenever the kit's files change (kit-lock.json holds their hash; a test enforces the bump).
  * ci.mjs writes it into the release index, so the launcher can tell a repo its kit is outdated.
  */
-export const KIT_VERSION = 6
+export const KIT_VERSION = 9
 /** Runtime modules copied into every game; `update-kit` replaces them by this header. */
 export const RUNTIME_HEADER = `// ${brand.slug} runtime v`
 /** Matches the header whatever the product was called when the file was written. */
@@ -26,6 +26,19 @@ export const IGNORE_FILE = `.${brand.slug}ignore`
 export const MANIFEST_FILES = brand.manifestFiles
 export const MANIFEST_FILE = MANIFEST_FILES[0]
 export const RELEASE_TAG = brand.releaseTag
+/** Pushes to the `beta` branch publish here instead: the game's beta channel, with its own index. */
+export const BETA_RELEASE_TAG = brand.betaReleaseTag ?? `${brand.slug}-beta`
+export const BETA_BRANCH = 'beta'
+
+/**
+ * The release a push publishes to: the default branch's builds are the stable channel, the `beta`
+ * branch's the beta channel. Other branches only build and check (null).
+ */
+export function releaseTagFor(branch, defaultBranch) {
+  if (branch === defaultBranch) return RELEASE_TAG
+  if (branch === BETA_BRANCH) return BETA_RELEASE_TAG
+  return null
+}
 export const INDEX_ASSET = brand.indexAsset
 
 /** Where the kit lives inside a game repo, and its workflow. */

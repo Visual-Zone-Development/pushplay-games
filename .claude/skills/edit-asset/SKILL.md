@@ -1,6 +1,6 @@
 ---
 name: edit-asset
-description: Make one focused change to one existing asset in a game in games/ — a character, creature, vehicle, building, prop, pickup, effect, tile, sprite or UI element — without touching anything else, in any rendering style (2D, pixel art, SVG, 3D). E.g. "make the hero's sword bigger", "darker red on the enemy's armour", "the coin should sparkle", "fix the ship's wing". Iterates on that single asset with before/after renders. For a new asset or a full rebuild use model-asset; for motion use animate-asset.
+description: Make one focused change to one existing asset in the game in this repo — a character, creature, vehicle, building, prop, pickup, effect, tile, sprite or UI element — without touching anything else, in any rendering style (2D, pixel art, SVG, 3D). E.g. "make the hero's sword bigger", "darker red on the enemy's armour", "the coin should sparkle", "fix the ship's wing". Iterates on that single asset with before/after renders. For a new asset or a full rebuild use model-asset; for motion use animate-asset.
 ---
 
 # Edit one asset
@@ -53,5 +53,5 @@ Add a frame strip if the change could affect motion. Renders go to the scratchpa
 
 - Remove the `<id>Old` copy unless the user wants to keep comparing.
 - Update the asset's row in STYLE.md's catalogue; add a line to DESIGN.md's changelog; bump `version` in `pushplay.json`.
-- Run `npm run check <id>`.
+- Run `npm run check`.
 - Commit it on its own: `<game>: <asset> — <change>`, so it's easy to revert.

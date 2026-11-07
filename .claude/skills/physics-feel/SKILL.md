@@ -1,6 +1,6 @@
 ---
 name: physics-feel
-description: Build and tune the physics of a game in games/ so it feels good and stays stable — fixed-timestep integration, collision detection and response (AABB, circles, tilemaps, swept tests to stop tunnelling), bounce, friction, gravity, knockback, vehicles and ragdoll-lite motion, and when to use a physics library in a --vite game. Use for "objects go through walls", "the physics is jittery / explodes", "the ball bounces weirdly", "driving feels like ice", "add knockback", or a physics-based game (pinball, golf, billiards, stacking, destruction).
+description: Build and tune the physics of the game in this repo so it feels good and stays stable — fixed-timestep integration, collision detection and response (AABB, circles, tilemaps, swept tests to stop tunnelling), bounce, friction, gravity, knockback, vehicles and ragdoll-lite motion, and when to use a physics library in a --vite game. Use for "objects go through walls", "the physics is jittery / explodes", "the ball bounces weirdly", "driving feels like ice", "add knockback", or a physics-based game (pinball, golf, billiards, stacking, destruction).
 ---
 
 # Physics feel
@@ -34,10 +34,10 @@ Follow AGENTS.md (*Tech*, *Performance*). Read the game's `DESIGN.md`. Game phys
 - **Juice:** sound and particles on impacts scaled by impact speed, rate-limited.
 
 ## 4. A library or your own?
-Hand-written physics is best for platformers, top-down games and arcade bouncing. For stacking, ragdolls, joints or many interacting bodies, use a library in a `--vite` game (`npm install <pkg> --workspace games/<id>`, e.g. a small 2D engine such as planck.js or matter-js, or Rapier / cannon-es for 3D), keep its timestep fixed, and keep its debug draw behind `?debug`.
+Hand-written physics is best for platformers, top-down games and arcade bouncing. For stacking, ragdolls, joints or many interacting bodies, use a library in a `--vite` game (`npm install <pkg>`, e.g. a small 2D engine such as planck.js or matter-js, or Rapier / cannon-es for 3D), keep its timestep fixed, and keep its debug draw behind `?debug`.
 
 ## 5. Verify
 1. Stress test: the fastest object against the thinnest wall, the biggest pile, the longest run; nothing tunnels, explodes or jitters at rest.
 2. Same seed and inputs → same result (repro script, [debugging.md](../../../docs/game-design/debugging.md)).
 3. 60 fps at the heaviest moment, DPR 2 included (see `performance-pass`).
-4. `npm run check <id>`, fix every ✗. Bump `version`, add a Changelog line, commit (`<Name>: physics …`) and push.
+4. `npm run check`, fix every ✗. Bump `version`, add a Changelog line, commit (`<Name>: physics …`) and push.

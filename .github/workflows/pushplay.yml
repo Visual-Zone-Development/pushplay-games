@@ -1,5 +1,7 @@
 # Builds every game that changed (on any branch) and, on the default branch, publishes it to the
-# "pushplay-latest" release, where the PushPlay launcher picks it up. Other branches only check.
+# "pushplay-latest" release, where the PushPlay launcher picks it up. Pushes to a branch named
+# "beta" publish to "pushplay-beta" instead (the beta channel testers get, with its own
+# index). Other branches only check.
 # Installed by the PushPlay build kit (.github/pushplay/). `npm run update-kit` refreshes it.
 name: Build games
 
@@ -17,9 +19,10 @@ on:
 permissions:
   contents: read
 
-# Builds share one release index, so they run one at a time.
+# Builds publishing to the same release share its index, so they run one at a time (stable and
+# beta each have their own queue).
 concurrency:
-  group: pushplay-publish
+  group: pushplay-publish-${{ github.ref_name == 'beta' && 'beta' || 'latest' }}
   cancel-in-progress: false
 
 jobs:
@@ -80,10 +83,11 @@ jobs:
           if-no-files-found: ignore
           retention-days: 3
 
-  # Uploads what build produced. Only this job can write, and only from the default branch.
+  # Uploads what build produced. Only this job can write, and only from the default branch (to
+  # pushplay-latest) or the beta branch (to pushplay-beta).
   publish:
     needs: build
-    if: always() && needs.build.result != 'cancelled' && needs.build.result != 'skipped' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    if: always() && needs.build.result != 'cancelled' && needs.build.result != 'skipped' && (github.ref == format('refs/heads/{0}', github.event.repository.default_branch) || github.ref == 'refs/heads/beta')
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:

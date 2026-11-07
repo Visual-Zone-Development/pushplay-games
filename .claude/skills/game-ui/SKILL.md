@@ -1,6 +1,6 @@
 ---
 name: game-ui
-description: Design the HUD, menus, onboarding and results screens of a game in games/ so they read on a 7–8" handheld, work with controller, keyboard, mouse and touch, and match the game's art style — health and score display, input prompts, tutorials taught by doing, game-over tallies, level-select and upgrade screens. Use for "the HUD is cluttered / hard to read", "players don't know what to do", "add a tutorial", "make the menus look better", "add an upgrade / shop / level-select screen".
+description: Design the HUD, menus, onboarding and results screens of the game in this repo so they read on a 7–8" handheld, work with controller, keyboard, mouse and touch, and match the game's art style — health and score display, input prompts, tutorials taught by doing, game-over tallies, level-select and upgrade screens. Use for "the HUD is cluttered / hard to read", "players don't know what to do", "add a tutorial", "make the menus look better", "add an upgrade / shop / level-select screen".
 ---
 
 # Game UI
@@ -8,7 +8,7 @@ description: Design the HUD, menus, onboarding and results screens of a game in 
 Follow AGENTS.md (*Menus*, *Screens and scaling*, *Input hints*, *Settings*). Read the game's `DESIGN.md` for the palette, font and fun targets.
 
 ## 1. Audit what's on screen
-Run `npm run check <id>` and view the screenshot; capture more states (title, gameplay at 60 s, pause, game over) with a repro script ([debugging.md](../../../docs/game-design/debugging.md)). For each screen ask:
+Run `npm run check` and view the screenshot; capture more states (title, gameplay at 60 s, pause, game over) with a repro script ([debugging.md](../../../docs/game-design/debugging.md)). For each screen ask:
 - Can I tell in **3 seconds** what to do and how I'm doing?
 - Is every piece of text ≥ 24 px (× `settings.data.textScale`) with strong contrast, and every important HUD element ≥ 32 px from the edges?
 - Does every prompt come from `input.label()` / `drawPrompts`, never a literal "A" or "Space"?
@@ -38,5 +38,5 @@ Run `npm run check <id>` and view the screenshot; capture more states (title, ga
 ## 5. Verify
 1. Verification matrix from AGENTS.md for every screen you touched: controller, keyboard only, mouse only, touch (DevTools device mode), 1920×1080 and DPR 2.
 2. Text size at maximum: nothing clipped or overlapping.
-3. `npm run check <id>`, view the screenshot, fix every ✗.
+3. `npm run check`, view the screenshot, fix every ✗.
 4. Bump `version`, update DESIGN.md (Changelog, tick *Screens and flow* items), commit (`<Name>: UI …`) and push.

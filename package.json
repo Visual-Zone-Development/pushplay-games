@@ -2,7 +2,7 @@
   "name": "pushplay-games",
   "private": true,
   "type": "module",
-  "description": "Games that build themselves and show up in PushPlay on your handheld.",
+  "description": "One PushPlay game, or a workshop of many, that build themselves and show up in PushPlay on your handheld.",
   "workspaces": [
     "games/*"
   ],
@@ -15,6 +15,7 @@
     "update-kit": "node .github/pushplay/update-kit.mjs",
     "art": "node tools/art/generate.mjs",
     "art:shots": "node tools/art/shots.mjs",
+    "promote": "node tools/promote/promote.mjs",
     "test": "node --test \"tools/**/*.test.mjs\""
   },
   "devDependencies": {

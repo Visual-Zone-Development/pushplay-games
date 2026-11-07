@@ -111,9 +111,9 @@ mechanics that tolerate that:
 
 ## Testing
 
-- `npm run dev <id>` starts a local relay as well: open the game in **two browser windows** to
+- `npm run dev` starts a local relay as well: open the game in **two browser windows** to
   play against yourself.
-- `npm run check <id>` runs the usual check (including `menu` → `state.screen === 'paused'`),
+- `npm run check` runs the usual check (including `menu` → `state.screen === 'paused'`),
   then plays **two copies** together through a local relay. It fails if they can't get into a
   match, or if the second copy never receives state. Keep the template's flow
   (title → lobby → playing) so the check can drive it. The relay is the one network connection

@@ -1,6 +1,6 @@
 ---
 name: accessibility-audit
-description: Audit and improve the accessibility of a game in games/ — colourblind-safe visuals, readable text and text size, reduced shake and flash, control remapping, hold and mash alternatives, one-handed play, difficulty and assist options, audio cues with visual equivalents — then fix what's missing. Use for "make it accessible", "colourblind mode", "remap buttons", "my kid can't beat it", "add an easy mode / assist mode", or before calling a game finished.
+description: Audit and improve the accessibility of the game in this repo — colourblind-safe visuals, readable text and text size, reduced shake and flash, control remapping, hold and mash alternatives, one-handed play, difficulty and assist options, audio cues with visual equivalents — then fix what's missing. Use for "make it accessible", "colourblind mode", "remap buttons", "my kid can't beat it", "add an easy mode / assist mode", or before calling a game finished.
 ---
 
 # Accessibility audit
@@ -8,7 +8,7 @@ description: Audit and improve the accessibility of a game in games/ — colourb
 Follow AGENTS.md (*Settings*, *Input hints*, *Screens and scaling*) and the *Accessibility* items in [complete-game.md](../../../docs/game-design/complete-game.md). Never edit the runtime files: everything here lives in `game.js` and as `extra` items in `createSettingsScreen`.
 
 ## 1. Audit
-Go through the game with the checklist below and mark each row pass / fail / n/a. Capture screenshots with `npm run check <id>` and a repro script ([debugging.md](../../../docs/game-design/debugging.md)); for the colour row, also view them in greyscale (e.g. render the canvas with `ctx.filter = 'grayscale(1)'` in a debug mode).
+Go through the game with the checklist below and mark each row pass / fail / n/a. Capture screenshots with `npm run check` and a repro script ([debugging.md](../../../docs/game-design/debugging.md)); for the colour row, also view them in greyscale (e.g. render the canvas with `ctx.filter = 'grayscale(1)'` in a debug mode).
 
 | Area | Must be true |
 |---|---|
@@ -34,5 +34,5 @@ Go through the game with the checklist below and mark each row pass / fail / n/a
 ## 3. Verify and record
 1. Re-run the checklist; every row passes or is n/a with a reason.
 2. Every new Settings item works with controller, keyboard, mouse and touch, saves, and survives a restart of the game.
-3. `npm run check <id>`, fix every ✗.
+3. `npm run check`, fix every ✗.
 4. Bump `version`, tick the *Accessibility* items in DESIGN.md's Definition of done, add a Changelog line, commit (`<Name>: accessibility`) and push. Tell the user which options exist and where (Settings, from the title or pause).

@@ -1,6 +1,6 @@
 ---
 name: enemy-ai
-description: Design and build enemy and NPC behaviour for a game in games/ — state machines (patrol, alert, chase, attack, flee), steering (seek, flee, arrive, separation, flocking), grid pathfinding (BFS, A*, flow fields), line of sight, group tactics like flanking and taking turns, and difficulty through behaviour rather than raw stats. Use for "enemies are dumb / random", "they all clump together", "make enemies smarter", "add a new enemy type", "enemies get stuck on walls", or any AI opponent (racing rivals, a CPU player in a versus game).
+description: Design and build enemy and NPC behaviour for the game in this repo — state machines (patrol, alert, chase, attack, flee), steering (seek, flee, arrive, separation, flocking), grid pathfinding (BFS, A*, flow fields), line of sight, group tactics like flanking and taking turns, and difficulty through behaviour rather than raw stats. Use for "enemies are dumb / random", "they all clump together", "make enemies smarter", "add a new enemy type", "enemies get stuck on walls", or any AI opponent (racing rivals, a CPU player in a versus game).
 ---
 
 # Enemy AI
@@ -43,4 +43,4 @@ Each new type should **ask the player a different question** (move, aim, priorit
 3. In the `?debug` overlay, draw each enemy's state name, its target and its path or field arrows.
 4. Pause freezes all AI timers; Restart resets them; seeded RNG for any randomness (`?seed=`).
 5. Play against each enemy type alone, then mixed. Run `playtest` if practical to see which types end runs.
-6. `npm run check <id>`, fix every ✗. Bump `version`, update DESIGN.md (enemy table, Changelog), commit (`<Name>: enemy AI …`) and push.
+6. `npm run check`, fix every ✗. Bump `version`, update DESIGN.md (enemy table, Changelog), commit (`<Name>: enemy AI …`) and push.

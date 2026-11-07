@@ -1,6 +1,6 @@
 // Render pages of a game to PNG with headless Chromium (WebGL via SwiftShader), for comparing assets
-// with their reference and before/after. Works for any game in games/ (2D canvas, SVG, WebGL): it
-// starts Vite on the game's folder, takes every shot, then stops it.
+// with their reference and before/after. Works for any game (2D canvas, SVG, WebGL): it starts
+// Vite on the game's folder (the repo root in a one-game repo,  in a collection), takes every shot, then stops it.
 //
 //   node .claude/skills/model-asset/scripts/shot.mjs <game-id> <outDir> "<page>|<name>.png[|options]" ...
 //
@@ -24,7 +24,8 @@ if (!id || !outDir || !shots.length) {
 mkdirSync(outDir, { recursive: true })
 const { chromium } = await import(path.join(root, '.github/pushplay/node_modules/playwright-core/index.mjs'))
 const port = 5300 + Math.floor(Math.random() * 400)
-const vite = spawn('npx', ['vite', `games/${id}`, '--port', String(port), '--strictPort'], { cwd: root, stdio: 'ignore' })
+const gameDir = existsSync(path.join(root, 'games', id)) ? `games/${id}` : '.'
+const vite = spawn('npx', ['vite', gameDir, '--port', String(port), '--strictPort'], { cwd: root, stdio: 'ignore' })
 const base = `http://localhost:${port}/`
 for (let i = 0; i < 60; i++) {
   try {
