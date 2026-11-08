@@ -1,3 +1,5 @@
+// pushplay runtime v10 — replaced by `npm run update-kit`; don't edit, extend from game.js.
+//
 // Online play: connects to the shared relay, runs rooms (host / join / quick match), and keeps
 // one shared state object in sync. Shared by every online game; don't edit it per game (the
 // build check warns when a copy is out of date).
@@ -15,6 +17,13 @@
 //   events:      net.on('join' | 'leave' | 'start' | 'end' | 'event' | 'disconnect', fn)
 //   secrets:     host: net.privateView(id).hand = [...]   that player: net.mine.hand
 //                (net.state reaches everyone; a view reaches only its player)
+//   dropouts:    a phone that goes to the background suspends its socket. Once the match has
+//                started net.js reconnects by itself (backoff, about a minute) and takes the same
+//                room and slot back: net.status is 'reconnecting' meanwhile (draw "Reconnecting…"
+//                and carry on), then 'playing' again, with the state kept. net.connection is the
+//                socket alone: 'connected' | 'reconnecting' | 'offline'. The others see that player
+//                in net.away (events 'away' | 'back'); the host keeps the match running. If the
+//                room is gone by then, 'disconnect' fires as for any loss.
 //
 // Fractional numbers (positions, angles) are blended between updates; whole numbers (counts,
 // scores, countdowns) jump straight to the newest value.
@@ -23,7 +32,7 @@
 // that come and go by id (`ships: { p2: {...} }`), not by array position: removing the first
 // item of an array changes every index after it, and all of them get resent.
 
-export const NET_VERSION = 4
+export const NET_VERSION = 5
 
 /** Time between state updates from the host (about 30 a second). */
 const TICK_MS = 33
@@ -36,6 +45,9 @@ const INTERP_MS = 80
 const DECIMALS = 2
 /** Dev and the build check run their own relay next to the game. */
 const LOCAL_RELAY_PORT = 5174
+/** Reconnect attempts after a drop mid-match: 0.5 s, 1 s, 2 s… up to this, and no longer than the relay holds the slot. */
+const RETRY_MAX_MS = 8000
+const RETRY_FOR_MS = 60_000
 
 const CLOSE_REASONS = {
   4003: "This build can't go online. Rebuild it to get a fresh online pass.",
@@ -56,13 +68,19 @@ export function createNet({ maxPlayers = 2, minPlayers = 2 } = {}) {
   let clockOffset = null // player: local time minus host time, at the lowest latency seen
   let myInput = {}
   let sentInput = '{}'
+  let resume = null // token to take my slot back after a drop (from 'joined')
+  let rejoin = null // { room, since, retries, timer } while reconnecting
   const listeners = {}
   const round = 10 ** DECIMALS
 
   const net = {
-    /** idle | connecting | online (no room) | room (lobby) | playing | error */
+    /** idle | connecting | online (no room) | room (lobby) | playing | reconnecting (dropped mid-match, getting the slot back) | error */
     status: 'idle',
     error: '',
+    /** The socket: 'connected', 'reconnecting' (dropped mid-match, getting the slot back) or 'offline'. */
+    connection: 'offline',
+    /** Players whose socket dropped mid-match; they keep their slot for a minute (see 'away' / 'back'). */
+    away: [],
     /** Open rooms, after refresh(): [{ id, players, max }] */
     rooms: [],
     room: null,
@@ -106,16 +124,19 @@ export function createNet({ maxPlayers = 2, minPlayers = 2 } = {}) {
       if (net.isHost) send({ t: 'start' })
     },
     leave() {
+      stopRejoin()
       send({ t: 'leave' })
       leftRoom()
     },
     /** Hang up entirely (back to the title screen). */
     disconnect() {
+      stopRejoin()
       ws?.close(1000)
       ws = null
       connecting = null
       leftRoom()
       net.status = 'idle'
+      net.connection = 'offline'
     },
 
     /** This player's controls. Sent to the host only when they change. */
@@ -135,6 +156,8 @@ export function createNet({ maxPlayers = 2, minPlayers = 2 } = {}) {
       if (!net.room) return
       if (net.isHost) {
         net.view = net.state
+        net.mine = net.privateViews[net.me] ?? {}
+        if (net.status === 'reconnecting') return // nothing to send to until the slot is back
         if (now - lastTick >= TICK_MS) {
           // Keep to the beat instead of drifting a frame late each time.
           lastTick = now - lastTick > TICK_MS * 2 ? now : lastTick + TICK_MS
@@ -153,7 +176,6 @@ export function createNet({ maxPlayers = 2, minPlayers = 2 } = {}) {
             lastViews[id] = v
           }
         }
-        net.mine = net.privateViews[net.me] ?? {}
       } else {
         const text = JSON.stringify(snapshot(myInput, round))
         if (text !== sentInput && net.hostId) {
@@ -177,8 +199,10 @@ export function createNet({ maxPlayers = 2, minPlayers = 2 } = {}) {
   }
 
   function fail(message) {
+    stopRejoin()
     net.status = 'error'
     net.error = message
+    net.connection = ws?.readyState === WebSocket.OPEN ? 'connected' : 'offline'
     leftRoom()
     emit('disconnect', message)
   }
@@ -187,8 +211,38 @@ export function createNet({ maxPlayers = 2, minPlayers = 2 } = {}) {
     net.room = null
     net.hostId = null
     net.players = []
+    net.away = []
     net.inputs = {}
-    if (net.status === 'room' || net.status === 'playing') net.status = 'online'
+    resume = null
+    if (net.status === 'room' || net.status === 'playing' || net.status === 'reconnecting') net.status = 'online'
+  }
+
+  /**
+   * The socket dropped mid-match: try to get the same slot back, with backoff, for about as long
+   * as the relay holds it. The room stays set and status is 'reconnecting', so the game keeps
+   * drawing its last view. Called again by onclose after each failed attempt.
+   */
+  function scheduleRejoin() {
+    const now = Date.now()
+    rejoin ??= { room: net.room, since: now, retries: 0, timer: null }
+    net.status = 'reconnecting'
+    net.connection = 'reconnecting'
+    if (now - rejoin.since > RETRY_FOR_MS) return fail('Lost the connection to the game server.')
+    clearTimeout(rejoin.timer)
+    rejoin.timer = setTimeout(attemptRejoin, Math.min(RETRY_MAX_MS, 500 * 2 ** rejoin.retries++))
+  }
+
+  async function attemptRejoin() {
+    if (!rejoin) return
+    clearTimeout(rejoin.timer)
+    rejoin.timer = null
+    await connect(true)
+    if (rejoin && ws?.readyState === WebSocket.OPEN) send({ t: 'rejoin', room: rejoin.room, resume })
+  }
+
+  function stopRejoin() {
+    if (rejoin) clearTimeout(rejoin.timer)
+    rejoin = null
   }
 
   function send(msg) {
@@ -216,28 +270,37 @@ export function createNet({ maxPlayers = 2, minPlayers = 2 } = {}) {
     return null
   }
 
-  function connect() {
+  /** Open the socket. `quiet` (a rejoin) leaves status alone: the game is still in its match. */
+  function connect(quiet = false) {
     if (ws?.readyState === WebSocket.OPEN) return Promise.resolve()
     if (connecting) return connecting
-    net.status = 'connecting'
-    net.error = ''
+    if (!quiet) {
+      net.status = 'connecting'
+      net.error = ''
+    }
     connecting = (async () => {
       const address = await relayAddress()
       if (!address) return fail("This build isn't set up for online play.")
       await new Promise((resolve) => {
         const socket = new WebSocket(address)
         ws = socket
-        socket.onopen = resolve
+        socket.onopen = () => {
+          net.connection = 'connected'
+          resolve()
+        }
         socket.onmessage = (e) => receive(e.data)
         socket.onclose = (e) => {
           resolve()
           if (ws !== socket) return
           ws = null
           connecting = null
-          if (net.status !== 'idle') fail(CLOSE_REASONS[e.code] ?? "Can't reach the game server. Check your connection.")
+          if (net.status === 'idle') return
+          // Mid-match and not turned away on purpose: the relay holds the slot, so get it back.
+          if (net.room && (net.status === 'playing' || net.status === 'reconnecting') && !CLOSE_REASONS[e.code] && e.code !== 4001) return scheduleRejoin()
+          fail(CLOSE_REASONS[e.code] ?? (e.code === 4001 ? 'This game was opened somewhere else.' : "Can't reach the game server. Check your connection."))
         }
       })
-      if (ws?.readyState === WebSocket.OPEN) net.status = 'online'
+      if (ws?.readyState === WebSocket.OPEN && !quiet) net.status = 'online'
     })()
     return connecting
   }
@@ -252,16 +315,27 @@ export function createNet({ maxPlayers = 2, minPlayers = 2 } = {}) {
       case 'rooms':
         net.rooms = msg.rooms
         break
-      case 'joined':
+      case 'joined': {
+        const back = rejoin !== null
+        stopRejoin()
         net.room = msg.room
         net.me = msg.you
         net.hostId = msg.host
         net.players = msg.players
-        net.status = 'room'
+        net.away = msg.away ?? []
+        net.status = msg.started ? 'playing' : 'room'
+        resume = msg.resume ?? null
+        sentInput = '{}'
+        if (back) {
+          // Same match, same slot: keep the state. A rejoining host sends everyone everything again.
+          for (const id of net.players) net.inputs[id] ??= {}
+          if (net.isHost) for (const id of net.players) if (id !== net.me) sendEverything(id)
+          emit('reconnected')
+          break
+        }
         net.inputs = {}
         for (const id of net.players) net.inputs[id] = {}
         net.inputs[net.me] = myInput
-        sentInput = '{}'
         net.privateViews = {}
         net.mine = {}
         lastViews = {}
@@ -277,20 +351,27 @@ export function createNet({ maxPlayers = 2, minPlayers = 2 } = {}) {
         net.view = net.state
         emit('joined', msg)
         break
+      }
       case 'peer-join':
         net.players.push(msg.id)
         net.inputs[msg.id] = {}
         // Newcomers get everything once; after that, the same changes as everyone else.
-        if (net.isHost) {
-          send({ t: 'send', to: msg.id, d: { k: 'f', s: lastSent, t: Math.round(performance.now()) } })
-          lastViews[msg.id] = snapshot(net.privateViews[msg.id] ?? {}, round)
-          send({ t: 'send', to: msg.id, d: { k: 'V', s: lastViews[msg.id] } })
-          net.stats.fulls++
-        }
+        if (net.isHost) sendEverything(msg.id)
         emit('join', msg.id)
+        break
+      case 'peer-away':
+        if (!net.away.includes(msg.id)) net.away.push(msg.id)
+        if (net.isHost) net.inputs[msg.id] = {} // their character stands still until they're back
+        emit('away', msg.id)
+        break
+      case 'peer-back':
+        net.away = net.away.filter((id) => id !== msg.id)
+        if (net.isHost) sendEverything(msg.id) // whatever they missed, in one go
+        emit('back', msg.id)
         break
       case 'peer-leave':
         net.players = net.players.filter((id) => id !== msg.id)
+        net.away = net.away.filter((id) => id !== msg.id)
         delete net.inputs[msg.id]
         delete net.privateViews[msg.id]
         delete lastViews[msg.id]
@@ -306,6 +387,8 @@ export function createNet({ maxPlayers = 2, minPlayers = 2 } = {}) {
         emit('end', msg.reason)
         break
       case 'error':
+        // The relay let the slot go while this copy was away: the match is over for it.
+        if (rejoin && msg.code === 'not-found') return fail('The match ended while you were away.')
         net.error = { 'not-found': "That room doesn't exist anymore.", full: 'That room is full.', started: 'That game already started.', busy: 'The server is busy. Try again soon.' }[msg.code] ?? ''
         emit('error', msg.code)
         break
@@ -313,6 +396,14 @@ export function createNet({ maxPlayers = 2, minPlayers = 2 } = {}) {
         message(msg.from, msg.d)
         break
     }
+  }
+
+  /** Host: a player's whole state and private view, once (joins, and comebacks after a drop). */
+  function sendEverything(id) {
+    send({ t: 'send', to: id, d: { k: 'f', s: lastSent, t: Math.round(performance.now()) } })
+    lastViews[id] = snapshot(net.privateViews[id] ?? {}, round)
+    send({ t: 'send', to: id, d: { k: 'V', s: lastViews[id] } })
+    net.stats.fulls++
   }
 
   function message(from, d) {
@@ -341,6 +432,8 @@ export function createNet({ maxPlayers = 2, minPlayers = 2 } = {}) {
   }
 
   if (typeof window !== 'undefined') window.__kitNet = net // the build check reads this
+  // Back from the background: don't wait out the backoff, try now.
+  if (typeof document !== 'undefined') document.addEventListener('visibilitychange', () => !document.hidden && rejoin?.timer && attemptRejoin())
   return net
 }
 

@@ -140,6 +140,23 @@
     "party": {
       "type": "boolean"
     },
+    "phone": {
+      "type": "object",
+      "properties": {
+        "orientation": {
+          "type": "string",
+          "enum": [
+            "portrait",
+            "landscape",
+            "any"
+          ]
+        }
+      },
+      "required": [
+        "orientation"
+      ],
+      "additionalProperties": false
+    },
     "inputs": {
       "maxItems": 4,
       "type": "array",

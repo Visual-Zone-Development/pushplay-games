@@ -172,10 +172,10 @@ button names, and the on-screen controls hide themselves (`touch.js` draws nothi
 
 The relay connection is a WebSocket, and phones suspend it the moment the app is hidden.
 `net.js` reconnects to the same room and seat and resumes in place; while it does, `net.status`
-is `'reconnecting'` (`'connected'` and `'offline'` otherwise). The game must:
+is `'reconnecting'` and `net.connection` is `'connected' | 'reconnecting' | 'offline'`. The game must:
 
 - Show **"Reconnecting…"** on the pause screen (and over play) while `net.status === 'reconnecting'`,
-  and "Connection lost" with a way back to the lobby when it turns `'offline'`.
+  and "Connection lost" with a way back to the lobby when `net.connection` turns `'offline'`.
 - Pause the player's own controls on `visibilitychange` as every game does; the host keeps
   running, so the player comes back to the present, not to where they left.
 - Keep the host's copy on a device that stays awake if possible: a host phone that locks stalls

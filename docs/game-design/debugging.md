@@ -33,7 +33,7 @@ Reproduce first, then fix the root cause. `npm run check` is the first tool. It 
 | On-screen controls show with a controller plugged in | The game draws its own touch controls regardless of mode | Use `touch.js` (draws only when `input.mode === 'touch'`), or guard your drawing with that check |
 | Stick and drag fight on touch | The game reads `input.pointer` for movement as well as `touch.js`'s stick | One movement source per mode: the stick writes `input.x / y`; drop the pointer drag or use it only when there's no stick |
 | Huge jump after the phone comes back | `dt` not clamped; timers counted wall-clock | `dt = Math.min(1/20, …)`; round timers pause with the game |
-| Online: stuck after a screen lock | `net.status` ignored | Show "Reconnecting…" while `net.status === 'reconnecting'`; offer Back to lobby on `'offline'` |
+| Online: stuck after a screen lock | `net.status` ignored | Show "Reconnecting…" while `net.status === 'reconnecting'`; offer Back to lobby when `net.connection === 'offline'` |
 
 ## Debug overlay convention
 

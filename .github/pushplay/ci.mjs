@@ -91,6 +91,7 @@ async function build() {
             inputs: m.inputs ?? null,
             online: m.online ?? false,
             party: m.party ?? false,
+            phone: m.phone ?? null,
             platform: 'web',
             build: buildNumber,
             commit: sha,

@@ -29,4 +29,4 @@ scheme. During play:
 - With two thumbs in the lower zones, the player's character, the next threat and the score are all visible; nothing the player must press during play is in the top half except the pause button.
 - The screen lock lands on `paused` and the save reflects the run; unlocking does not resume by itself.
 - After the controller press, the on-screen controls disappear, prompts name buttons, and gameplay continues with the pad; the next tap brings the controls back.
-- An online game shows "Reconnecting…" while `net.status` is `reconnecting` and offers a way back to the lobby when it is `offline`.
+- An online game shows "Reconnecting…" while `net.status` is `'reconnecting'` and offers a way back to the lobby when `net.connection` is `'offline'`.

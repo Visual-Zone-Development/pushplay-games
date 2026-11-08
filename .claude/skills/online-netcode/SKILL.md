@@ -21,8 +21,8 @@ Run `npm run dev` and play in **two browser windows** (the dev relay starts auto
 | Too much data | Only what players must see goes in `net.state`; particles, shake and sounds come from `net.event` on each copy; key collections by id (`bullets: { b17: {...} }`), never arrays that shift; no per-frame timers in state (send an end time once) |
 | Secrets visible in dev tools | Hidden info goes in `net.privateView(id)` → `net.mine`, never in `net.state` |
 | Someone leaves mid-match | Handle `net.on('leave')`: remove or freeze their character, keep the match going if the rules allow; `end` (host left) returns everyone to the lobby with the reason |
-| A phone locks or the app is hidden | The socket is suspended; `net.js` reconnects to the same room and seat. Read `net.status` every frame: while `'reconnecting'` draw "Reconnecting…" over play and on the pause screen and send empty input; on `'offline'` show "Connection lost" with a Back to lobby item. `input.onPause` already pauses the player's own controls on `visibilitychange`; the host keeps running, so they rejoin the present |
-| The host's phone locks | The match stalls for everyone. Say in the lobby "Keep this screen on while hosting"; on the host's `'reconnecting'`, other copies freeze on `net.view` and show who they're waiting for; a host that stays `'offline'` ends the match (`end`) |
+| A phone locks or the app is hidden | The socket is suspended; `net.js` reconnects to the same room and seat. Read `net.status` every frame: while `'reconnecting'` draw "Reconnecting…" over play and on the pause screen and send empty input; when `net.connection` is `'offline'` show "Connection lost" with a Back to lobby item. `input.onPause` already pauses the player's own controls on `visibilitychange`; the host keeps running, so they rejoin the present |
+| The host's phone locks | The match stalls for everyone. Say in the lobby "Keep this screen on while hosting"; on the host's `'reconnecting'`, other copies freeze on `net.view` and show who they're waiting for; a host whose `net.connection` stays `'offline'` ends the match (`end`) |
 | Late joiner sees nothing | Everything they need to draw must be in `net.state` (they get it all once on join); don't rely on events they missed |
 
 ## 3. Design for the delay
@@ -32,7 +32,7 @@ About 80 ms plus network delay sits between the host and other players. Good fit
 - `title` → `lobby` → `playing` ↔ `paused` with `state.screen` and `window.__game` exposed.
 - `menu` opens the `menu.js` pause menu (Resume, Settings, Leave game); it only stops your own controls (`net.setInput({})`), the host keeps running.
 - Show who's who: "You", colours by `net.slot(id)`.
-- `net.status` (`'connected' | 'reconnecting' | 'offline'`) is drawn somewhere on every playable screen; the pause screen says "Reconnecting…" while it is.
+- `net.status` (its usual values plus `'reconnecting'`) and `net.connection` (`'connected' | 'reconnecting' | 'offline'`) are drawn somewhere on every playable screen; the pause screen says "Reconnecting…" while reconnecting.
 
 ## 5. Verify
 1. Two windows by hand, as host and as guest; then with one window throttled (DevTools → Network → slow 4G) to feel delay. Then take one copy offline for 20 s (DevTools → Network → Offline) and back: it must show "Reconnecting…", rejoin the same room and seat, and carry on; a phone game in device mode should do the same after `visibilitychange`.

@@ -196,6 +196,9 @@ export function validateManifest(game, manifest) {
   if (!manifest.controls) warnings.push(`set "controls": "gamepad" once the game works with a controller`)
   if (!manifest.tags?.length) errors.push(`${where}: add "tags" (1–8 lowercase genre and style words, e.g. ["arcade", "space"]) so players can filter the library`)
   if (!manifest.inputs?.length) errors.push(`${where}: add "inputs": ["gamepad", "keyboard", "mouse", "touch"] (drop the ones gameplay can't support; menus must work with all four)`)
+  if (manifest.phone && manifest.inputs?.length && !manifest.inputs.includes('touch')) {
+    errors.push(`${where}: a phone game ("phone": { "orientation": "${manifest.phone.orientation}" }) is played with touch alone, so "inputs" must include "touch" (the phone pass plays it that way)`)
+  }
 
   return { errors, warnings }
 }

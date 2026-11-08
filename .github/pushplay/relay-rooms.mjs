@@ -13,11 +13,17 @@
 //   {t:'start'}                   host only: close the room to new players
 //   {t:'leave'}
 //   {t:'send', to?, d}            forward d to one player (to) or everyone else in the room
+//   {t:'rejoin', room, resume}    take back a slot in a started room after the socket dropped
 // Relay → client:
 //   {t:'hello', you, limits}      {t:'rooms', rooms:[{id, players, max}]}
-//   {t:'joined', room, you, host, players, max}
+//   {t:'joined', room, you, host, players, max, resume, started, away}
 //   {t:'peer-join', id}  {t:'peer-leave', id}  {t:'start'}  {t:'closed', reason}
+//   {t:'peer-away', id}  {t:'peer-back', id}   (a started room: a player's socket dropped / came back)
 //   {t:'msg', from, d}  {t:'error', code}  {t:'warn', code}
+// Once a room has started, a player whose socket drops (a phone in the background, a sleeping
+// Deck) keeps its slot and id for roomGraceMs; sending {t:'rejoin'} with the `resume` token from
+// `joined` gets it back, and the others see peer-away / peer-back. In an open room (the lobby) a
+// drop is a leave.
 //
 // Party rooms: a TV host (a signed game) plus phones or browsers (unsigned, joined by code).
 // Host → relay:
@@ -45,6 +51,8 @@ export const LIMITS = {
   messagesPerSecond: 90,
   roomsPerGame: 200,
   idleRoomMs: 10 * 60_000,
+  /** How long a started room keeps a dropped player's slot (phones suspend sockets in the background). */
+  roomGraceMs: 60_000,
   /** Over-limit messages (dropped) before the player is disconnected. */
   strikes: 30,
   /** Seats in a party, not counting the host. */
@@ -96,6 +104,9 @@ export class Relay {
       phone,
       socket,
       room: null,
+      /** Token to take this slot back after a drop (started rooms); the time the socket dropped. */
+      resume: null,
+      away: null,
       party: null,
       seat: null,
       factor: 1,
@@ -120,7 +131,16 @@ export class Relay {
   sweep() {
     const now = this.now()
     const cutoff = now - this.limits.idleRoomMs
-    for (const rooms of this.games.values()) for (const room of rooms.values()) if (room.active < cutoff) this.#close(room, 'idle')
+    for (const rooms of this.games.values()) {
+      for (const room of [...rooms.values()]) {
+        if (room.active < cutoff) {
+          this.#close(room, 'idle')
+          continue
+        }
+        // Dropped players who never came back give up their slot (the host's drop ends the room).
+        for (const p of [...room.players]) if (p.away !== null && p.away < now - this.limits.roomGraceMs) this.#drop(p)
+      }
+    }
 
     const { seatGraceMs, hostGraceMs, idlePartyMs, joinTimeoutMs } = this.limits
     for (const party of [...this.parties.values()]) {
@@ -179,6 +199,8 @@ export class Relay {
         return
       case 'leave':
         return client.party ? this.#leaveParty(client) : this.#leave(client)
+      case 'rejoin':
+        return this.#rejoin(client, String(msg.room ?? '').toUpperCase(), msg.resume)
       case 'party-host':
         return this.#hostParty(client, msg)
       case 'party-join':
@@ -267,6 +289,7 @@ export class Relay {
     const room = { id, game: client.game, host: client, players: [client], max: this.#max(max), open: true, created: now, active: now }
     rooms.set(id, room)
     client.room = room
+    client.resume = crypto.randomUUID()
     this.#sendJoined(client)
   }
 
@@ -282,12 +305,58 @@ export class Relay {
     room.players.push(client)
     room.active = this.now()
     client.room = room
+    client.resume = crypto.randomUUID()
     this.#sendJoined(client)
   }
 
   #sendJoined(client) {
     const room = client.room
-    this.#send(client, { t: 'joined', room: room.id, you: client.id, host: room.host.id, players: room.players.map((p) => p.id), max: room.max })
+    this.#send(client, {
+      t: 'joined',
+      room: room.id,
+      you: client.id,
+      host: room.host.id,
+      players: room.players.map((p) => p.id),
+      max: room.max,
+      resume: client.resume,
+      started: !room.open,
+      away: room.players.filter((p) => p.away !== null).map((p) => p.id)
+    })
+  }
+
+  /** A new socket takes back the slot `resume` names in a started room (see peer-away). */
+  #rejoin(client, id, resume) {
+    const room = this.games.get(client.game)?.get(id)
+    const old = typeof resume === 'string' && room ? room.players.find((p) => p.resume === resume) : null
+    if (!old) return this.#send(client, { t: 'error', code: 'not-found' })
+    if (old === client) return this.#sendJoined(client)
+    this.#leaveParty(client)
+    this.#leave(client)
+    if (old.away === null) {
+      // The old socket hasn't noticed it's gone: the new one wins.
+      this.clients.delete(old)
+      old.socket.close(CLOSE.replaced, 'replaced by a newer connection')
+    }
+    old.room = null
+    client.id = old.id
+    client.resume = old.resume
+    client.room = room
+    client.away = null
+    room.players[room.players.indexOf(old)] = client
+    if (room.host === old) room.host = client
+    room.active = this.now()
+    this.#sendJoined(client)
+    for (const p of room.players) if (p !== client) this.#sendRaw(p, JSON.stringify({ t: 'peer-back', id: client.id }))
+  }
+
+  /** A dropped player's grace ran out: the room goes on without them, or ends if they hosted it. */
+  #drop(client) {
+    const room = client.room
+    if (!room) return
+    client.room = null
+    if (room.host === client) return this.#close(room, 'host-left')
+    room.players = room.players.filter((p) => p !== client)
+    this.#broadcast(room, { t: 'peer-leave', id: client.id })
   }
 
   #leave(client) {
@@ -311,7 +380,12 @@ export class Relay {
 
   #disconnect(client) {
     if (!this.clients.delete(client)) return
-    this.#leave(client)
+    const room = client.room
+    if (room && !room.open) {
+      // Mid-match: keep the slot for a while (see sweep); the others see the player as away.
+      client.away = this.now()
+      for (const p of room.players) if (p !== client) this.#sendRaw(p, JSON.stringify({ t: 'peer-away', id: client.id }))
+    } else this.#leave(client)
     const party = client.party
     if (!party) return
     // Keep the seat or the party for a while: phones lock, TVs reload.
@@ -476,9 +550,9 @@ export class Relay {
     }
     const room = client.room
     if (!room) return []
-    if (to === undefined || to === null) return room.players.filter((p) => p !== client)
+    if (to === undefined || to === null) return room.players.filter((p) => p !== client && p.away === null)
     const target = room.players.find((p) => p.id === to)
-    return target && target !== client ? [target] : []
+    return target && target !== client && target.away === null ? [target] : []
   }
 
   #broadcast(room, msg) {
@@ -491,6 +565,7 @@ export class Relay {
   }
 
   #sendRaw(client, text) {
+    if (client.away !== null) return // a dropped player: nothing to send to until it rejoins
     this.onTraffic(Buffer.byteLength(text))
     client.socket.send(text)
   }

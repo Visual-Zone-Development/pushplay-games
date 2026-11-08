@@ -1,4 +1,4 @@
-// pushplay runtime v2 — replaced by npm run update-kit; don't edit
+// pushplay runtime v10 — replaced by npm run update-kit; don't edit
 // Party games: the game runs on the TV (a handheld or PC plugged into it), and players join from
 // their phones or any browser: scan the QR code or type the room code on the join page. Local
 // controllers can join too, so a party game works with phones, pads, or both.

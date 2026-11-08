@@ -1,4 +1,4 @@
-// pushplay runtime v2 — replaced by `npm run update-kit`; don't edit, extend from game.js.
+// pushplay runtime v10 — replaced by `npm run update-kit`; don't edit, extend from game.js.
 //
 // Button prompts drawn for whatever the player is using: controller buttons as coloured circles
 // and pills, keyboard keys as keycaps, touch as tap chips. Never hard-code "Press A": the same

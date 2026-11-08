@@ -44,8 +44,8 @@ const state = {
   dots: {},
   picks: {}
 }
-// The check presses Start and expects state.screen 'paused', and taps titleMenu's first item.
-window.__game = { state, TUNING, party, settings, get titleMenu() { return titleMenu } }
+// The check presses Start and expects state.screen 'paused', taps titleMenu's first item, and clicks PAUSE_BUTTON.
+window.__game = { state, TUNING, party, settings, get titleMenu() { return titleMenu }, get pauseMenu() { return pauseMenu }, pauseButton: { x: W - 88, y: 32, w: 56, h: 56 } }
 const debug = new URLSearchParams(location.search).has('debug')
 
 const titleMenu = createMenu(
@@ -65,7 +65,7 @@ const pauseMenu = createMenu(
 )
 const settingsScreen = createSettingsScreen({ settings, audio })
 
-const PAUSE_BUTTON = { x: W - 88, y: 32, w: 56, h: 56 }
+const PAUSE_BUTTON = window.__game.pauseButton
 const inside = (p, r) => p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h
 
 input.onPause(() => {

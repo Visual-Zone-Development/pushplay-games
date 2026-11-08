@@ -45,7 +45,7 @@ Follow the `touch-controls` skill. In short: `import { createTouchControls } fro
 ## 5. Phones background, sockets drop
 - `input.onPause` already fires on `visibilitychange`; make sure the handler pauses from every playable screen (not just `playing`: a lobby countdown, a results tally) and calls `save.save()`. Never auto-resume.
 - Audio: nothing may assume sound keeps running across a background; `audio.js` resumes on the next input.
-- **Online games**: read `net.status` every frame. While `'reconnecting'`, draw "Reconnecting…" over play and on the pause screen and send empty input; on `'offline'` show "Connection lost" with a Back to lobby item. Tell the host in the lobby to keep the screen on. See the `online-netcode` skill.
+- **Online games**: read `net.status` every frame. While `'reconnecting'`, draw "Reconnecting…" over play and on the pause screen and send empty input; when `net.connection` is `'offline'` show "Connection lost" with a Back to lobby item. Tell the host in the lobby to keep the screen on. See the `online-netcode` skill.
 - The first `dt` after a background is huge: confirm `dt` is clamped (`Math.min(1/20, …)`) and that timers don't skip (a round timer should pause with the game).
 
 ## 6. Manifest, check, record
@@ -71,7 +71,7 @@ A game made with `--phone` already earns Handheld & controller and Desktop if it
 - [ ] Every hover, precise drag, right-click or keyboard-only verb has a touch form; every menu has a visible Back item
 - [ ] `touch.js` controls where touch-only play needs them; hidden when `input.mode !== 'touch'`; controller and keyboard play unchanged
 - [ ] `visibilitychange` pauses from every playable screen and saves; `dt` clamped
-- [ ] Online: "Reconnecting…" / "Connection lost" from `net.status`
+- [ ] Online: "Reconnecting…" from `net.status`, "Connection lost" from `net.connection`
 - [ ] Manifest: `phone.orientation`, `"touch"` in `inputs`, `version` bumped
 - [ ] `npm run check` green including the phone and mouse-only passes; phone screenshot looked at
 - [ ] Verified by hand: touch at phone size, controller, keyboard, 1920×1080

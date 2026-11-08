@@ -1,4 +1,4 @@
-// pushplay runtime v2 — replaced by `npm run update-kit`; don't edit, extend from game.js.
+// pushplay runtime v10 — replaced by `npm run update-kit`; don't edit, extend from game.js.
 //
 // A ready-made settings screen (master / music / SFX volume, reduced screen shake, text size)
 // built on menu.js, so it works with every input. Reachable from the title and the pause menu.

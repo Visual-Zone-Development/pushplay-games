@@ -51,7 +51,7 @@ What separates a complete game from a toy. Copy the items that apply into the ga
 - [ ] **Manifest** has `tags` and `inputs`; `inputs` lists only what gameplay really supports (menus support all four regardless).
 - [ ] **Verification matrix** done by hand: controller, keyboard only, mouse only, touch (DevTools device mode), 1920×1080 at DPR 2 (see AGENTS.md).
 - [ ] **Local multiplayer** (if any) joins by press per controller through `input.pads[i]`; several controllers on one tablet work the same.
-- [ ] **Phone games** (manifest `phone`, see [phone.md](phone.md)): laid out in the portrait 720×1280 or landscape 1280×720 space, text ≥ 32px, HUD and tap targets placed from `fit.safe` and out of the thumb zones, on-screen controls through `touch.js` hidden when `input.mode !== 'touch'`, a hidden page pauses and saves, and the game still plays with a controller and a keyboard. Online games show "Reconnecting…" from `net.status`.
+- [ ] **Phone games** (manifest `phone`, see [phone.md](phone.md)): laid out in the portrait 720×1280 or landscape 1280×720 space, text ≥ 32px, HUD and tap targets placed from `fit.safe` and out of the thumb zones, on-screen controls through `touch.js` hidden when `input.mode !== 'touch'`, a hidden page pauses and saves, and the game still plays with a controller and a keyboard. Online games show "Reconnecting…" from `net.status` and "Connection lost" from `net.connection`.
 
 ## Under the hood
 

@@ -1,4 +1,4 @@
-// pushplay runtime v2 — replaced by `npm run update-kit`; don't edit, extend from game.js.
+// pushplay runtime v10 — replaced by `npm run update-kit`; don't edit, extend from game.js.
 //
 // Controller, keyboard, mouse and touch input behind one API. Games run on handhelds and on
 // Linux, Windows and Mac PCs, so every action has to work with each of them.
@@ -20,7 +20,10 @@
 // prompts can say the right thing: input.label('a'), input.stickLabel(), input.dpadLabel().
 // input.pads[i] has per-pad state for local multiplayer; the merged view above is the default.
 // input.onPause(cb) fires when the launcher opens its overlay, the window loses focus or is
-// hidden, or every controller disconnects: pause the game there.
+// hidden (a phone's screen locks, the app goes to the background), or every controller
+// disconnects: pause the game there.
+// input.inject({ x, y, buttons }) feeds this frame from on-screen controls (touch.js does this
+// for its virtual stick and buttons); call it after input.update().
 
 const BUTTONS = ['a', 'b', 'x', 'y', 'lb', 'rb', 'lt', 'rt', 'select', 'start', 'ls', 'rs', 'up', 'down', 'left', 'right']
 const DEFAULT_KEYS = {
@@ -207,6 +210,9 @@ export const input = {
   pointer: { x: 0, y: 0, down: false, pressed: false, released: false, active: false, type: 'mouse' },
   /** Every pointer currently touching or hovering, by pointerId: { id, x, y, down, type }. */
   pointers: new Map(),
+  /** The drawing space attach() was given (touch.js lays its controls out in it), and the canvas. */
+  space: { w: 1280, h: 800 },
+  canvas: null,
 
   /**
    * Track the mouse and touch, converted into a w×h drawing space (1280×800 unless the game
@@ -216,6 +222,8 @@ export const input = {
     attached.canvas = canvas
     attached.w = w
     attached.h = h
+    this.canvas = canvas
+    this.space = { w, h }
     if (attached.listening) return
     attached.listening = true
     const place = (e, p) => {
@@ -345,6 +353,25 @@ export const input = {
   pressed: (button) => now.has(button) && !before.has(button),
   released: (button) => !now.has(button) && before.has(button),
 
+  /**
+   * On-screen controls (touch.js): add a stick vector and held buttons to this frame, after
+   * update(). The stick adds to x/y (clamped to the unit circle); buttons join held/pressed/
+   * released like any other, so a game reads them the same way whatever the player holds.
+   */
+  inject({ x = 0, y = 0, buttons = [] } = {}) {
+    if (x || y) {
+      const sx = this.x + x
+      const sy = this.y + y
+      const len = Math.hypot(sx, sy)
+      this.x = len > 1 ? sx / len : sx
+      this.y = len > 1 ? sy / len : sy
+    }
+    for (const b of buttons) {
+      if (!now.has(b) && !before.has(b)) for (const cb of pressListeners) cb(b)
+      now.add(b)
+    }
+  },
+
   /** The game's own on-screen pause button was tapped: counts as one press of `menu`. */
   requestMenu() {
     menuRequested = true
@@ -407,6 +434,10 @@ addEventListener('blur', () => {
 })
 addEventListener('focus', fireResume)
 document.addEventListener('visibilitychange', () => (document.hidden ? queueWindowPause() : fireResume()))
+// Phones: the screen locks or the app is sent to the background. Most browsers fire
+// visibilitychange too; these are the ones that don't, or that fire first.
+addEventListener('pagehide', queueWindowPause)
+document.addEventListener('freeze', queueWindowPause)
 
 // The launcher's overlay (pause menu) and its events, when running inside it.
 const api = launcher()

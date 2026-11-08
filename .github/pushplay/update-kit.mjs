@@ -9,14 +9,14 @@ import { spawnSync } from 'node:child_process'
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { basename, dirname, join, resolve } from 'node:path'
-import { brand, KIT_DIR, KIT_VERSION, PARTY_RUNTIME_FILES, RUNTIME_FILES, RUNTIME_HEADER_RE, WORKFLOW_FILE } from './config.mjs'
+import { brand, KIT_DIR, KIT_VERSION, ONLINE_RUNTIME_FILES, PARTY_RUNTIME_FILES, RUNTIME_FILES, RUNTIME_HEADER_RE, WORKFLOW_FILE } from './config.mjs'
 import { listGames, log, npmSpawn, ROOT } from './repo.mjs'
 
 const KIT_ZIP = 'kit.zip'
 const PROMPT_FILES = ['AGENTS.md', 'CLAUDE.md']
 const PROMPT_DIRS = ['.claude/skills', 'docs/game-design']
 /** Runtime files that older kits shipped without a header; games forked them, so they're replaced anyway. */
-const LEGACY_RUNTIME = new Set(['input.js', 'menu.js'])
+const LEGACY_RUNTIME = new Set(['input.js', 'menu.js', 'net.js', 'lobby.js'])
 
 const noInstall = process.argv.includes('--no-install')
 // With no source, fetch the newest release.
@@ -76,9 +76,12 @@ try {
     const codeDir = existsSync(join(game.dir, 'src/game.js')) ? join(game.dir, 'src') : game.dir
     const present = RUNTIME_FILES.filter((f) => existsSync(join(codeDir, f)))
     if (!present.length) continue // not a kit game (no runtime files): leave it alone
-    // Party games (they have party.js) get the party modules too.
+    // Party games (they have party.js) get the party modules too; online games (net.js) the online ones
+    // (a party game's net.js as well: party.js builds on it; its lobby is party-lobby.js).
     const party = existsSync(join(codeDir, 'party.js')) && existsSync(join(templates, 'party'))
-    const files = [...RUNTIME_FILES.map((f) => ['shared', f]), ...(party ? PARTY_RUNTIME_FILES.map((f) => ['party', f]) : [])]
+    const online = existsSync(join(codeDir, 'net.js')) && existsSync(join(templates, 'online'))
+    const onlineFiles = online ? ONLINE_RUNTIME_FILES.filter((f) => f === 'net.js' || existsSync(join(codeDir, f))) : []
+    const files = [...RUNTIME_FILES.map((f) => ['shared', f]), ...(party ? PARTY_RUNTIME_FILES.map((f) => ['party', f]) : []), ...onlineFiles.map((f) => ['online', f])]
     for (const [group, file] of files) {
       const dest = join(codeDir, file)
       const fresh = readFileSync(join(templates, group, file), 'utf8')
@@ -102,8 +105,8 @@ try {
   if (replaced.length) log(`  ✓ runtime replaced: ${replaced.join(', ')}`)
   if (added.length) log(`  ✓ runtime added: ${added.join(', ')}`)
   if (forked.length) {
-    log(`  ⚠ hand-edited, replaced: ${forked.join(', ')}`)
-    log(`    game-specific key aliases now go through input.extendKeys({ KeyR: 'y' }) in game.js; re-add any other local changes there`)
+    log(`  ⚠ replaced without a runtime header (an older kit's copy, or hand-edited): ${forked.join(', ')}`)
+    log(`    game-specific key aliases go through input.extendKeys({ KeyR: 'y' }) in game.js; re-add any other local changes there`)
   }
   if (kept.length) log(`  ⚠ kept (the game's own file shares a runtime name): ${kept.join(', ')}`)
 

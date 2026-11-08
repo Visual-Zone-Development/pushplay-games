@@ -4,7 +4,7 @@ import { copyFileSync, cpSync, existsSync, mkdirSync, readdirSync, readFileSync,
 import { createRequire } from 'node:module'
 import { basename, dirname, join } from 'node:path'
 import { chromium } from 'playwright'
-import { ART, ART_FONTS, CHECK_RUN_MS, MANIFEST_FILE, NET_MEET_MS, NET_PLAY_MS, NET_WARN_BYTES_PER_SEC, PARTY_RUNTIME_FILES, RUNTIME_FILES, RUNTIME_HEADER_RE, VIEWPORT, VIEWPORT_DENSE } from './config.mjs'
+import { ART, ART_FONTS, CHECK_RUN_MS, MANIFEST_FILE, NET_MEET_MS, NET_PLAY_MS, NET_WARN_BYTES_PER_SEC, ONLINE_RUNTIME_FILES, PARTY_RUNTIME_FILES, PHONE_MIN_TEXT_PX, RUNTIME_FILES, RUNTIME_HEADER_RE, VIEWPORT, VIEWPORT_DENSE, VIEWPORT_PHONE } from './config.mjs'
 import { startLocalRelay } from './local-relay.mjs'
 import { buildMode, display, distDir, GameError, ignored, ignorePatterns, npmSpawn, outDir, quote, readManifest, ROOT, validateManifest } from './repo.mjs'
 import { serve } from './server.mjs'
@@ -16,9 +16,14 @@ const FONTSOURCE = dirname(dirname(createRequire(import.meta.url).resolve('@font
 /** Never shipped: tooling, dependencies, VCS, and the kit itself (dot-folders are skipped too). */
 const SKIP = new Set(['node_modules', 'dist', 'package.json', 'package-lock.json', 'README.md', 'LICENSE', MANIFEST_FILE])
 
+/**
+ * Headless Chromium. Where Playwright's browser download is blocked (some sandboxes), point
+ * KIT_BROWSER at an installed Chrome or Chromium and the check uses that instead.
+ */
 export function launchBrowser() {
   // SwiftShader gives headless Chromium software WebGL, so three.js/WebGL games can be checked in CI.
   return chromium.launch({
+    executablePath: process.env.KIT_BROWSER || undefined,
     args: [
       '--autoplay-policy=no-user-gesture-required',
       '--use-angle=swiftshader',
@@ -67,6 +72,12 @@ export async function buildGame(game, browser, { pack = true, beforePack } = {})
 
   // 2. Play it headlessly (online games against a local relay, then two copies together), 3. render art
   mkdirSync(join(out, ART_DIR), { recursive: true })
+  if (!browser) {
+    // No headless browser here (its download was blocked): the static checks above still ran.
+    warnings.push('no headless browser, so the play passes (controller, keyboard, mouse, touch, phone), the art and the screenshot were skipped. Run `npm run setup` (or set KIT_BROWSER to a Chrome/Chromium executable) to run them; GitHub Actions runs them on push')
+    const { $schema: _schema, build: _build, ...rest } = manifest
+    return { id, manifest: { ...rest, entry: { web: webEntry } }, out, files: {}, warnings, skipped: true }
+  }
   const net = manifest.online ? netLibrary(game.dir) : null
   if (net) warnings.push(...net.warnings)
   const relay = net || manifest.party ? await startLocalRelay() : null
@@ -130,7 +141,7 @@ function sourceFiles(dir, out = [], rel = '') {
     if (entry.isDirectory()) sourceFiles(full, out, path)
     else if (/\.(m?js|ts|html)$/.test(entry.name)) {
       const text = readFileSync(full, 'utf8')
-      if ((RUNTIME_FILES.includes(entry.name) || PARTY_RUNTIME_FILES.includes(entry.name)) && RUNTIME_HEADER_RE.test(text)) continue
+      if ((RUNTIME_FILES.includes(entry.name) || PARTY_RUNTIME_FILES.includes(entry.name) || ONLINE_RUNTIME_FILES.includes(entry.name)) && RUNTIME_HEADER_RE.test(text)) continue
       out.push({ path, text })
     }
   }
@@ -168,6 +179,10 @@ function sourceChecks(game, manifest) {
     }
   }
   if (manifest.inputs && !manifest.inputs.includes('gamepad')) warnings.push('"inputs" leaves out "gamepad": every kit game should play with a controller')
+  if (manifest.phone) {
+    if (!/from\s+['"][^'"]*\/touch\.js['"]/.test(all)) warnings.push('a phone game is played with thumbs: import createTouchControls from touch.js (a floating stick and buttons that feed input.x/y and input.held) unless the game is tap-only by design')
+    if (!/\.safe\b/.test(all)) warnings.push('nothing reads fit.safe: on a phone the notch and the home bar cover part of the canvas. Keep the HUD and buttons inside fit.safe ({ top, right, bottom, left } in game units)')
+  }
   return { errors: [...new Set(errors)], warnings: [...new Set(warnings)] }
 }
 
@@ -200,6 +215,7 @@ const tail = (result) => `${result.stdout}\n${result.stderr}`.trim().split('\n')
  * it fits a denser screen. Games exposing window.__game.state.screen get the strict version.
  */
 async function playCheck(browser, server, out, entry, manifest) {
+  // (phone games also write __art/screenshot-phone-<orientation>.png, see the phone pass)
   const errors = []
   const warnings = []
   const url = `${server.url}/${entry}`
@@ -300,6 +316,79 @@ async function playCheck(browser, server, out, entry, manifest) {
     )
     return false
   }
+
+  /**
+   * The game's logical space, from the canvas' shape: 1280×800 (the default), or a phone space
+   * (720×1280 portrait, 1280×720 landscape). Pointer spots in game units are mapped through it.
+   */
+  const space = (page) =>
+    page.evaluate(() => {
+      const r = document.querySelector('canvas')?.getBoundingClientRect()
+      if (!r?.width || !r?.height) return { w: 1280, h: 800 }
+      const ratio = r.width / r.height
+      const spaces = [
+        { w: 1280, h: 800 },
+        { w: 720, h: 1280 },
+        { w: 1280, h: 720 }
+      ]
+      return spaces.sort((a, b) => Math.abs(a.w / a.h - ratio) - Math.abs(b.w / b.h - ratio))[0]
+    })
+  /** Where the title menu's first item is (window.__game.titleMenu, a createMenu), else where the default menu puts it; in CSS pixels. */
+  const titleSpot = async (page) => {
+    const sp = await space(page)
+    const first = await page.evaluate(
+      ([w, h]) => {
+        const menu = window.__game?.titleMenu
+        const r = typeof menu?.rect === 'function' ? menu.rect(0) : { x: w / 2 - 210, y: h / 2 + 20, w: 420, h: 64 }
+        return { x: r.x + r.w / 2, y: r.y + r.h / 2 }
+      },
+      [sp.w, sp.h]
+    )
+    return pageSpot(page, first.x, first.y, sp)
+  }
+  /**
+   * Where the on-screen pause button is: window.__game.pauseButton (a { x, y, w, h }) when the game
+   * exposes it, else the spots kit games have put it (top-right, top-centre, top-left); in CSS pixels.
+   */
+  const pauseSpots = async (page) => {
+    const sp = await space(page)
+    const spots = await page.evaluate(([w]) => {
+      const b = window.__game?.pauseButton
+      if (b && typeof b.x === 'number') return [{ x: b.x + (b.w ?? 56) / 2, y: b.y + (b.h ?? 56) / 2 }]
+      return [
+        { x: w - 60, y: 60 },
+        { x: w / 2, y: 52 },
+        { x: 60, y: 60 }
+      ]
+    }, [sp.w])
+    return Promise.all(spots.map((r) => pageSpot(page, r.x, r.y, sp)))
+  }
+  /** Click or tap the pause button (each likely spot until one pauses). Returns the screen after, and where it tried. */
+  const pressPause = async (page, tap) => {
+    const spots = await pauseSpots(page)
+    let after = null
+    for (const spot of spots) {
+      if (tap) await page.touchscreen.tap(spot.x, spot.y)
+      else {
+        await page.mouse.move(spot.x - 30, spot.y + 10)
+        await page.mouse.move(spot.x, spot.y, { steps: 3 })
+        await page.mouse.click(spot.x, spot.y)
+      }
+      await page.waitForTimeout(400)
+      after = await screen(page)
+      if (after === 'paused') break
+    }
+    return { after, tried: spots.map(describeSpot).join(' / ') }
+  }
+  const pageSpot = (page, gx, gy, sp) =>
+    page.evaluate(
+      ([gx, gy, w, h]) => {
+        const r = document.querySelector('canvas')?.getBoundingClientRect()
+        return r && r.width ? { x: r.left + (gx / w) * r.width, y: r.top + (gy / h) * r.height } : { x: gx, y: gy }
+      },
+      [gx, gy, sp.w, sp.h]
+    )
+  const describeSpot = (s) => `${Math.round(s.x)},${Math.round(s.y)}`
 
   // --- Pass 1: controller. A once (most games start on A), the stick nudges right, then Start must pause.
   {
@@ -433,24 +522,52 @@ async function playCheck(browser, server, out, entry, manifest) {
       await drawn(page)
       const before = await capture(page, ' (touch pass)')
       const state = await screen(page)
-      const spot = await page.evaluate(() => {
-        // The title menu's first item if the game exposes it (window.__game.titleMenu, a createMenu),
-        // else where the default menu puts it (640,452 in a 1280×800 space); in CSS pixels.
-        const menu = window.__game?.titleMenu
-        const first = typeof menu?.rect === 'function' ? menu.rect(0) : { x: 430, y: 420, w: 420, h: 64 }
-        const gx = first.x + first.w / 2
-        const gy = first.y + first.h / 2
-        const canvas = document.querySelector('canvas')
-        const r = canvas?.getBoundingClientRect()
-        return r && r.width ? { x: r.left + (gx / 1280) * r.width, y: r.top + (gy / 800) * r.height } : { x: gx, y: gy }
-      })
+      const spot = await titleSpot(page)
       await page.touchscreen.tap(spot.x, spot.y)
       await page.waitForTimeout(500)
       const after = await screen(page)
       if (state !== null) {
-        if (after === state) warnings.push(`with touch only, tapping the first title menu item (at ${Math.round(spot.x)},${Math.round(spot.y)}) changed nothing: state.screen is still "${after}". Menus must be tappable; expose the title menu as window.__game.titleMenu so the check knows where to tap`)
+        if (after === state) warnings.push(`with touch only, tapping the first title menu item (at ${describeSpot(spot)}) changed nothing: state.screen is still "${after}". Menus must be tappable; expose the title menu as window.__game.titleMenu so the check knows where to tap`)
       } else if (before && before.equals(await capture(page, ' (touch pass)'))) {
         warnings.push('with touch only, tapping the title menu changed nothing on screen. Menus must be tappable')
+      }
+    } finally {
+      await context.close()
+    }
+  }
+
+  // --- Pass 3b: mouse only, no keyboard or controller. Click the first title item, then the on-screen pause button.
+  // Gameplay with a mouse is promised by "mouse" in inputs (the Desktop label); menus must work with one regardless.
+  {
+    const context = await browser.newContext({ viewport: VIEWPORT, deviceScaleFactor: 1 })
+    await offline(context)
+    const page = await context.newPage()
+    const promised = Boolean(manifest.inputs?.includes('mouse'))
+    const report = (text) => (promised ? errors : warnings).push(text)
+    try {
+      watch(page)
+      await open(page, ' (mouse pass)')
+      await drawn(page)
+      const state = await screen(page)
+      const spot = await titleSpot(page)
+      await page.mouse.move(spot.x - 40, spot.y - 20)
+      await page.mouse.move(spot.x, spot.y, { steps: 3 })
+      await page.mouse.click(spot.x, spot.y)
+      await page.waitForTimeout(500)
+      if (state === null) {
+        /* nothing to verify without window.__game (the controller pass already warned) */
+      } else if ((await screen(page)) === state) {
+        report(`with only a mouse, clicking the first title menu item (at ${describeSpot(spot)}) changed nothing: state.screen is still "${state}". Menus must work by click (createMenu does); expose the title menu as window.__game.titleMenu so the check knows where to click`)
+      } else {
+        await page.waitForFunction(() => window.__game?.state?.screen !== 'title', null, { timeout: 1500 }).catch(() => {})
+        if ((await screen(page)) === 'playing') {
+          const { after, tried } = await pressPause(page, false)
+          if (after !== 'paused') {
+            report(
+              `with only a mouse, clicking the on-screen pause button (tried ${tried}) didn't pause: state.screen is "${after}", not "paused". Keep a ≥ 56×56 px pause button during play that calls input.requestMenu(), and expose its rect as window.__game.pauseButton = { x, y, w, h } so the check knows where it is`
+            )
+          }
+        }
       }
     } finally {
       await context.close()
@@ -482,6 +599,112 @@ async function playCheck(browser, server, out, entry, manifest) {
       }
     } finally {
       await context.close()
+    }
+  }
+
+  // --- Pass 5: phone games. Touch only on a phone (390×844 or 844×390 at 3×): tap the title menu, the
+  // screen locking (visibilitychange) must pause, the on-screen pause button must pause, and no text may be
+  // drawn smaller than PHONE_MIN_TEXT_PX game units of a 720-wide space.
+  if (manifest.phone) {
+    const orientations = manifest.phone.orientation === 'any' ? ['portrait', 'landscape'] : [manifest.phone.orientation]
+    for (const orientation of orientations) {
+      const { deviceScaleFactor, ...viewport } = VIEWPORT_PHONE[orientation]
+      const label = ` (phone pass, ${orientation} ${viewport.width}×${viewport.height} @${deviceScaleFactor}x)`
+      const context = await browser.newContext({ viewport, deviceScaleFactor, hasTouch: true, isMobile: true })
+      await offline(context)
+      const page = await context.newPage()
+      try {
+        await page.addInitScript((min) => {
+          // Every fillText, with its size in game units of a 720-wide (short side) space: font px ×
+          // the context's scale → canvas px, then relative to the canvas' short side.
+          const small = (window.__kitSmallText = new Map())
+          const proto = CanvasRenderingContext2D.prototype
+          const original = proto.fillText
+          proto.fillText = function (text, ...rest) {
+            try {
+              const px = parseFloat(String(this.font).match(/(\d+(?:\.\d+)?)px/)?.[1] ?? '0')
+              const m = this.getTransform()
+              const scale = Math.hypot(m.a, m.b) || 1
+              const short = Math.min(this.canvas.width, this.canvas.height) || 1
+              const game = (px * scale * 720) / short
+              const s = String(text).trim()
+              if (px > 0 && s && game < min) {
+                const key = this.font
+                const seen = small.get(key)
+                if (!seen) small.set(key, { font: this.font, game, samples: [s.slice(0, 40)] })
+                else if (seen.samples.length < 3 && !seen.samples.includes(s.slice(0, 40))) seen.samples.push(s.slice(0, 40))
+              }
+            } catch {
+              /* measuring only */
+            }
+            return original.call(this, text, ...rest)
+          }
+        }, PHONE_MIN_TEXT_PX)
+        watch(page)
+        await open(page, label)
+        await drawn(page)
+        const state = await screen(page)
+        const spot = await titleSpot(page)
+        await page.touchscreen.tap(spot.x, spot.y)
+        await page.waitForTimeout(500)
+        await page.waitForFunction(() => window.__game?.state?.screen !== 'title', null, { timeout: 1500 }).catch(() => {})
+        const after = await screen(page)
+        if (state !== null && after === state) {
+          errors.push(`on a phone, tapping the first title menu item (at ${describeSpot(spot)}) changed nothing: state.screen is still "${state}". Build menus with createMenu, lay them out for the ${orientation} space (${orientation === 'portrait' ? '720×1280' : '1280×720'}; pass x: W / 2), and expose the title menu as window.__game.titleMenu`)
+        } else if (state !== null && after === 'playing') {
+          // The screen locks / the app goes to the background: input.onPause must pause the game.
+          await page.waitForTimeout(800)
+          await page.evaluate(() => {
+            Object.defineProperty(document, 'hidden', { get: () => true, configurable: true })
+            Object.defineProperty(document, 'visibilityState', { get: () => 'hidden', configurable: true })
+            document.dispatchEvent(new Event('visibilitychange'))
+          })
+          await page.waitForTimeout(400)
+          const hidden = await screen(page)
+          if (hidden !== 'paused') errors.push(`on a phone, the screen locking (visibilitychange → hidden) didn't pause: state.screen is "${hidden}", not "paused". Pause in input.onPause(cb) (the runtime fires it) and save there`)
+          await page.evaluate(() => {
+            Object.defineProperty(document, 'hidden', { get: () => false, configurable: true })
+            Object.defineProperty(document, 'visibilityState', { get: () => 'visible', configurable: true })
+            document.dispatchEvent(new Event('visibilitychange'))
+          })
+          // Back to play through the pause menu (its first item resumes), then the on-screen pause button.
+          const resume = await space(page).then(async (sp) => {
+            const r = await page.evaluate(() => {
+              const menu = window.__game?.pauseMenu
+              const rect = typeof menu?.rect === 'function' ? menu.rect(0) : null
+              return rect ? { x: rect.x + rect.w / 2, y: rect.y + rect.h / 2 } : null
+            })
+            return r ? pageSpot(page, r.x, r.y, sp) : null
+          })
+          if (hidden === 'paused' && resume) {
+            await page.touchscreen.tap(resume.x, resume.y)
+            await page.waitForTimeout(400)
+          }
+          if ((await screen(page)) === 'playing') {
+            const { after: paused, tried } = await pressPause(page, true)
+            if (paused !== 'paused') {
+              errors.push(`on a phone, tapping the on-screen pause button (tried ${tried}) didn't pause: state.screen is "${paused}", not "paused". Keep a ≥ 56×56 px pause button inside fit.safe during play that calls input.requestMenu(), and expose it as window.__game.pauseButton = { x, y, w, h }`)
+            }
+          } else if (hidden === 'paused') {
+            warnings.push(`on a phone, the pause button couldn't be checked: expose the pause menu as window.__game.pauseMenu (its first item should resume) so the check can get back to play`)
+          }
+        }
+        const shot = await capture(page, label, 30_000)
+        if (shot) writeFileSync(join(out, ART_DIR, `screenshot-phone-${orientation}.png`), shot)
+        if (shot && (await looksBlank(page, shot))) errors.push(`on a ${orientation} phone the screen is one flat color. Use fitCanvas from fit.js with the ${orientation} space (${orientation === 'portrait' ? 'w: 720, h: 1280' : 'w: 1280, h: 720'})`)
+        const small = await page.evaluate(() => [...window.__kitSmallText.values()]).catch(() => [])
+        if (small.length) {
+          const list = small
+            .slice(0, 5)
+            .map((t) => `${Math.round(t.game)}px (font "${t.font}", e.g. ${t.samples.map((x) => `"${x}"`).join(', ')})`)
+            .join('; ')
+          errors.push(
+            `on a phone, text is drawn too small to read: ${list}${small.length > 5 ? ` and ${small.length - 5} more` : ''}. Phone games keep every fillText at ${PHONE_MIN_TEXT_PX}px or more, measured in game units of a 720-wide space (settings.data.textScale applies on top). Prompts: drawPrompts(…, { size: 44 }); menus: menu.draw(ctx, '600 40px system-ui')`
+          )
+        }
+      } finally {
+        await context.close()
+      }
     }
   }
 
