@@ -1,6 +1,6 @@
 # PushPlay game template
 
-Ask an AI for a game, and it shows up on your Steam Deck, or in PushPlay on a Linux, Windows or Mac PC.
+Ask an AI for a game, and it shows up on your Steam Deck, or in PushPlay on a Linux, Windows or Mac PC. A game can also be laid out for a phone or tablet (`--phone`, touch controls, a phone check pass), and PushPlay labels where each game plays: handheld, desktop, tablet, phone, party.
 
 **One game, or a workshop of many.** Push and GitHub Actions builds your games: it plays each one headlessly to catch crashes and renders its cover art on every branch, and publishes from the default branch to this repo's **pushplay-latest** release. The [PushPlay](https://pushplay.gg) launcher watches that release, so updates appear on their own. The first game decides how the repo is used:
 
@@ -77,7 +77,7 @@ A `pushplay.json` ([fields](AGENTS.md#manifest-pushplayjson)) is optional everyw
 
 ```sh
 npm run setup                   # dependencies + headless browser
-npm run new-game my-game        # the repo's one game (--workshop for many); --vite for npm packages, --party [--controller motion] for TV + phones
+npm run new-game my-game        # the repo's one game (--workshop for many); --vite for npm packages, --party [--controller motion] for TV + phones, --phone portrait|landscape for a phone game
 npm run dev                     # (workshop: npm run dev my-game) play at http://localhost:5173 (--host to try it on a phone; ?debug for the state overlay)
 npm run check                   # what CI runs; also renders the art
 npm run art:shots               # render the cover, banner and art/gallery.html to PNG to look at
@@ -85,7 +85,7 @@ npm run art -- --dry            # optional: generated art with your own key (see
 npm run update-kit              # newest build kit, prompts and runtime files (see Notes)
 ```
 
-The starter already has a title, pause and settings screen that work with a controller, a keyboard, a mouse and touch. Its runtime files (`input.js`, `menu.js`, `fit.js`, `audio.js`, `save.js`, `settings.js`, `prompts.js`) come from the build kit and are replaced by `update-kit`, so write your game in `game.js` and leave them alone.
+The starter already has a title, pause and settings screen that work with a controller, a keyboard, a mouse and touch. Its runtime files (`input.js`, `menu.js`, `fit.js`, `audio.js`, `save.js`, `settings.js`, `prompts.js`, `touch.js`) come from the build kit and are replaced by `update-kit`, so write your game in `game.js` and leave them alone.
 
 ## How a build works
 
@@ -93,7 +93,7 @@ The build kit in `.github/pushplay/` does everything; the workflow (`.github/wor
 
 1. **Validate** `pushplay.json` against `.github/pushplay/manifest.schema.json` (generated from the launcher's own schema), plus the game's code: no F10 binding, save keys prefixed with the game id, `menu.js` and `input.attach` in use.
 2. **Build:** copy a plain-HTML game as-is (skipping `tools/`, `mockups/`, `*.py`, `DESIGN.md`, the repo's `AGENTS.md`, `CLAUDE.md` and `docs/`, and anything in `.pushplayignore`), or run `vite build` for `--vite` games.
-3. **Play check:** open the game at 1280×800 in headless Chromium four times: with a virtual gamepad that presses A, moves the stick and then presses Start (the game must report `window.__game.state.screen === 'paused'`); with only a keyboard (Enter, then Esc must pause); with only touch (a tap on the title menu); and at 1920×1080 with 2× pixels (the canvas must be drawn and centred). Fail on crashes, missing files, internet requests or WebSockets, `alert()` dialogs or a blank screen. Save a screenshot.
+3. **Play check:** open the game at 1280×800 in headless Chromium several times: with a virtual gamepad that presses A, moves the stick and then presses Start (the game must report `window.__game.state.screen === 'paused'`); with only a keyboard (Enter, then Esc must pause); with only a mouse (menus by click, the pause button); with only touch (a tap on the title menu); and at 1920×1080 with 2× pixels (the canvas must be drawn and centred). A game with `phone` in its manifest is also played touch-only at phone size (390×844 or 844×390, 3× pixels): menus by tap, the pause button, a hidden page must pause, and text under 32 px fails. Fail on crashes, missing files, internet requests or WebSockets, `alert()` dialogs or a blank screen. Save a screenshot.
 4. **Art:** render `art/cover.svg` (720×500) and `art/hero.svg` (1920×450) to PNG with bundled fonts, or generate them from the screenshot if the game has none.
 5. **Publish** `<id>-web.zip`, the PNGs and `pushplay-index.json` to the `pushplay-latest` release. It's a prerelease that's updated in place, not a versioned release, so it never becomes your repo's "Latest". A failed build keeps the last good version and records the error, so PushPlay can show "build failed" instead of losing the game.
 
