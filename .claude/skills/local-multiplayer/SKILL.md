@@ -1,6 +1,6 @@
 ---
 name: local-multiplayer
-description: Add or improve couch multiplayer for the game in this repo — 2–4 players on one screen with input.pads[i], a join screen where each controller presses to join, player colours and spawns, a shared camera, co-op or versus rules, catch-up mechanics, rounds and a results screen. Use for "add local co-op", "make it 2 player", "versus mode", "my friends want to play together on the Deck", or improving a local multiplayer game. For online play use online-netcode; for phones on a TV use the party game docs.
+description: Add or improve couch multiplayer for the game in this repo — 2–4 players on one screen with input.pads[i], a join screen where each controller presses to join, player colours and spawns, a shared camera, co-op or versus rules, catch-up mechanics, rounds and a results screen; on the Deck, a PC or a tablet with several Bluetooth controllers. Use for "add local co-op", "make it 2 player", "versus mode", "my friends want to play together on the Deck", "two controllers on my iPad", or improving a local multiplayer game. For online play use online-netcode; for phones on a TV use the party game docs.
 ---
 
 # Local multiplayer
@@ -19,6 +19,7 @@ Follow AGENTS.md (*Local multiplayer* under *Controls*) and the Fellowship notes
 - `menu` from any pad pauses for everyone (the shared pause menu is driven by the merged `input`).
 - Never rely on chords or on a button the launcher owns (F10, Start+Select, held Esc).
 - Mouse and touch can't join as extra players; drop `"mouse"` / `"touch"` from `inputs` if gameplay needs pads, and say "Needs controllers" on the title. Menus still work with all four.
+- **A tablet with several Bluetooth controllers** is the same couch: `input.pads[i]` fills one slot per pad and nothing changes in the game. Don't assume player 1 has a keyboard (a tablet has none); if the game also plays solo by touch, the on-screen controls (`touch.js`) belong to player 1 only and hide once a pad is used. Keep the join screen and HUD inside `fit.safe` so a tablet's rounded corners and home bar don't cover a player's slot ([phone.md](../../../docs/game-design/phone.md)).
 
 ## 3. Join screen
 - State `lobby` isn't used for local play: the join screen is part of `title` or its own sub-step before `playing` (keep `state.screen` names as AGENTS.md lists).

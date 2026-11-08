@@ -18,6 +18,7 @@ Follow AGENTS.md. Design material lives in `docs/game-design/`.
    - **Direct change**: the request names something specific.
    - **Make it better**: the request is open-ended.
    - Something is broken → switch to the `debug-game` skill.
+   - "Make it work on my phone / tablet", "mobile version", "earn the Phone label" → the `mobile-port` skill; "add touch controls", "the virtual stick feels bad", "my thumb covers the player" → `touch-controls`.
 
 ## Direct change
 1. **Sanity-check against the design.** If the change would undermine a fun target, break the input or screen rules in AGENTS.md, or blow the Deck / Legion Go performance budget, say so in one line and propose the closest version that works. Otherwise don't ask; just do it.
@@ -32,6 +33,7 @@ Follow AGENTS.md. Design material lives in `docs/game-design/`.
    - local multiplayer via `input.pads[i]`, if the game has it
    - online play, if the game has it: new state goes in `net.state` on the host, and the check's two-copy test still passes ([multiplayer.md](../../../docs/game-design/multiplayer.md)). Bump `version` when the netcode changes: only builds with the same version play together
    - **adding online play** to a game: copy `net.js` and `lobby.js` from `.github/pushplay/templates/online/`, follow that folder's `game.js` for the screen flow (title → lobby → playing; the pause menu is still opened by `menu` and built with `menu.js`, but it only stops your controls and offers Leave game instead of Restart), move what players see into `net.state`, set `"online": true` and add the `online multiplayer` tag
+   - a phone game (manifest `phone`): new HUD or targets placed from `fit.safe` and out of the thumb zones, text ≥ 32 px, a new verb gets its touch form (a `touch.js` button or a tap), the phone pass still passes
    - title, HUD and help text that mention the old behavior; prompts still come from `input.label`, not literals
    - cover and hero art, if the look changed
 4. `npm run check`, fix every ✗, look at the screenshot, and redo the AGENTS.md **Verification** passes that the change touches (at least the input you changed, plus keyboard-only).
@@ -69,16 +71,17 @@ Follow AGENTS.md. Design material lives in `docs/game-design/`.
      - prompts from `input.label` / `drawPrompts`, no literal "A", "Space", "LB/RB"
      - `save.js` with `<id>-save-v1` keys, saved on pause; `audio.js` with buses that follow the sliders
      - manifest has `tags` and `inputs`; `tools/`, `mockups/`, `*.py` not committed; runtime files unedited (header intact)
-     - screen rules (24px text, 32px margins at 1280×800) and performance (60fps, DPR 2 included)
+     - screen rules (24px text, 32px margins at 1280×800; 32px text and `fit.safe` margins in a phone space) and performance (60fps, DPR 2 included)
+     - a game with `"touch"` in `inputs` but no `phone` field: it already earns Tablet; offer `mobile-port` if the user plays on a phone
 
-   For a deeper look, run the `playtest` skill to measure run length, spikes and boring stretches. Hand the fixes to the specialist skills: `game-feel` (feel and juice), `level-design` (content and ramp), `game-audio` (sound), `game-ui` (HUD, menus, onboarding), `boss-design` (bosses and finales), `progression` (unlocks, upgrades, daily challenge), `story-and-dialogue` (story, characters, writing), `accessibility-audit` (colourblind, remapping, assists), `performance-pass` (frame rate, stutter, load time), `enemy-ai` (enemy behaviour), `camera` (following and framing), `physics-feel` (collisions, bounce, vehicles), `local-multiplayer` (couch play), `online-netcode` (online lag and sync), `party-phone-screen` (party games' phone side), `localization` (other languages), `cover-art` and `screenshots` (how it looks in the library). Finish with `release-notes` when the user wants notes for the update.
+   For a deeper look, run the `playtest` skill to measure run length, spikes and boring stretches. Hand the fixes to the specialist skills: `game-feel` (feel and juice), `level-design` (content and ramp), `game-audio` (sound), `game-ui` (HUD, menus, onboarding), `boss-design` (bosses and finales), `progression` (unlocks, upgrades, daily challenge), `story-and-dialogue` (story, characters, writing), `accessibility-audit` (colourblind, remapping, assists), `performance-pass` (frame rate, stutter, load time), `enemy-ai` (enemy behaviour), `camera` (following and framing), `physics-feel` (collisions, bounce, vehicles), `local-multiplayer` (couch play), `online-netcode` (online lag and sync), `mobile-port` (phone and tablet play), `touch-controls` (the touch gameplay scheme), `party-phone-screen` (party games' phone side), `localization` (other languages), `cover-art` and `screenshots` (how it looks in the library). Finish with `release-notes` when the user wants notes for the update.
 
    If it helps, research how the DESIGN.md reference games, or similar games, solved the same problem ([inspiration.md](../../../docs/game-design/inspiration.md)).
 4. **Propose.** Offer 3–5 improvements in one `AskUserQuestion` (multiSelect). Each option gives the problem → the fix, its expected effect on feel, and its size (S/M/L).
    - Mix quick wins (tuning, juice, missing feedback) with one bigger idea: a new mechanic, a mode (daily seed, endless, boss rush, co-op) or a meta loop.
    - Put the fix for the **biggest fun problem** first, marked "(Recommended)", even if it isn't the smallest.
 5. **Implement** the chosen items one at a time, using the Direct change steps 2–4 for each.
-6. **Verify** with the full AGENTS.md **Verification** matrix: controller, keyboard only, mouse only, touch (DevTools device mode), 1920×1080 resize at DPR 2, and `npm run check` (gamepad, keyboard, touch, Start → `paused`, DPR 2 passes all green).
+6. **Verify** with the full AGENTS.md **Verification** matrix: controller, keyboard only, mouse only, touch (DevTools device mode), 1920×1080 resize at DPR 2, a phone-sized window for a phone game, and `npm run check` (gamepad, keyboard, mouse-only, touch, Start → `paused`, DPR 2, and the phone pass where it applies, all green).
 7. **Record and hand back.**
    - Bump `version`.
    - Update DESIGN.md: tick Definition of done items and add a Changelog entry.
