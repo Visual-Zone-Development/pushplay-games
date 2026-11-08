@@ -1,6 +1,6 @@
 # Debugging
 
-Reproduce first, then fix the root cause. `npm run check` is the first tool. It reports crashes, console errors, 404s, network requests (WebSockets too), dialogs and blank screens, and saves a screenshot. It plays several short passes: a **gamepad** pass (A around 1.2s, stick right around 1.5–2.2s, then Start, expecting `window.__game.state.screen === 'paused'`), a **keyboard-only** pass (Enter, then Esc must change the screen), a **touch** pass (tap on the title menu) and a render at **1920×1080 with DPR 2**. It also checks the code statically: `menu.js` imported and `input.attach` called (warnings), no F10 binding, `tags` and `inputs` present (failures), `localStorage` keys prefixed with the game id (warning). For anything deeper, write a repro script (below).
+Reproduce first, then fix the root cause. `npm run check` is the first tool. It reports crashes, console errors, 404s, network requests (WebSockets too), dialogs and blank screens, and saves a screenshot. It plays several short passes: a **gamepad** pass (A around 1.2s, stick right around 1.5–2.2s, then Start, expecting `window.__game.state.screen === 'paused'`), a **keyboard-only** pass (Enter, then Esc must change the screen), a **mouse-only** pass (menus by click, the pause button), a **touch** pass (tap on the title menu) and a render at **1920×1080 with DPR 2**. A game with `phone` in its manifest also gets a **phone** pass: touch only at 390×844 or 844×390 with DPR 3, menus by tap, the pause button, `visibilitychange` must pause, and text under 32 px in the phone space fails ([phone.md](phone.md)). It also checks the code statically: `menu.js` imported and `input.attach` called (warnings), no F10 binding, `tags` and `inputs` present (failures), `localStorage` keys prefixed with the game id (warning). For anything deeper, write a repro script (below).
 
 ## Common failures
 
@@ -27,6 +27,13 @@ Reproduce first, then fix the root cause. `npm run check` is the first tool. It 
 | Check: F10 bound / Start+Select used | The game built its own quit | Remove it; the launcher owns quitting |
 | `update-kit` reports a hand-edited runtime file | A fix was patched into `input.js` etc. | Move it into `game.js` (`input.extendKeys` for keys); `npm run update-kit` restores the files |
 | Text unreadable on the handheld | Under 24px, low contrast, at the screen edge | ≥ 24px, strong contrast, ≥ 32px from the edges |
+| Check (phone pass): text under 32 px | A 1280×800 HUD size kept in a phone space | ≥ 32px in the phone space, × `textScale`; headings ≥ 44px |
+| Check (phone pass): hidden page didn't pause | `input.onPause` handler only pauses from `playing`, or sets its own flag without `state.screen = 'paused'` | Pause from every playable screen and save; `visibilitychange` is one of the events `onPause` wraps |
+| Check (phone pass): tap did nothing / pause button missed | Target under the notch or home bar, under 56 px, or `input.attach` given 1280×800 while `fitCanvas` got the phone space | Place from `fit.safe`, ≥ 56 px; the same `w, h` to `fitCanvas` and `input.attach` |
+| On-screen controls show with a controller plugged in | The game draws its own touch controls regardless of mode | Use `touch.js` (draws only when `input.mode === 'touch'`), or guard your drawing with that check |
+| Stick and drag fight on touch | The game reads `input.pointer` for movement as well as `touch.js`'s stick | One movement source per mode: the stick writes `input.x / y`; drop the pointer drag or use it only when there's no stick |
+| Huge jump after the phone comes back | `dt` not clamped; timers counted wall-clock | `dt = Math.min(1/20, …)`; round timers pause with the game |
+| Online: stuck after a screen lock | `net.status` ignored | Show "Reconnecting…" while `net.status === 'reconnecting'`; offer Back to lobby on `'offline'` |
 
 ## Debug overlay convention
 
@@ -79,6 +86,7 @@ const timeline = [
 ]
 
 const browser = await chromium.launch({ args: ['--autoplay-policy=no-user-gesture-required', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] })
+// Phone game: { viewport: { width: 390, height: 844 }, deviceScaleFactor: 3, hasTouch: true, isMobile: true } and page.tap() instead of the pad
 const page = await browser.newPage({ viewport: { width: 1280, height: 800 } })
 await page.addInitScript((timeline) => {
   const t0 = performance.now()

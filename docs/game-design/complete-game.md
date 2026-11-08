@@ -50,7 +50,8 @@ What separates a complete game from a toy. Copy the items that apply into the ga
 - [ ] **`fitCanvas`** handles the window: letterbox in the game's colour, DPR capped at 2, `integer: true` for pixel art. Looks right at 1280×800 (Deck), 1920×1200 / 2560×1600 at DPR 2 (Legion Go), 1920×1080 and small resizable windows.
 - [ ] **Manifest** has `tags` and `inputs`; `inputs` lists only what gameplay really supports (menus support all four regardless).
 - [ ] **Verification matrix** done by hand: controller, keyboard only, mouse only, touch (DevTools device mode), 1920×1080 at DPR 2 (see AGENTS.md).
-- [ ] **Local multiplayer** (if any) joins by press per controller through `input.pads[i]`.
+- [ ] **Local multiplayer** (if any) joins by press per controller through `input.pads[i]`; several controllers on one tablet work the same.
+- [ ] **Phone games** (manifest `phone`, see [phone.md](phone.md)): laid out in the portrait 720×1280 or landscape 1280×720 space, text ≥ 32px, HUD and tap targets placed from `fit.safe` and out of the thumb zones, on-screen controls through `touch.js` hidden when `input.mode !== 'touch'`, a hidden page pauses and saves, and the game still plays with a controller and a keyboard. Online games show "Reconnecting…" from `net.status`.
 
 ## Under the hood
 
@@ -60,4 +61,4 @@ What separates a complete game from a toy. Copy the items that apply into the ga
 - [ ] **Runtime files unedited** (`input.js`, `menu.js`, `fit.js`, `audio.js`, `save.js`, `settings.js`, `prompts.js` keep their header); game keys added with `input.extendKeys`.
 - [ ] **Steady 60fps** on the Deck and Legion Go, DPR 2 included: no per-frame allocations in hot loops, capped particles.
 - [ ] **Nothing shipped but the game**: no `tools/`, `mockups/`, `*.py`, `__pycache__/` in the folder.
-- [ ] `npm run check` passes (gamepad, keyboard-only, touch, Start → `paused`, 1920×1080 at DPR 2) and the screenshot shows real gameplay or a real title screen.
+- [ ] `npm run check` passes (gamepad, keyboard-only, mouse-only, touch, Start → `paused`, 1920×1080 at DPR 2, and the phone pass for phone games) and the screenshot shows real gameplay or a real title screen.

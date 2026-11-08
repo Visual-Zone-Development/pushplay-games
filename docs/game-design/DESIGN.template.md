@@ -13,6 +13,7 @@ Answers from the kickoff interview ([kickoff.md](../../docs/game-design/kickoff.
 | 2D or 3D | |
 | Art style | |
 | Players | <solo / local 2–4 / online 2–N / party with phones> |
+| Devices | <Deck and PC (1280×800) / phone portrait 720×1280 / phone landscape 1280×720 / any; which Plays on labels it earns: Handheld & controller, Desktop, Tablet, Phone, Party> |
 | Feel | |
 | Camera / view | |
 | Session and structure | |
@@ -60,6 +61,7 @@ Keyboard, mouse and touch equivalents come from `input.js` (see the table in AGE
 | `menu` (Start / Esc / on-screen button) | Pause |
 
 - **Inputs** (`pushplay.json` → `inputs`): gamepad, keyboard, mouse, touch. <Which of mouse / touch cover gameplay? If not, what does the title screen say?>
+- **Touch scheme** (phone games, [phone.md](../../docs/game-design/phone.md)): <virtual stick + buttons via `touch.js` / tap-to-move / swipe / drag; one-handed or two; what each touch verb is on a controller>
 - **Players:** <1 / 2–4 local via `input.pads[i]`, join by press>
 
 ## Inspirations
@@ -116,6 +118,7 @@ Tailored from [complete-game.md](../../docs/game-design/complete-game.md). Keep 
 **Scaling and inputs**
 - [ ] `fitCanvas` (letterbox colour, DPR ≤ 2, integer for pixel art); right at 1280×800, 1920×1200 / 2560×1600 at DPR 2, 1920×1080, small windows
 - [ ] Manifest `tags` + `inputs` correct; verification matrix done (controller, keyboard only, mouse only, touch, DPR 2)
+- [ ] Phone games only: manifest `phone.orientation`; HUD and tap targets inside `fit.safe` and out of the thumb zones; text ≥ 32px; on-screen controls hidden with a controller; `visibilitychange` pauses; phone pass green
 
 **Under the hood**
 - [ ] `TUNING`, clamped `dt`, `?debug` overlay, runtime files unedited, 60fps, no `tools/` / `mockups/` / `*.py` shipped, `npm run check` green
