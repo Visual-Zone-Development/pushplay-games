@@ -32,7 +32,7 @@ these PushPlay specifics.
   - The pause menu is Resume, Restart, Settings, Quit to title, and gameplay freezes while it's open.
   - Settings can be reached from the title and from pause.
   - Prompts come from `input.label`: never a literal "A" or "Space".
-  - Text is at least 24 px, and the HUD at least 32 px from the edges, at 1280×800.
+  - Text is at least 24 px, and the HUD at least 32 px from the edges, at 1280×800. A phone game (manifest `phone`) draws in 720×1280 or 1280×720 instead, with text at least 32 px and the HUD inside `fit.safe`; run the `phone-game` setup for it.
   - The cursor is hidden only during gameplay.
   - Mouse and touch gameplay are required only if `inputs` lists them. Menus always need all four inputs.
 - **Screens:** list them from the `state.screen` values in `game.js`. Read the
