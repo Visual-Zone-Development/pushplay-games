@@ -336,11 +336,14 @@ async function playCheck(browser, server, out, entry, manifest) {
   }
 
   /**
-   * The game's logical space, from the canvas' shape: 1280×800 (the default), or a phone space
+   * The game's logical space: fitCanvas's live size when the game uses it (a fill game's space
+   * follows the window), else from the canvas' shape: 1280×800 (the default), or a phone space
    * (720×1280 portrait, 1280×720 landscape). Pointer spots in game units are mapped through it.
    */
   const space = (page) =>
     page.evaluate(() => {
+      const fit = document.querySelector('canvas')?.__fit
+      if (fit && fit.w > 0 && fit.h > 0) return { w: fit.w, h: fit.h }
       const r = document.querySelector('canvas')?.getBoundingClientRect()
       if (!r?.width || !r?.height) return { w: 1280, h: 800 }
       const ratio = r.width / r.height
