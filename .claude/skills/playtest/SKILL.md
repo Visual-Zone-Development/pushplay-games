@@ -17,7 +17,8 @@ Pick 3–6 questions from the design, for example:
 
 ## 2. Build a playtest script (scratch, never in the game folder)
 Start from the repro script in [debugging.md](../../../docs/game-design/debugging.md): the build kit's Playwright, `npm run dev`, a virtual gamepad on a timeline. Then add:
-- **Bots of 2–3 skill levels.** Read `window.__game.state` each tick and choose inputs: *idle* (presses nothing, finds the floor of difficulty), *random* (mashes and wanders), *greedy* (moves toward pickups and away from the nearest threat, with a reaction delay of 150–300 ms). Keep each bot to a few dozen lines.
+- **The game's own autopilot first.** If the game has `?autopilot` ([debugging.md](../../../docs/game-design/debugging.md), *Autopilot*), it is the cheapest bot: run it on several seeds, and with levels (`?autopilot=idle|random|greedy`) if the game supports them. `node .claude/skills/polish-pass/scripts/compare.mjs <id> <scratch> --solo --seed <n> --at 5,30,60,120` captures stills and state at those seconds of play on a fixed 1/60 s clock.
+- **Bots of 2–3 skill levels** (when there's no autopilot, or to drive real inputs). Read `window.__game.state` each tick and choose inputs: *idle* (presses nothing, finds the floor of difficulty), *random* (mashes and wanders), *greedy* (moves toward pickups and away from the nearest threat, with a reaction delay of 150–300 ms). Keep each bot to a few dozen lines.
 - **Seeds:** run each bot on 5–10 seeds (`?seed=n`) if the game is seeded; otherwise run more times.
 - **Fast-forward:** if the game exposes it, raise a time-scale in `TUNING` to run faster; otherwise just run in real time with a timeout (e.g. 3 min per run).
 - **Logging:** every second record time, `state.screen`, score, health, level or wave, entity counts, and fps (from `requestAnimationFrame` timing). On game over record the cause if the state exposes it.

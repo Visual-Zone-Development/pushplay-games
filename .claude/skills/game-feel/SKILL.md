@@ -33,6 +33,8 @@ Build a small helper set in `game.js` (not the runtime files) and use it everywh
 | Rumble | `navigator.getGamepads()[i]?.vibrationActuator?.playEffect('dual-rumble', { duration, strongMagnitude, weakMagnitude })`, guarded | 60–200 ms; strong only on big events |
 | Numbers and text | damage numbers, "+100", combo counter that pops | ≥ 24 px × `textScale` |
 
+**3D games (three.js):** shake moves the camera (0.05–0.3 world units plus a tiny roll), not the world; flash through the material's `emissive`; particles are one pooled additive `THREE.Points`; damage numbers and score pops are projected to the HUD canvas. Telegraph rings, scorch decals and fake-bloom glow sprites are in [3d.md](../../../docs/game-design/3d.md) *Action that reads in 3D*.
+
 Rules:
 - One impact = several layers at once (stop + shake + flash + particles + sound). That's what makes it feel heavy.
 - Scale effects by importance: a pickup gets a sparkle and a chime; a boss kill gets everything.
@@ -40,7 +42,7 @@ Rules:
 - Keep 60 fps at DPR 2: no `shadowBlur` in the frame loop, pre-render glow sprites at 2×, reuse particle objects.
 
 ## 4. Check and tune
-1. Play the verb again for 30 seconds and compare with your notes from step 1. Tune one number at a time; live-tune through `window.__game.TUNING` in the dev console.
+1. Play the verb again for 30 seconds and compare with your notes from step 1. Tune one number at a time; live-tune through `window.__game.TUNING` in the dev console. To show the difference (and catch effects that hide the action), capture before and after with the same seed and autopilot: `node .claude/skills/polish-pass/scripts/compare.mjs <id> <scratch dir> --before <sha> --video`, and look at frames of the clip, not only the stills.
 2. Turn **Reduced shake** on in Settings: the game must still read well, with no shake, no full-screen flashes and no strobing.
 3. `npm run check`, view the screenshot, fix every ✗.
 4. Bump `version` (patch), add a Changelog line to DESIGN.md (tick the *Feel* items in Definition of done), commit (`<Name>: game feel`) and push.

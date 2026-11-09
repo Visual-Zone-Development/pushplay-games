@@ -58,6 +58,7 @@ What separates a complete game from a toy. Copy the items that apply into the ga
 - [ ] **`TUNING` object** at the top of `game.js` holds every gameplay number (speeds, timings, spawn rates, ramp). Later changes are then one-line edits.
 - [ ] **Delta-time movement**, clamped (`dt = Math.min(1/20, …)`), so it plays the same at 60, 90 or 120 Hz.
 - [ ] **Debug overlay** behind `?debug` (see [`debugging.md`](debugging.md)).
+- [ ] **Testable by design:** `?seed=n` seeds everything that affects play, `?autopilot` plays the game by itself from game state, and `window.__game.start()` starts a run (see [`debugging.md`](debugging.md), *Autopilot*). Playtests and before / after captures depend on them.
 - [ ] **Runtime files unedited** (`input.js`, `menu.js`, `fit.js`, `audio.js`, `save.js`, `settings.js`, `prompts.js` keep their header); game keys added with `input.extendKeys`.
 - [ ] **Steady 60fps** on the Deck and Legion Go, DPR 2 included: no per-frame allocations in hot loops, capped particles.
 - [ ] **Nothing shipped but the game**: no `tools/`, `mockups/`, `*.py`, `__pycache__/` in the folder.

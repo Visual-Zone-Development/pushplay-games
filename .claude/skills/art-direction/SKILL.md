@@ -150,12 +150,15 @@ are in `docs/game-design/art-directions.md`.
 | **Clean modern** (puzzle, sports, casual, UI-heavy) | flat surfaces, soft shadows | one brand colour + neutrals | flat fills, generous spacing, one soft drop shadow, a geometric sans |
 | **Grim / horror** (survival, roguelike, mystery) | stone, rust, fog | desaturated darks, one sickly or blood accent | heavy vignette, fog haze, grain overlay, light pools as the only bright areas |
 | **Pixel art** (RPG, action, tactics, platformers) | pixels on a fixed grid, hue-shifted ramps | per the game's pixel spec | the **pixel-art** skill (characters, animations, tiles, UI) |
+| **Lit 3D arena** (top-down 3D shooters, brawlers, survivors) | baked stone or metal floor tiles, lit blocks, emissive light, embers | dusk: navy or indigo floor, warm amber light pools, one cool hero colour (cyan) for the player | [3d.md](../../../docs/game-design/3d.md) *Action that reads in 3D*: tile `CanvasTexture`, hemisphere + one shadowed key, glow decals, player ring, additive embers, HUD plate on the 2D canvas |
 | **Anime toon 3D** (character-led 3D games) | cel-shaded skin and cloth, painted sky | soft sky, coloured shadows, one hero colour | **character-models** (`toon.js`), a `wash` or painted-sky backdrop, the storybook UI above |
 
 ## 3. Render and compare, in rounds
 
 Same as model-asset, but for whole screens:
-1. Render the same screens as the reference **and** your *before* shots, at 1280×800 and at DPR 2.
+1. Render the same screens as the reference **and** your *before* shots, at 1280×800 and at DPR 2. For
+   gameplay, use the `polish-pass` capture (`.claude/skills/polish-pass/scripts/compare.mjs <id> <dir> --before <sha>`):
+   the same seed and autopilot at the same frames, so the only difference is your work.
 2. List the **top 5 differences**, biggest first: values > palette > surfaces > UI objects > type > detail.
 3. Fix, re-render, repeat (3–5 rounds is normal). Show the user before / after with the reference.
 4. Check readability at play: gameplay must still be readable at a glance. Textures sit *behind* the play

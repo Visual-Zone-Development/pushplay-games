@@ -62,6 +62,32 @@ window.__game = {
 
 With a seeded RNG (e.g. mulberry32) instead of `Math.random()`, `?seed=123` replays the same layout every time. That makes bugs reproducible.
 
+### Autopilot: a game that plays itself
+
+`?autopilot` lets the game play itself. Every game should have it: playtests, before / after captures (the `polish-pass` skill), screenshots of late moments and an attract mode on the title all come from it.
+
+```js
+const AUTOPILOT = params.has('autopilot')
+
+// Gameplay reads an intent, never input directly, so a bot can stand in for the player.
+function intent() {
+  if (AUTOPILOT && state.screen === 'playing') return bot(state)
+  return { x: input.x, y: input.y, aimX: input.aimX, aimY: input.aimY, fire: input.held('a'), dash: input.pressed('b') }
+}
+function bot(s) {
+  // A few dozen lines: walk toward the goal or away from the nearest threat, aim at the nearest enemy,
+  // fire when lined up, dash when something is close. It reads only game state.
+}
+```
+
+Rules that keep runs repeatable, so the same seed plays the same run in two builds:
+- Everything that changes play uses the seeded RNG; `Math.random()` only for decoration (spark angles, shake noise).
+- The bot reads only game state and the seeded RNG, never input, the clock or `Math.random()`.
+- Gameplay advances only by the frame's `dt`. Hit-stop and pause freeze it for everything at once. A game with a fixed-step accumulator zeroes it when a run starts, so time left over from the title screen doesn't shift the run.
+- `?autopilot` only takes over the player in `playing`: menus, pause and the check behave as usual. Optional levels (`?autopilot=idle|random|greedy`) give the `playtest` skill its bots for free.
+
+The `polish-pass` capture script runs the page on a virtual clock (exactly 1/60 s per frame), so a game that follows these rules plays the identical run, frame for frame, before and after a change.
+
 ## Repro script
 
 When the bug happens after the first 3 seconds, or needs specific inputs, write a scratch script outside the game folder (e.g. in your scratch or temp directory). It uses the build kit's Playwright and a virtual gamepad driven by a timeline:
