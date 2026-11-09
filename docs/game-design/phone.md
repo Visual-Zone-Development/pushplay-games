@@ -42,8 +42,22 @@ Which one?
 - A game that already exists in 1280×800 is usually closest to **landscape**: same width, 80 px
   less height. Most of the work is moving the HUD out of the thumbs' way and raising text sizes.
 
-Phones are not all the same shape (19.5:9, 20:9, 16:9 tablets). `fitCanvas` letterboxes in the
-colour you give it; design the edges of the space so a bar beside them looks intended.
+Phones are not all the same shape (19.5:9, 20:9, 16:9 tablets). Without `fill`, `fitCanvas`
+letterboxes in the colour you give it: on a 20:9 phone a 720×1280 game loses about a sixth of the
+height to bars.
+
+**Fill the screen (recommended for new phone games, kit v11):** `fitCanvas(canvas, { w: 720, h: 1280,
+fill: true })` makes 720×1280 the *smallest* space. The canvas covers the whole screen, never
+stretched, and `fit.w` / `fit.h` grow to its shape: 720×1604 on a 412×918 phone, 720×1560 on a
+360×780 one, 983×1280 on a 768×1024 tablet. Then:
+
+- Read `fit.w` and `fit.h` every frame (or in `fit.onResize`); never cache them. Anchor the HUD and
+  buttons to the edges and `fit.safe`, centre titles on `fit.w / 2`, and place menus from the
+  current size (rebuild them in `fit.onResize`, or move them each frame).
+- Keep what decides difficulty inside `fit.minW` × `fit.minH`: a taller phone may see further
+  ahead, a tablet more to the sides, but never get wider gaps or slower hazards. Fill the extra room
+  with background (stars, sky, floor), never with things that change the game.
+- `input` and `touch.js` follow the live size on their own.
 
 ## Safe areas
 
