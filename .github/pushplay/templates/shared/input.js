@@ -1,4 +1,4 @@
-// pushplay runtime v10 — replaced by `npm run update-kit`; don't edit, extend from game.js.
+// pushplay runtime v11 — replaced by `npm run update-kit`; don't edit, extend from game.js.
 //
 // Controller, keyboard, mouse and touch input behind one API. Games run on handhelds and on
 // Linux, Windows and Mac PCs, so every action has to work with each of them.
@@ -210,8 +210,13 @@ export const input = {
   pointer: { x: 0, y: 0, down: false, pressed: false, released: false, active: false, type: 'mouse' },
   /** Every pointer currently touching or hovering, by pointerId: { id, x, y, down, type }. */
   pointers: new Map(),
-  /** The drawing space attach() was given (touch.js lays its controls out in it), and the canvas. */
-  space: { w: 1280, h: 800 },
+  /**
+   * The drawing space attach() was given (touch.js lays its controls out in it), and the canvas.
+   * With fitCanvas({ fill: true }) it is the fit's live size, which follows the screen.
+   */
+  get space() {
+    return liveSpace()
+  },
   canvas: null,
 
   /**
@@ -223,13 +228,13 @@ export const input = {
     attached.w = w
     attached.h = h
     this.canvas = canvas
-    this.space = { w, h }
     if (attached.listening) return
     attached.listening = true
     const place = (e, p) => {
       const r = attached.canvas.getBoundingClientRect()
-      p.x = ((e.clientX - r.left) / (r.width || 1)) * attached.w
-      p.y = ((e.clientY - r.top) / (r.height || 1)) * attached.h
+      const space = liveSpace()
+      p.x = ((e.clientX - r.left) / (r.width || 1)) * space.w
+      p.y = ((e.clientY - r.top) / (r.height || 1)) * space.h
       p.type = e.pointerType || 'mouse'
     }
     const track = (e) => {
@@ -411,6 +416,12 @@ export const input = {
 }
 
 const attached = { canvas: null, w: 1280, h: 800, listening: false }
+
+/** attach()'s space, or the fit's current size when the canvas fills the screen (fit.js fill). */
+function liveSpace() {
+  const fit = attached.canvas?.__fit
+  return fit?.fill ? { w: fit.w, h: fit.h } : { w: attached.w, h: attached.h }
+}
 let pointerDown = false
 // Went down / came up since the last update: a quick click or tap can do both between frames.
 let pointerWentDown = false
