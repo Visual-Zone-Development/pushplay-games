@@ -1,4 +1,4 @@
-// pushplay runtime v10 — replaced by `npm run update-kit`; don't edit, extend from game.js.
+// pushplay runtime v11 — replaced by `npm run update-kit`; don't edit, extend from game.js.
 //
 // On-screen controls for touch-only play (phones, tablets without a controller): a floating
 // stick under the left thumb and up to four round buttons under the right thumb. They feed
@@ -59,8 +59,21 @@ export function createTouchControls(input, options = {}) {
     ...options
   }
   const buttons = o.buttons.filter((b) => KNOWN.has(b)).slice(0, 4)
-  const stickZone = o.stickZone ?? { x: 0, y: o.h * 0.4, w: o.w / 2, h: o.h * 0.6 }
-  const buttonZone = o.buttonZone ?? { x: o.w / 2, y: o.h * 0.4, w: o.w / 2, h: o.h * 0.6 }
+  // With fitCanvas({ fill: true }) the space follows the screen: re-read it, unless the game fixed it.
+  const fixed = { w: 'w' in options, h: 'h' in options }
+  const follow = () => {
+    const space = input.space
+    if (!fixed.w && space?.w) o.w = space.w
+    if (!fixed.h && space?.h) o.h = space.h
+  }
+  const zone = (z, half) => z ?? { x: half ? o.w / 2 : 0, y: o.h * 0.4, w: o.w / 2, h: o.h * 0.6 }
+  let stickZone = zone(o.stickZone, false)
+  let buttonZone = zone(o.buttonZone, true)
+  const relayout = () => {
+    follow()
+    stickZone = zone(o.stickZone, false)
+    buttonZone = zone(o.buttonZone, true)
+  }
   /** pointerId → { kind: 'stick' } | { kind: 'button', id: string | null } */
   const claimed = new Map()
   const held = new Set()
@@ -104,6 +117,7 @@ export function createTouchControls(input, options = {}) {
 
     /** Call once per frame, after input.update(). */
     update() {
+      relayout()
       held.clear()
       if (!touch.visible) {
         claimed.clear()

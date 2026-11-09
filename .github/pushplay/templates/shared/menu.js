@@ -1,4 +1,4 @@
-// pushplay runtime v10 — replaced by `npm run update-kit`; don't edit, extend from game.js.
+// pushplay runtime v11 — replaced by `npm run update-kit`; don't edit, extend from game.js.
 //
 // A vertical menu that works the same with a controller, a keyboard, a mouse and touch:
 //   d-pad / stick / arrows / WASD move, A / Space / Enter choose, B / Backspace / right-click
@@ -31,7 +31,8 @@ export const QUIT_TO_LIBRARY = 'quit-to-library'
 export function createMenu(items, options = {}) {
   const o = { x: 640, y: 420, width: 420, height: 64, gap: 14, wrap: true, accent: '#ffb547', text: '#eef0f5', idle: 'rgba(255,255,255,0.08)', ...options }
   const launcher = globalThis.pushplay
-  if ((o.quitToLibrary ?? items.some((i) => i.id === 'resume')) && typeof launcher?.quit === 'function') {
+  // Pause menus (they have 'resume') and title menus (they have 'play') get it unless told otherwise.
+  if ((o.quitToLibrary ?? items.some((i) => i.id === 'resume' || i.id === 'play')) && typeof launcher?.quit === 'function') {
     items.push({ id: QUIT_TO_LIBRARY, label: 'Quit to library' })
     // Half a row higher, so the longer menu stays centred where the game put it.
     o.y -= (o.height + o.gap) / 2

@@ -1,4 +1,4 @@
-// pushplay runtime v10 — replaced by `npm run update-kit`; don't edit, extend from game.js.
+// pushplay runtime v11 — replaced by `npm run update-kit`; don't edit, extend from game.js.
 //
 // Fits a fixed-size drawing space (1280×800 by default: the Steam Deck) into any window and
 // keeps it centred with letterbox bars, at up to 2× device pixels so text stays sharp on dense
@@ -18,6 +18,13 @@
 // request (browsers grant it in fullscreen, the mobile app always), so lay out for fit.w×fit.h
 // regardless. fit.orientation says how the screen is really held.
 //
+// Fill the whole screen: { fill: true } makes w×h the *smallest* space the game gets. The canvas
+// covers the window with no bars, and fit.w / fit.h grow to the screen's shape in game units: a
+// tall phone gets a taller space (720×1604 on a 20:9 phone for { w: 720, h: 1280 }), a tablet a
+// wider one. Never stretched: one unit is the same size both ways. Read fit.w and fit.h each frame
+// (or in fit.onResize), lay out from the edges, and keep anything that decides difficulty inside
+// the w×h you asked for, so a bigger screen sees more of the world but never gets an easier game.
+//
 // Pixel art: { integer: true } snaps the scale to whole multiples (or 1/n) and turns smoothing off.
 // WebGL / three.js: create the renderer first, `renderer.setSize(1280, 800, false)`, then
 // `fitCanvas(renderer.domElement, { maxDpr: 1 })`. A canvas that already has a WebGL context
@@ -26,15 +33,20 @@
 
 const INSET_SIDES = ['top', 'right', 'bottom', 'left']
 
-export function fitCanvas(canvas, { w = 1280, h = 800, maxDpr = 2, integer = false, letterbox = '#000', context = '2d', buffer, orientation } = {}) {
+export function fitCanvas(canvas, { w = 1280, h = 800, maxDpr = 2, integer = false, letterbox = '#000', context = '2d', buffer, orientation, fill = false } = {}) {
   // getContext('2d') returns null on a canvas that already has a WebGL context.
   const ctx = context === '2d' ? canvas.getContext('2d') : null
   const ownsBuffer = buffer ?? ctx !== null
   const listeners = new Set()
   const probe = insetProbe()
   const fit = {
+    /** The drawing space in game units: w×h, or with fill, at least w×h and the screen's shape. */
     w,
     h,
+    /** The smallest space, as asked for: with fill, keep what decides difficulty inside it. */
+    minW: w,
+    minH: h,
+    fill,
     scale: 1,
     dpr: 1,
     /** The 2D context with its transform set, or null for a WebGL canvas. */
@@ -62,14 +74,17 @@ export function fitCanvas(canvas, { w = 1280, h = 800, maxDpr = 2, integer = fal
       const dpr = Math.min(devicePixelRatio || 1, maxDpr)
       fit.scale = scale
       fit.dpr = dpr
-      fit.cssWidth = w * scale
-      fit.cssHeight = h * scale
+      // With fill the space grows to the window's shape (whole units, so nothing is cut off).
+      fit.w = fill ? Math.max(w, Math.floor(innerWidth / scale)) : w
+      fit.h = fill ? Math.max(h, Math.floor(innerHeight / scale)) : h
+      fit.cssWidth = fit.w * scale
+      fit.cssHeight = fit.h * scale
       fit.left = Math.round((innerWidth - fit.cssWidth) / 2)
       fit.top = Math.round((innerHeight - fit.cssHeight) / 2)
       fit.orientation = innerHeight > innerWidth ? 'portrait' : 'landscape'
       if (ownsBuffer) {
-        canvas.width = Math.round(w * scale * dpr)
-        canvas.height = Math.round(h * scale * dpr)
+        canvas.width = Math.round(fit.w * scale * dpr)
+        canvas.height = Math.round(fit.h * scale * dpr)
       }
       Object.assign(canvas.style, {
         position: 'absolute',
@@ -82,7 +97,7 @@ export function fitCanvas(canvas, { w = 1280, h = 800, maxDpr = 2, integer = fal
       })
       if (ctx) {
         // Assigning canvas.width reset the context: drawing stays in w×h units.
-        ctx.setTransform(canvas.width / w, 0, 0, canvas.height / h, 0, 0)
+        ctx.setTransform(canvas.width / fit.w, 0, 0, canvas.height / fit.h, 0, 0)
         ctx.imageSmoothingEnabled = !integer
       }
       // The letterbox bars absorb an inset first; only what reaches the canvas counts, in game units.
