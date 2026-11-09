@@ -267,6 +267,24 @@ async function playCheck(browser, server, out, entry, manifest) {
     await page.waitForTimeout(600)
   }
   /**
+   * Give the game time to act on an input: until state.screen is `want` (when given), or the game
+   * has drawn `frames` more frames, with a floor of `floor` ms and a cap of `timeout` ms. A fixed
+   * wait isn't enough: a three.js game on a CI runner's software renderer can take over a second
+   * per frame, so the input hasn't been processed when the state is read.
+   */
+  const acted = async (page, want = null, { frames = 3, floor = 400, timeout = 4000 } = {}) => {
+    const started = Date.now()
+    const target = (await page.evaluate(() => window.__kitFrames ?? 0).catch(() => 0)) + frames
+    await page
+      .waitForFunction(
+        ([t, w]) => (w !== null && window.__game?.state?.screen === w) || (window.__kitFrames ?? 0) >= t,
+        [target, want],
+        { timeout }
+      )
+      .catch(() => {})
+    await page.waitForTimeout(Math.max(0, floor - (Date.now() - started)))
+  }
+  /**
    * A screenshot needs the page to produce a frame. When it can't in time, say what the frame
    * clock saw instead of failing every later step with a bare timeout.
    */
@@ -374,7 +392,7 @@ async function playCheck(browser, server, out, entry, manifest) {
         await page.mouse.move(spot.x, spot.y, { steps: 3 })
         await page.mouse.click(spot.x, spot.y)
       }
-      await page.waitForTimeout(400)
+      await acted(page, 'paused')
       after = await screen(page)
       if (after === 'paused') break
     }
@@ -496,10 +514,10 @@ async function playCheck(browser, server, out, entry, manifest) {
       await drawn(page)
       const before = await capture(page, ' (keyboard pass)')
       await page.keyboard.press('Enter')
-      await page.waitForTimeout(600)
+      await acted(page, null, { floor: 600 })
       await page.waitForFunction(() => window.__game?.state?.screen !== 'title', null, { timeout: 1500 }).catch(() => {})
       await page.keyboard.press('Escape')
-      await page.waitForTimeout(400)
+      await acted(page, 'paused')
       const state = await screen(page)
       if (state !== null) {
         if (state !== 'paused') errors.push(`with only a keyboard, Enter then Escape didn't pause the game: state.screen is "${state}", not "paused". Enter chooses (a), Escape opens the pause menu (menu)`)
@@ -659,7 +677,7 @@ async function playCheck(browser, server, out, entry, manifest) {
             Object.defineProperty(document, 'visibilityState', { get: () => 'hidden', configurable: true })
             document.dispatchEvent(new Event('visibilitychange'))
           })
-          await page.waitForTimeout(400)
+          await acted(page, 'paused')
           const hidden = await screen(page)
           if (hidden !== 'paused') errors.push(`on a phone, the screen locking (visibilitychange → hidden) didn't pause: state.screen is "${hidden}", not "paused". Pause in input.onPause(cb) (the runtime fires it) and save there`)
           await page.evaluate(() => {
@@ -678,7 +696,7 @@ async function playCheck(browser, server, out, entry, manifest) {
           })
           if (hidden === 'paused' && resume) {
             await page.touchscreen.tap(resume.x, resume.y)
-            await page.waitForTimeout(400)
+            await acted(page, 'playing')
           }
           if ((await screen(page)) === 'playing') {
             const { after: paused, tried } = await pressPause(page, true)
