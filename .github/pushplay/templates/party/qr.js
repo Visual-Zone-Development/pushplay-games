@@ -1,4 +1,4 @@
-// pushplay runtime v2 — replaced by npm run update-kit; don't edit
+// pushplay runtime v10 — replaced by npm run update-kit; don't edit
 // QR codes for the party join link, drawn on the TV. Byte mode, error correction level M,
 // versions 1–10 (up to 213 characters: a join URL is about 35). After Project Nayuki's
 // QR Code generator (MIT).

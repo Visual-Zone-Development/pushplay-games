@@ -11,14 +11,19 @@ export const brand = JSON.parse(readFileSync(existsSync(vendored) ? vendored : s
  * Bumped whenever the kit's files change (kit-lock.json holds their hash; a test enforces the bump).
  * ci.mjs writes it into the release index, so the launcher can tell a repo its kit is outdated.
  */
-export const KIT_VERSION = 9
-/** Runtime modules copied into every game; `update-kit` replaces them by this header. */
+export const KIT_VERSION = 10
+/**
+ * Runtime modules copied into every game; `update-kit` replaces them by this header. The number
+ * after `v` is the KIT_VERSION that shipped the file, so a game folder says which kit it carries.
+ */
 export const RUNTIME_HEADER = `// ${brand.slug} runtime v`
 /** Matches the header whatever the product was called when the file was written. */
 export const RUNTIME_HEADER_RE = /^\/\/ \S+ runtime v/
-export const RUNTIME_FILES = ['input.js', 'menu.js', 'fit.js', 'audio.js', 'save.js', 'settings.js', 'prompts.js']
+export const RUNTIME_FILES = ['input.js', 'menu.js', 'fit.js', 'audio.js', 'save.js', 'settings.js', 'prompts.js', 'touch.js']
 /** Party games' runtime modules (templates/party), refreshed the same way in games that have party.js. */
 export const PARTY_RUNTIME_FILES = ['party.js', 'party-lobby.js', 'qr.js', 'controller.js']
+/** Online games' runtime modules (templates/online), refreshed in games that have net.js (party games too: party.js builds on net.js). */
+export const ONLINE_RUNTIME_FILES = ['net.js', 'lobby.js']
 /** Per-game ignore list (one glob per line) for files that are never shipped. */
 export const IGNORE_FILE = `.${brand.slug}ignore`
 
@@ -58,6 +63,17 @@ export const ART = brand.art
 export const CHECK_RUN_MS = 3000
 /** A second, denser 16:9 window the check also opens (Legion Go class screens and launcher zoom), small enough for a software GPU in CI. */
 export const VIEWPORT_DENSE = { width: 1280, height: 720, deviceScaleFactor: 2 }
+
+/**
+ * The phone pass (games with "phone" in their manifest): a 6.1" phone, touch only, at 3× pixels.
+ * The logical spaces are 720×1280 (portrait) and 1280×720 (landscape); see fit.js.
+ */
+export const VIEWPORT_PHONE = {
+  portrait: { width: 390, height: 844, deviceScaleFactor: 3 },
+  landscape: { width: 844, height: 390, deviceScaleFactor: 3 }
+}
+/** Smallest text a phone game may draw, in game units of a 720-wide (short side) space: about 4.5 mm on a 6.1" phone. */
+export const PHONE_MIN_TEXT_PX = 32
 
 /** Online games: the hosted relay (wss://), and the port of the local one `npm run dev` starts. */
 export const RELAY_URL = brand.relayUrl ?? ''

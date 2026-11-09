@@ -1,4 +1,4 @@
-// pushplay runtime v2 — replaced by `npm run update-kit`; don't edit, extend from game.js.
+// pushplay runtime v10 — replaced by `npm run update-kit`; don't edit, extend from game.js.
 //
 // Sound through three buses (master, music, sfx) with volumes saved in the game's settings.
 // Browsers keep audio silent until the player does something, so the context is unlocked on the

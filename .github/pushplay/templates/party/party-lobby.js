@@ -1,4 +1,4 @@
-// pushplay runtime v3 — replaced by npm run update-kit; don't edit
+// pushplay runtime v10 — replaced by npm run update-kit; don't edit
 // The party lobby on the TV: the game's name, the room code and QR code to join, everyone who's
 // in, and Start. Phones join by scanning or typing the code; controllers on this machine press A.
 // Start: A on a joined controller, Space/Enter/click, or the first phone's Start button.

@@ -2,6 +2,7 @@
   "name": "PushPlay",
   "slug": "pushplay",
   "appId": "gg.pushplay.launcher",
+  "mobileAppId": "gg.pushplay.app",
   "scheme": "pushplay",
   "assetScheme": "pushplay-asset",
   "manifestFiles": [

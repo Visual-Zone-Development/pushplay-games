@@ -1,3 +1,5 @@
+// pushplay runtime v10 — replaced by `npm run update-kit`; don't edit, extend from game.js.
+//
 // The online lobby: Quick match / Host / Join, the open-games list and the waiting room, all
 // on a controller (A chooses, B goes back; the game's own pause menu handles Start / Esc).
 // Shared by every online game; style it with the options, not by editing.
@@ -116,9 +118,11 @@ export function createLobby(net, input, { title = '', accent = '#ffb547', ink = 
         hint(`${input.label('a')} try again · ${input.label('b')} back`)
       } else if (net.room) {
         text(`Room ${net.room}`, 210, 40, accent, 800)
+        if (net.status === 'reconnecting') text('Reconnecting…', 250, 26, accent, 600)
         net.players.forEach((id, i) => {
           const me = id === net.me
-          text(`${i === 0 ? 'Host' : `Player ${i + 1}`}${me ? ' (you)' : ''}`, 290 + i * 48, 28, me ? accent : ink, me ? 700 : 500)
+          const away = net.away?.includes(id)
+          text(`${i === 0 ? 'Host' : `Player ${i + 1}`}${me ? ' (you)' : ''}${away ? ' · away' : ''}`, 290 + i * 48, 28, away ? quiet : me ? accent : ink, me ? 700 : 500)
         })
         for (let i = net.players.length; i < net.maxPlayers; i++) text('Waiting for a player…', 290 + i * 48, 26, quiet, 400)
         if (net.isHost) {

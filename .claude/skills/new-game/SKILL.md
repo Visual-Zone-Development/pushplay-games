@@ -1,6 +1,6 @@
 ---
 name: new-game
-description: Create a game in this repo (the repo's one game at its root, or one more in a workshop of many) that plays on a Steam Deck or Legion Go through the PushPlay launcher, and on PCs with keyboard, mouse or touch. It interviews the user about the idea, writes a design brief, then builds the game and its cover and hero art. Use whenever the user asks to make, prototype or add a game.
+description: Create a game in this repo (the repo's one game at its root, or one more in a workshop of many) that plays on a Steam Deck or Legion Go through the PushPlay launcher, on PCs with keyboard, mouse or touch, and, when asked for, on a phone or tablet (--phone). It interviews the user about the idea, writes a design brief, then builds the game and its cover and hero art. Use whenever the user asks to make, prototype or add a game.
 ---
 
 # New game
@@ -25,8 +25,8 @@ Follow [kickoff.md](../../../docs/game-design/kickoff.md). Use `AskUserQuestion`
 
 | Round | Topics |
 |---|---|
-| 1. Shape | **Concept / genre** (for a vague request: pitch 3 concepts instead), **2D or 3D**, **art style**, **players** (solo / local 2–4 / online / party with phones) |
-| 2. Play | **Feel** (multiSelect, up to 2), **camera / view**, **session and structure**, **like which game?**; swap in the online, party or local-multiplayer follow-ups (player count, co-op or versus, phone controller) when round 1 picked them |
+| 1. Shape | **Concept / genre** (for a vague request: pitch 3 concepts instead), **2D or 3D**, **art style**, **players** (solo / local 2–4 / online / party with phones), **where will it be played?** (Deck and PC, the default / phone portrait / phone landscape / TV party; see [phone.md](../../../docs/game-design/phone.md)) |
+| 2. Play | **Feel** (multiSelect, up to 2), **camera / view**, **session and structure**, **like which game?**; swap in the online, party, local-multiplayer or phone follow-ups (player count, co-op or versus, phone controller; one thumb or two, stick and buttons or tap and swipe) when round 1 picked them |
 | 3. Details | Only what's still open: audience and difficulty, assets (none / "I have files" → ask for the folder / CC0 / generate with the user's image API key if one is set, see [generated-art.md](../../../docs/game-design/generated-art.md)), sound and music, theme and name, progression, mouse/touch gameplay |
 
 Round 1 and round 2 answers often settle each other's topics; skip any question that's already answered. Three rounds maximum. Fill any remaining gaps with sensible defaults and list them as assumptions. If the user can't choose between two or three strong directions, offer the `prototype-sprint` skill: tiny playable versions of each, then grow the winner.
@@ -37,9 +37,9 @@ Follow [inspiration.md](../../../docs/game-design/inspiration.md): 2–3 referen
 ## 4. Write the brief and get approval
 Pick a short, catchy name and a `kebab-case` id. Then:
 1. `npm run setup` if `node_modules/` is missing.
-2. `npm run new-game <id> --name "<Name>"`, adding `--vite` for 3D or npm packages, `--online --players <min>-<max>` for online multiplayer, and `--party [--controller pad|custom] --players <min>-<max>` for a party game on a TV with phones. The starter already has title, pause and settings screens that work on every input; keep them and build the game around them. The runtime files it copies (`input.js`, `menu.js`, `fit.js`, `audio.js`, `save.js`, `settings.js`, `prompts.js`, plus `net.js` and `lobby.js` for `--online`, and `net.js`, `party.js`, `party-lobby.js`, `qr.js` and `controller.js` for `--party`) are never edited.
+2. `npm run new-game <id> --name "<Name>"`, adding `--vite` for 3D or npm packages, `--online --players <min>-<max>` for online multiplayer, `--party [--controller pad|custom] --players <min>-<max>` for a party game on a TV with phones, and `--phone portrait` or `--phone landscape` for a phone game (the starter is then laid out in the 720×1280 or 1280×720 space, with `phone` set in the manifest; a game for the Deck and PC takes no flag and stays at 1280×800). The starter already has title, pause and settings screens that work on every input; keep them and build the game around them. The runtime files it copies (`input.js`, `menu.js`, `fit.js`, `audio.js`, `save.js`, `settings.js`, `prompts.js`, `touch.js`, plus `net.js` and `lobby.js` for `--online`, and `net.js`, `party.js`, `party-lobby.js`, `qr.js` and `controller.js` for `--party`) are never edited.
 3. Copy [DESIGN.template.md](../../../docs/game-design/DESIGN.template.md) to `DESIGN.md` and fill it in:
-   - The **Kickoff** table holds every interview answer (or assumption).
+   - The **Kickoff** table holds every interview answer (or assumption), including the *Devices* row (the space and the Plays on labels it should earn).
    - Every one of the 8 formal elements is decided.
    - Each fun target maps to concrete mechanics and juice.
    - Scope is split into v1 and stretch (v1 = one sitting; cut to ≤ 3 core systems).
@@ -52,11 +52,12 @@ Run `npm run check` after each milestone and fix every ✗.
 
 1. **Core loop.**
    - Put all gameplay numbers in a `TUNING` object at the top of `game.js` (`src/game.js` for `--vite`).
-   - Keep the starter's skeleton: `fitCanvas(...)`, `input.attach(canvas, 1280, 800)`, `input.update()` first in the frame, `state.screen` with the names `title | playing | paused | settings | gameover`, `window.__game = { state, TUNING }`, and `input.onPause(...)` switching to `paused`.
+   - Keep the starter's skeleton: `fitCanvas(...)`, `input.attach(canvas, W, H)` with the same size (1280×800, or the phone space), `input.update()` first in the frame, `state.screen` with the names `title | playing | paused | settings | gameover`, `window.__game = { state, TUNING }`, and `input.onPause(...)` switching to `paused`.
    - Add the `?debug` overlay ([debugging.md](../../../docs/game-design/debugging.md)).
    - Map gameplay to buttons from the AGENTS.md table: `b` is a normal action button; `menu` is only pause. Game-specific key aliases via `input.extendKeys`.
    - Get the core verb feeling good: pass the **30-second fun test** in framework.md before adding content. Use `camera` for anything that scrolls or is 3D, `physics-feel` for collisions, bouncing or vehicles, and `enemy-ai` for enemies and CPU opponents.
    - **Local multiplayer:** use the `local-multiplayer` skill (join screen, `input.pads[i]`, shared camera).
+   - **Phone game (`--phone`):** read [phone.md](../../../docs/game-design/phone.md) first. Lay out from `W`/`H` and `fit.safe`, HUD at the top and read-only, text ≥ 32 px, controls in the thumb zones; use the `touch-controls` skill for the touch scheme (`touch.js` for a stick and buttons, hidden by itself when a controller is used) and keep every verb playable with a controller and a keyboard. `input.onPause` must pause from every playable screen (the phone's screen lock fires it).
    - **Online:** read [multiplayer.md](../../../docs/game-design/multiplayer.md) first. The host runs the rules in `hostUpdate()` and writes `net.state`; everyone draws `net.view`. Keep the template's title → lobby → playing flow with `state.screen` exposed; `menu` still opens the `menu.js` pause menu (Resume, Settings, Leave game) but it only stops your controls, since the host keeps the world running. Never edit `net.js` or `lobby.js`. Secrets go in `net.privateView(id)`, never `net.state`. Use the `online-netcode` skill to make it feel good despite the delay.
    - **Party:** read [party.md](../../../docs/game-design/party.md) first. The TV runs everything: read `party.inputs[id]` and `party.on('msg')`, write `party.public` for every phone and `party.view(id)` for one phone (never secrets in `public`). Build the phone screen in `controller.html` (one file, everything inline) and look at it on a real phone with `npm run dev`. Never edit the party runtime files. Use the `party-phone-screen` skill for the phone side.
    - If the user supplied assets, import them per [assets.md](../../../docs/game-design/assets.md). For 3D, follow [3d.md](../../../docs/game-design/3d.md).
@@ -74,8 +75,9 @@ Run `npm run check` after each milestone and fix every ✗.
   | Keyboard only | no pad, hands off the mouse | Enter starts, Esc pauses, Backspace backs, every action reachable; prompts show key names |
   | Mouse only | hands off the keyboard | every menu by click; the on-screen pause button pauses; gameplay too if `inputs` includes `"mouse"`; cursor visible in every menu |
   | Touch | Chrome DevTools → device toolbar with touch emulation | every menu by tap; pause button; prompts say "Tap"; gameplay too if `inputs` includes `"touch"` |
+  | Phone (if `--phone`) | device mode at 390×844 or 844×390, DPR 3, touch only | menus by tap; thumbs don't cover the action; nothing under the notch or home bar; on-screen controls vanish with a pad; a hidden page pauses |
   | Scaling | resize the window to 1920×1080, then device mode at DPR 2 | centred and letterboxed in the game's colour, text crisp, nothing clipped or blurry |
-  | `npm run check` | | passes: gamepad, keyboard-only, touch, Start → `__game.state.screen === 'paused'`, a 16:9 window at DPR 2 |
+  | `npm run check` | | passes: gamepad, keyboard-only, mouse-only, touch, Start → `__game.state.screen === 'paused'`, a 16:9 window at DPR 2, and the phone pass for a phone game |
 
   Also confirm: menus use `menu.js`; pause menu is Resume / Restart / Settings / Quit to title; Settings is reachable from title and pause; no `F10`, Start+Select or held-Esc binding; no hard-coded button names (`input.label`, `drawPrompts`); nothing needs hover, a double-click, a scroll wheel or text entry; `window.__game.state.screen` is exposed.
 - **Manifest:**
@@ -83,7 +85,7 @@ Run `npm run check` after each milestone and fix every ✗.
   - `players`, `version`.
   - `tags` (required): 2–5 lowercase genre/style words, reusing tags other games already use; add `online multiplayer` for online games and `party` for party games.
   - `inputs` (required): the inputs the whole game is playable with; drop `"mouse"` or `"touch"` only when gameplay genuinely can't, and say so on the title screen.
-  - `online` if the game is networked (the `--online` scaffold sets it), or `party` for a party game (`--party` sets it).
+  - `online` if the game is networked (the `--online` scaffold sets it), or `party` for a party game (`--party` sets it), or `phone: { orientation }` for a phone game (`--phone` sets it; it needs `"touch"` in `inputs`).
 - **Art** (use the `cover-art` skill):
   - `art/cover.svg`: 720×500, big title, bottom 110px clear.
   - `art/hero.svg`: 1920×450, no text, key visual on the right.
@@ -101,6 +103,6 @@ Update DESIGN.md if the design drifted (set Status to shipped, add a Changelog e
 Tell the user:
 - the name, the pitch and the controls
 - what feel the game aims for, and any known gaps
-- that it will appear in PushPlay on their Deck or Legion Go once the GitHub Action finishes (a couple of minutes)
+- that it will appear in PushPlay on their Deck or Legion Go once the GitHub Action finishes (a couple of minutes), and which Plays on labels it earns (a phone game: Phone as well)
 
 Then suggest they play it and come back with feedback, or with "improve <name>". Give 2–3 specific things to notice while playing, e.g. "does minute two get boring?" or "is the dash satisfying?".

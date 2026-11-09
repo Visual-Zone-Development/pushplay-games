@@ -1,4 +1,4 @@
-// pushplay runtime v2 — replaced by npm run update-kit; don't edit
+// pushplay runtime v10 — replaced by npm run update-kit; don't edit
 // The phone side of a party game. party.js (on the TV) puts this script at the top of the
 // game's controller.html and sends the page to each phone, where it runs with no network: it
 // talks only to the TV, through the join page. It defines a global `controller`:

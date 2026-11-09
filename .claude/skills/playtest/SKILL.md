@@ -22,6 +22,7 @@ Start from the repro script in [debugging.md](../../../docs/game-design/debuggin
 - **Fast-forward:** if the game exposes it, raise a time-scale in `TUNING` to run faster; otherwise just run in real time with a timeout (e.g. 3 min per run).
 - **Logging:** every second record time, `state.screen`, score, health, level or wave, entity counts, and fps (from `requestAnimationFrame` timing). On game over record the cause if the state exposes it.
 - **Screenshots** at 5 s, 30 s, 60 s, 2 min, and at each death.
+- **Phone games** (manifest `phone`): run the same bots in a phone viewport too (`viewport: { width: 390, height: 844 }` or `844×390`, `deviceScaleFactor: 3, hasTouch: true, isMobile: true`), driving the `touch.js` controls with `page.touchscreen.tap()` and pointer sequences in the thumb zones (or keep the virtual gamepad and only check the picture). Screenshots then show what a thumb-covered screen looks like: overlay two 320 px thumb zones when you read them.
 
 Keep it under the session's limits: a handful of runs per bot is enough to see a trend.
 
@@ -37,6 +38,7 @@ Look at every screenshot (you can read PNGs) and the numbers:
 | nothing new on screen between two screenshots 60 s apart | boring stretch | add content there (level-design) |
 | fps below 55 anywhere | performance | cap entities or particles (debug-game) |
 | screenshots hard to read | readability | game-ui |
+| phone shots: the threat appears under a thumb zone, or text under 32 px | phone layout | mobile-port, game-ui |
 
 ## 4. Report and propose
 Write a short report (in chat, and a *Playtest* section with the date in DESIGN.md): the questions, a small table of results per bot, the screenshots that matter, and **3–5 proposals**, each as *problem → change (exact `TUNING` key and new value, or a content change) → expected effect*. Ask with `AskUserQuestion` (multiSelect) which to apply, the biggest fun problem first, marked "(Recommended)". Apply the chosen ones with the improve-game steps, then re-run the same playtest to confirm the numbers moved the right way.

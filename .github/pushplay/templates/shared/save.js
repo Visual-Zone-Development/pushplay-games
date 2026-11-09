@@ -1,4 +1,4 @@
-// pushplay runtime v2 — replaced by `npm run update-kit`; don't edit, extend from game.js.
+// pushplay runtime v10 — replaced by `npm run update-kit`; don't edit, extend from game.js.
 //
 // Saved progress and settings in localStorage, keyed by the game's id so games on the same
 // device never collide. Writes are guarded (private mode, full storage) so a failed save never

@@ -8,7 +8,7 @@ description: Update this repo to the newest PushPlay build kit and shared files,
 Follow AGENTS.md. **Only run this when the user asks** (AGENTS.md: `npm run update-kit` only on request). It touches shared files in every game, so work on a branch and commit separately from game changes.
 
 ## 1. Pick the tool
-- `npm run update-kit` downloads the newest kit from the latest PushPlay release (or takes a path to a kit folder, an unpacked template repo or a `kit.zip`). It **replaces** `.github/pushplay/` and the workflow, **overwrites** `AGENTS.md` and `CLAUDE.md`, replaces each kit skill folder in `.claude/skills/` and each kit doc in `docs/game-design/` (the repo's own extra skills and docs survive), and swaps the runtime files in every game.
+- `npm run update-kit` downloads the newest kit from the latest PushPlay release (or takes a path to a kit folder, an unpacked template repo or a `kit.zip`). It **replaces** `.github/pushplay/` and the workflow, **overwrites** `AGENTS.md` and `CLAUDE.md`, replaces each kit skill folder in `.claude/skills/` and each kit doc in `docs/game-design/` (the repo's own extra skills and docs survive), and swaps the runtime files in every game (`input.js`, `menu.js`, `fit.js`, `audio.js`, `save.js`, `settings.js`, `prompts.js`, `touch.js`, and the online and party files). A runtime file that is new to this kit (for example `touch.js`, the on-screen controls that came with kit v10) is added to games that don't have it; it only does something when a game imports it.
 - `npm run sync-template` (only in repos that have `tools/template-sync/`) brings in what changed in the template repo since the last sync as a **3-way merge**, so this repo's own additions survive; conflicts are left with `<<<<<<<` markers. `-- --check` only reports whether anything is new.
 
 Prefer `sync-template` when it exists; use `update-kit` otherwise, or when the user asks for it.
@@ -23,7 +23,7 @@ Prefer `sync-template` when it exists; use `update-kit` otherwise, or when the u
 
 ## 3. Check every game
 1. `npm run setup` if dependencies changed, then `npm run check` (all games).
-2. Fix each ✗ in the game that reports it, using the `debug-game` steps; new kit rules (for example a newly required manifest field) are usually small manifest or code fixes. Bump each fixed game's patch `version` and add a Changelog line.
+2. Fix each ✗ in the game that reports it, using the `debug-game` steps; new kit rules (for example a newly required manifest field) are usually small manifest or code fixes. Bump each fixed game's patch `version` and add a Changelog line. Kit v10 added two passes: a **mouse-only** pass for every game (menus by click and the on-screen pause button; it backs the Desktop label, so an older game whose menus or pause button don't answer a click now fails) and a **phone pass** only for games with `phone` in their manifest. No existing game gets `phone` from the upgrade: the phone spaces (720×1280, 1280×720), `fit.safe` and `touch.js` are there to use when the user asks for a phone version (the `mobile-port` skill), and 1280×800 stays every game's default.
 3. Look at a few screenshots to make sure nothing renders differently.
 
 ## 4. Commit and report

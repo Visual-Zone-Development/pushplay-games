@@ -81,6 +81,30 @@
           "party": {
             "type": "boolean"
           },
+          "phone": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "orientation": {
+                    "type": "string",
+                    "enum": [
+                      "portrait",
+                      "landscape",
+                      "any"
+                    ]
+                  }
+                },
+                "required": [
+                  "orientation"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "platform": {
             "type": "string",
             "const": "web"

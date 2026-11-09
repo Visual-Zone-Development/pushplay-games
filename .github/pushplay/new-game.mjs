@@ -1,4 +1,4 @@
-// npm run new-game <game-id> [--workshop] [--vite] [--online | --party [--controller pad|custom|motion]] [--players 2-4] [--name "Display Name"]
+// npm run new-game <game-id> [--workshop] [--vite] [--phone [portrait|landscape]] [--online | --party [--controller pad|custom|motion]] [--players 2-4] [--name "Display Name"]
 // Creates a game from the starter template: title, pause and settings screens that work with a
 // controller, a keyboard, a mouse and touch, a manifest, and placeholder art.
 //   Where: a repo with a games/ folder is a workshop (a collection of games), so the game goes in
@@ -15,6 +15,10 @@
 //              --controller motion makes the phone a motion controller (tilt, steering wheel,
 //              swings) and adds motion.js, which reads it on the TV.
 //              --players sets how many (default 2-8, up to 16).
+//   --phone:   a phone game: the 720×1280 portrait or 1280×720 landscape space, the
+//              "phone" manifest field, on-screen touch controls (touch.js), a layout inside the
+//              safe area and text at the phone minimum. Works with --online; not with --party
+//              (the TV runs a party game). The check adds the touch-only phone pass.
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { spawnSync } from 'node:child_process'
 import { join } from 'node:path'
@@ -32,11 +36,14 @@ const valueOf = (flag) => (args.indexOf(flag) >= 0 ? args[args.indexOf(flag) + 1
 const name = valueOf('--name')
 const controller = valueOf('--controller') ?? 'pad'
 const players = valueOf('--players') ?? (party ? '2-8' : online ? '2' : '1')
-const id = args.find((a, i) => !a.startsWith('--') && !['--name', '--players', '--controller'].includes(args[i - 1]))
+const ORIENTATIONS = ['portrait', 'landscape']
+const phoneValue = valueOf('--phone')
+const phone = args.includes('--phone') && ORIENTATIONS.includes(phoneValue) ? phoneValue : null
+const id = args.find((a, i) => !a.startsWith('--') && !['--name', '--players', '--controller'].includes(args[i - 1]) && !(args[i - 1] === '--phone' && ORIENTATIONS.includes(a)))
 const [minPlayers, maxPlayers = minPlayers] = players.split('-').map(Number)
 
 if (!id || !/^[a-z0-9][a-z0-9-]{0,63}$/.test(id)) {
-  log('Usage: npm run new-game <game-id> [--workshop] [--vite] [--online | --party [--controller pad|custom|motion]] [--players 2-4] [--name "Display Name"]')
+  log('Usage: npm run new-game <game-id> [--workshop] [--vite] [--phone portrait|landscape] [--online | --party [--controller pad|custom|motion]] [--players 2-4] [--name "Display Name"]')
   log('  game-id: lowercase letters, digits and dashes, e.g. tower-panic')
   process.exit(1)
 }
@@ -46,6 +53,14 @@ if (!/^\d+(-\d+)?$/.test(players) || !(minPlayers >= 1 && maxPlayers >= minPlaye
 }
 if (online && party) {
   log('Pick one: --online (every player runs the game) or --party (the TV runs it, phones join)')
+  process.exit(1)
+}
+if (args.includes('--phone') && !phone) {
+  log('--phone needs how the phone is held: --phone portrait (720×1280) or --phone landscape (1280×720)')
+  process.exit(1)
+}
+if (phone && party) {
+  log("A party game runs on the TV, so it isn't a phone game: drop --phone (phones join it as controllers)")
   process.exit(1)
 }
 if (!['pad', 'custom', 'motion'].includes(controller)) {
@@ -77,10 +92,16 @@ if (single) {
 
 const title = name ?? id.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
 const templates = join(import.meta.dirname, 'templates')
+/** The drawing space: the Deck's 1280×800, or the phone space for the chosen orientation. */
+const space = phone === 'portrait' ? { w: 720, h: 1280 } : phone === 'landscape' ? { w: 1280, h: 720 } : { w: 1280, h: 800 }
 const fill = (text) =>
   text
     .replaceAll('{{NAME}}', title)
     .replaceAll('{{ID}}', id)
+    .replaceAll('{{W}}', String(space.w))
+    .replaceAll('{{H}}', String(space.h))
+    .replaceAll('{{PHONE}}', String(Boolean(phone)))
+    .replaceAll('{{ORIENTATION}}', phone ? `, orientation: '${phone}'` : '')
     .replaceAll('{{SLUG}}', brand.slug)
     .replaceAll('{{BRAND}}', brand.name)
     .replaceAll('{{MIN_PLAYERS}}', String(minPlayers))
@@ -128,7 +149,8 @@ const manifest = {
   players,
   tags: [],
   ...(online ? { tags: ['online multiplayer'], online: true } : {}),
-  ...(party ? { tags: ['party', 'local multiplayer'], party: true } : {})
+  ...(party ? { tags: ['party', 'local multiplayer'], party: true } : {}),
+  ...(phone ? { phone: { orientation: phone } } : {})
 }
 
 if (vite) {
@@ -161,12 +183,13 @@ writeFileSync(join(dir, MANIFEST_FILE), JSON.stringify(manifest, null, 2) + '\n'
 // workspace). Commit it.
 if (vite) spawnSync('npm', ['install', '--no-audit', '--no-fund'], { ...npmSpawn, cwd: ROOT, stdio: 'inherit' })
 
-const kind = `${vite ? 'Vite' : 'plain HTML'}${online ? ', online' : ''}${party ? `, party with a ${controller} phone controller` : ''}`
+const kind = `${vite ? 'Vite' : 'plain HTML'}${phone ? `, ${phone} phone game (${space.w}×${space.h})` : ''}${online ? ', online' : ''}${party ? `, party with a ${controller} phone controller` : ''}`
 log(single ? `Created ${title} at the root of this repo (${kind}). This repo is now that one game.` : `Created games/${id}/ (${kind}).${workshop ? ' This repo is a workshop: make more games with new-game, and move finished ones into their own repos with npm run promote.' : ''}`)
 log('Next:')
 log(`  1. Write the game in ${at}${vite ? 'src/' : ''}game.js. Keep its title, pause and settings screens:`)
 log(`     input.js, menu.js, fit.js, audio.js, save.js, settings.js and prompts.js make them work with every input.`)
 if (online) log(`     Online: the host runs the rules in hostUpdate() and writes net.state; everyone draws net.view. Don't edit net.js or lobby.js.`)
+if (phone) log(`     Phone: lay everything out in ${space.w}×${space.h}, inside fit.safe (notch and home bar); text ≥ 32px; touch.js gives the stick and buttons. Read docs/game-design/phone.md.`)
 if (party) {
   log(`     Party: the TV runs everything. party.public goes to every phone, party.view(id) to one phone only.`)
   log(`     The phone screen is ${at}${vite ? 'public/' : ''}controller.html. Don't edit party.js, party-lobby.js, qr.js, controller.js or net.js.`)

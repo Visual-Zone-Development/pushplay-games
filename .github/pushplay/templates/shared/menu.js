@@ -1,4 +1,4 @@
-// pushplay runtime v3 — replaced by `npm run update-kit`; don't edit, extend from game.js.
+// pushplay runtime v10 — replaced by `npm run update-kit`; don't edit, extend from game.js.
 //
 // A vertical menu that works the same with a controller, a keyboard, a mouse and touch:
 //   d-pad / stick / arrows / WASD move, A / Space / Enter choose, B / Backspace / right-click
