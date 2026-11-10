@@ -1,0 +1,32 @@
+{
+  "$schema": "../../.github/pushplay/manifest.schema.json",
+  "id": "flipwing",
+  "name": "Flipwing",
+  "description": "Slide your thumb to weave a tiny starship through an asteroid stream, and tap to flip its colour so it slips through matching energy gates. Flip at the last moment for a bigger multiplier and see how far you can get.",
+  "version": "1.0.0",
+  "entry": {
+    "web": "index.html"
+  },
+  "art": {
+    "cover": "art/cover.html",
+    "hero": "art/hero.html"
+  },
+  "controls": "gamepad",
+  "inputs": [
+    "gamepad",
+    "keyboard",
+    "mouse",
+    "touch"
+  ],
+  "players": "1",
+  "tags": [
+    "arcade",
+    "space",
+    "endless",
+    "one-handed",
+    "neon"
+  ],
+  "phone": {
+    "orientation": "portrait"
+  }
+}
