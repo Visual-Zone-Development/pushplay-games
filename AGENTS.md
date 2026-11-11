@@ -238,7 +238,7 @@ Every game needs two images, written as **SVG** (or `.html` for art drawn with c
 | File | Size | Where it shows | Rules |
 |---|---|---|---|
 | `art/cover.svg` | 720×500 | Library tile (shown at ~216×150) | **Must include the game's title**, big and bold. Keep the **bottom 110px clear of important content** (the launcher draws badges there). |
-| `art/hero.svg` | 1920×450 | Banner on the game's detail page | **No title text**: the launcher writes the title over the **bottom-left**, so keep that area calm and put the key visual on the **right half**. |
+| `art/hero.svg` | 1920×450 | Banner on the game's detail page, and cropped at the top of the phone app's library | **No title text**: the launcher writes the title in light text over the **bottom-left**, so keep that area calm and dark. Put the key visual in the **middle** (x 600–1320, top 250 px): the phone shows only that part (see the `cover-art` skill). |
 
 Guidelines:
 - Set `width`, `height` and `viewBox` on the root `<svg>` to the exact size.
