@@ -37,7 +37,7 @@ Follow [inspiration.md](../../../docs/game-design/inspiration.md): 2–3 referen
 ## 4. Write the brief and get approval
 Pick a short, catchy name and a `kebab-case` id. Then:
 1. `npm run setup` if `node_modules/` is missing.
-2. `npm run new-game <id> --name "<Name>"`, adding `--vite` for 3D or npm packages, `--online --players <min>-<max>` for online multiplayer, `--party [--controller pad|custom] --players <min>-<max>` for a party game on a TV with phones, and `--phone portrait` or `--phone landscape` for a phone game (the starter is then laid out in the 720×1280 or 1280×720 space, with `phone` set in the manifest; a game for the Deck and PC takes no flag and stays at 1280×800). The starter already has title, pause and settings screens that work on every input; keep them and build the game around them. The runtime files it copies (`input.js`, `menu.js`, `fit.js`, `audio.js`, `save.js`, `settings.js`, `prompts.js`, `touch.js`, plus `net.js` and `lobby.js` for `--online`, and `net.js`, `party.js`, `party-lobby.js`, `qr.js` and `controller.js` for `--party`) are never edited.
+2. `npm run new-game <id> --name "<Name>"`, adding `--vite` for 3D or npm packages, `--online --players <min>-<max>` for online multiplayer, `--party [--controller pad|custom] --players <min>-<max>` for a party game on a TV with phones, and `--phone portrait` or `--phone landscape` for a phone game (the starter is then laid out in the 720×1280 or 1280×720 space, with `phone` set in the manifest; a game for the Deck and PC takes no flag and stays at 1280×800). The starter already has title, pause and settings screens that work on every input; keep them and build the game around them. Remove the row of button prompts the starter draws along the bottom of its title, settings and play screens (see *Input hints* in AGENTS.md). The runtime files it copies (`input.js`, `menu.js`, `fit.js`, `audio.js`, `save.js`, `settings.js`, `prompts.js`, `touch.js`, plus `net.js` and `lobby.js` for `--online`, and `net.js`, `party.js`, `party-lobby.js`, `qr.js` and `controller.js` for `--party`) are never edited.
 3. Copy [DESIGN.template.md](../../../docs/game-design/DESIGN.template.md) to `DESIGN.md` and fill it in:
    - The **Kickoff** table holds every interview answer (or assumption), including the *Devices* row (the space and the Plays on labels it should earn).
    - Every one of the 8 formal elements is decided.
@@ -71,10 +71,10 @@ Run `npm run check` after each milestone and fix every ✗.
 
   | Pass | How | Must be true |
   |---|---|---|
-  | Controller | pad plugged in, or on the Deck / Legion Go | every screen works; Start pauses; B never quits anything without a menu; prompts show button names |
-  | Keyboard only | no pad, hands off the mouse | Enter starts, Esc pauses, Backspace backs, every action reachable; prompts show key names |
+  | Controller | pad plugged in, or on the Deck / Legion Go | every screen works; Start pauses; B never quits anything without a menu; any in-place hint shows button names |
+  | Keyboard only | no pad, hands off the mouse | Enter starts, Esc pauses, Backspace backs, every action reachable; any in-place hint shows key names |
   | Mouse only | hands off the keyboard | every menu by click; the on-screen pause button pauses; gameplay too if `inputs` includes `"mouse"`; cursor visible in every menu |
-  | Touch | Chrome DevTools → device toolbar with touch emulation | every menu by tap; pause button; prompts say "Tap"; gameplay too if `inputs` includes `"touch"` |
+  | Touch | Chrome DevTools → device toolbar with touch emulation | every menu by tap; pause button; no button prompts shown; gameplay too if `inputs` includes `"touch"` |
   | Phone (if `--phone`) | device mode at 390×844 or 844×390, DPR 3, touch only | menus by tap; thumbs don't cover the action; nothing under the notch or home bar; on-screen controls vanish with a pad; a hidden page pauses |
   | Scaling | resize the window to 1920×1080, then device mode at DPR 2 | centred and letterboxed in the game's colour, text crisp, nothing clipped or blurry |
   | `npm run check` | | passes: gamepad, keyboard-only, mouse-only, touch, Start → `__game.state.screen === 'paused'`, a 16:9 window at DPR 2, and the phone pass for a phone game |

@@ -13,8 +13,15 @@ Follow AGENTS.md (*Art*) and [art-directions.md](../../../docs/game-design/art-d
 | Size | exactly 720×500 (`width`, `height`, `viewBox`) | exactly 1920×450 |
 | Shown at | ~216×150 in the library | full-width banner on the game's page |
 | Text | **the title, big and bold** | **no text at all** |
-| Keep clear | the **bottom 110 px** (badges) | the **bottom-left** (the launcher writes the title there) |
-| Focal point | the hero object, large, breaking out of the frame | on the **right half** |
+| Keep clear | the **bottom 110 px** (badges) | the **bottom-left**: the launcher writes the title there in light text with no shade of its own, so keep it calm **and dark** |
+| Focal point | the hero object, large, breaking out of the frame | in the **middle**: x 600–1320, top 250 px (see *Where the hero is cropped*); it may run on to the right |
+
+**Where the hero is cropped.** The same 1920×450 image is shown three ways, so design for all of them:
+- **Desktop launcher:** the whole banner (about 1280×300), the title written in light text over the bottom-left.
+- **Phone library**, at the top of the list: a box about as wide as the phone and 240 px tall, filled from the middle, so only about **x 600–1320** shows; the top ~250 px are clear and the rest fades into the app's dark background under the title and the Play button.
+- **Phone game page:** a 16:9 slice from the middle, **x 560–1360**, full height.
+
+So put the key visual in the middle band (x 600–1320, top 250 px), let it continue to the right for desktop, keep the bottom-left dark and calm, and never rely on the left or right thirds alone. To check, render the hero and look at it cropped those three ways (a scratch HTML page with `object-fit: cover` boxes of those sizes is enough).
 
 Also: a full background (no transparency), 2–4 main colours from the game's palette plus a text colour, fonts only from `Chakra Petch` (600, 700), `Rubik` (400, 700, 900), `Bungee`, `Lilita One`, `Press Start 2P`, no external images or links (`data:` images are fine). Pixel-art games can use `art/cover.html` drawing with the game's own sprite code (set `"cover": "art/cover.html"`). **Phone games use the same two sizes**: the cover and hero are landscape even for a portrait game (the library tile and banner don't turn); compose the portrait game's hero object large in the frame rather than shrinking a tall screenshot into it. The Plays on labels (Phone, Tablet…) are among the badges drawn over the bottom 110 px, so that rule matters even more.
 
@@ -36,6 +43,7 @@ With `OPENAI_API_KEY`, `GEMINI_API_KEY` or `REPLICATE_API_TOKEN` set, a painted 
 2. **Open both PNGs** and judge them:
    - Shrink test: does the cover still read at ~216×150? `npm run art:shots` renders `cover-thumb.png` at that size. Is the title legible?
    - Does it look like *this* game, in its palette, and not a generic placeholder?
-   - Anything important in the bottom 110 px of the cover or the bottom-left of the hero?
+   - Anything important in the bottom 110 px of the cover or the bottom-left of the hero? Is the bottom-left dark enough for a light title?
+   - Cropped to the middle (x 600–1320, top 250 px, as the phone library shows it), does the hero still show the game?
 3. Fix and re-run until both look good: usually by enlarging the hero, simplifying the background and strengthening contrast.
 4. Commit (`<Name>: cover and hero art`) and push. Bump `version` if the game was already released.

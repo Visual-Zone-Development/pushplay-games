@@ -12,13 +12,14 @@ Run `npm run check` and view the screenshot; capture more states (title, gamepla
 - Can I tell in **3 seconds** what to do and how I'm doing?
 - Is every piece of text ≥ 24 px (× `settings.data.textScale`) with strong contrast, and every important HUD element ≥ 32 px from the edges? In a phone game (manifest `phone`): text ≥ 32 px and margins measured from `fit.safe`, not the canvas edge.
 - Does every prompt come from `input.label()` / `drawPrompts`, never a literal "A" or "Space"?
+- Is there a strip of button prompts along the bottom of any screen? Remove it. Is any prompt shown in touch or mouse mode? Remove it. Feedback the player needs mid-action (points won, a refused move) belongs over the thing they are looking at, not in a corner.
 - Is anything there that the player doesn't need right now?
 - Phone game: with two thumbs on the screen (the shaded zones in [phone.md](../../../docs/game-design/phone.md)), can I still see the hero, the next threat and the score? Is anything pressable in the top half besides the pause button?
 
 ## 2. HUD rules
 - **One goal on screen.** Show only the resources the player acts on (health, score, timer, ammo). Everything else goes on the pause screen or `select` (Tab) overlay.
-- **Corners:** score top-left, secondary info top-right, prompts bottom-centre; keep the top-right or top-left corner clear for the ≥ 56×56 on-screen pause button the starter draws.
-- **Phone layouts** ([phone.md](../../../docs/game-design/phone.md)): the HUD is a read-only band at the top, inside `fit.safe`; the bottom third (portrait) or the lower two-thirds of each side (landscape) belong to the thumbs and the `touch.js` controls, so no HUD there; prompts go just above the thumb zone, not at the bottom edge. Portrait menus start about y = 560 so the items sit in reach; items ≥ 56 px tall, 12 px apart. Hide nothing behind hover.
+- **Corners:** score top-left, secondary info top-right, and **no prompt row along the bottom** (see *Input hints* in AGENTS.md: a control is taught once, next to the thing it acts on, and never on touch or mouse); keep the top-right or top-left corner clear for the ≥ 56×56 on-screen pause button the starter draws.
+- **Phone layouts** ([phone.md](../../../docs/game-design/phone.md)): the HUD is a read-only band at the top, inside `fit.safe`; the bottom third (portrait) or the lower two-thirds of each side (landscape) belong to the thumbs and the `touch.js` controls, so no HUD there; a prompt, when one is needed at all, goes beside the thing it explains, never in a strip at the bottom edge or over a menu. Menus that end at the bottom leave room for the launcher's extra "Quit to library" row. Portrait menus start about y = 560 so the items sit in reach; items ≥ 56 px tall, 12 px apart. Hide nothing behind hover.
 - **Icons and bars over numbers** where possible (hearts, a health bar); numbers pop (scale 1.2 → 1 over 150 ms) when they change.
 - **Diegetic hints:** a glow on the thing to interact with, an arrow to an off-screen objective.
 - Colour is never the only signal: pair it with shape or icon (colourblind-safe).

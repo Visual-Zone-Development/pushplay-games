@@ -115,9 +115,10 @@ Every game has a Settings screen, **reachable from the title and from the pause 
 ### Input hints
 
 - Prompts come from the runtime, never from hard-coded names: `input.label('a')` → "A" on a controller, "Space" on a keyboard, "Tap" on touch (and a click label with a mouse); `input.label('menu')` → "START" / "Esc" / the pause button; `input.stickLabel()` and `input.dpadLabel()` name the movement input for the current mode.
-- HUD legends: `drawPrompts(ctx, input, [['a', 'Jump'], ['x', 'Dash'], ['menu', 'Pause']], opts)` draws icons for the current mode.
+- Legends, where one is really needed: `drawPrompts(ctx, input, [['a', 'Jump'], ['x', 'Dash']], opts)` draws icons for the current mode. Place it beside what it explains, never as a row along the bottom edge.
+- **No prompt row along the bottom of the screen.** Don't park a strip of button prompts (`drawPrompts(...)` at `y: H - 40`) under menus, the title, results or play: it sits in the thumb zone, collides with menus (inside the launcher the title and pause menus gain a "Quit to library" row), and says nothing a menu doesn't already show. Teach a control once, in place, next to the thing it acts on (beside the board, on the button, over the object), and stop showing it once it has been used. On touch and mouse show no prompts at all: taps and clicks land on things that already look pressable. The starter draws a bottom prompt row on its title, settings and play screens; remove it when you build the game.
 - `input.mode` is `'gamepad' | 'keyboard' | 'mouse' | 'touch'`, follows the last device used, and starts as `'gamepad'` inside the launcher's gaming mode (`input.gamingMode`, `input.usingGamepad`). Build prompt strings every frame, not once at load, so they switch when the player changes device.
-- Title screen: `Press ${input.label('a')} to start` (on touch that reads "Press Tap to start", so phrase it as `${input.label('a')} to start` or use `drawPrompts`), plus a pause hint built from `input.label('menu')`. If gameplay doesn't support mouse or touch, say so there ("Needs a controller or keyboard").
+- Title screen: the menu is the way in, so it needs no "press to start" line and no pause hint (the on-screen pause button and the launcher teach pausing). If you do write a start line, build it from `input.label('a')` (on touch it reads "Tap", so phrase it as `${input.label('a')} to start`). Leave room under the title menu for the launcher's extra "Quit to library" row. If gameplay doesn't support mouse or touch, say so there ("Needs a controller or keyboard").
 - Never write "Press A", "Space", "LB/RB", "Click" or "Tap" as literal text in the game.
 
 ### Saves (`save.js`)
@@ -134,7 +135,7 @@ Every game has a Settings screen, **reachable from the title and from the pause 
 ### Flow
 
 - Screens: `title` → `playing` ↔ `paused` → `gameover`, plus `settings` (and `lobby` between `title` and `playing` in an online or party game). Keep the current one in `state.screen` with exactly those names, and expose `window.__game = { state, TUNING }` (the check presses Start and expects `'paused'`).
-- The title screen is the first thing drawn and says how to start and how to pause. Game over shows score, best and retries in one press.
+- The title screen is the first thing drawn, and its menu is how the game starts. Game over shows score, best and retries in one press.
 - Restart (from pause or game over) resets everything the run touched: timers, particles, audio loops, RNG seed if seeded.
 
 ### Offline and self-contained
@@ -237,7 +238,7 @@ Every game needs two images, written as **SVG** (or `.html` for art drawn with c
 | File | Size | Where it shows | Rules |
 |---|---|---|---|
 | `art/cover.svg` | 720×500 | Library tile (shown at ~216×150) | **Must include the game's title**, big and bold. Keep the **bottom 110px clear of important content** (the launcher draws badges there). |
-| `art/hero.svg` | 1920×450 | Banner on the game's detail page | **No title text**: the launcher writes the title over the **bottom-left**, so keep that area calm and put the key visual on the **right half**. |
+| `art/hero.svg` | 1920×450 | Banner on the game's detail page, and cropped at the top of the phone app's library | **No title text**: the launcher writes the title in light text over the **bottom-left**, so keep that area calm and dark. Put the key visual in the **middle** (x 600–1320, top 250 px): the phone shows only that part (see the `cover-art` skill). |
 
 Guidelines:
 - Set `width`, `height` and `viewBox` on the root `<svg>` to the exact size.
