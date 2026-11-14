@@ -189,11 +189,11 @@ log('Next:')
 log(`  1. Write the game in ${at}${vite ? 'src/' : ''}game.js. Keep its title, pause and settings screens:`)
 log(`     input.js, menu.js, fit.js, audio.js, save.js, settings.js and prompts.js make them work with every input.`)
 if (online) log(`     Online: the host runs the rules in hostUpdate() and writes net.state; everyone draws net.view. Don't edit net.js or lobby.js.`)
-if (phone) log(`     Phone: lay everything out in ${space.w}×${space.h}, inside fit.safe (notch and home bar); text ≥ 32px; touch.js gives the stick and buttons. Read phone.md in the pushplay-runtime skill.`)
+if (phone) log(`     Phone: lay everything out in ${space.w}×${space.h}, inside fit.safe (notch and home bar); text ≥ 32px; touch.js gives the stick and buttons. Read phone.md in the ${brand.slug}-runtime skill.`)
 if (party) {
   log(`     Party: the TV runs everything. party.public goes to every phone, party.view(id) to one phone only.`)
   log(`     The phone screen is ${at}${vite ? 'public/' : ''}controller.html. Don't edit party.js, party-lobby.js, qr.js, controller.js or net.js.`)
-  if (controller === 'motion') log(`     Motion: const motion = createMotion(party) from motion.js; motion.update(dt) each frame, then motion.of(id).tilt / .wheel / .swings. Read motion.md in the pushplay-runtime skill.`)
+  if (controller === 'motion') log(`     Motion: const motion = createMotion(party) from motion.js; motion.update(dt) each frame, then motion.of(id).tilt / .wheel / .swings. Read motion.md in the ${brand.slug}-runtime skill.`)
 }
 const target = single ? '' : ` ${id}`
 log(`  2. Fill in "description" and "tags" in ${at}${MANIFEST_FILE} (drop inputs gameplay can't support).`)
