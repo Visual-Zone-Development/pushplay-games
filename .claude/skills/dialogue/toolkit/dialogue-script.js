@@ -1,7 +1,7 @@
 // Dialogue scripts (dialogue skill): a small, readable text format for conversations with choices,
 // conditions, variables and events, plus a runner that steps through it. No DOM: works in the game, in the
 // box (dialogue.js) and in Node (lint.mjs). Keep scripts as template strings in JS modules
-// (export default `…`) so they load offline in plain and Vite games alike.
+// (export default `…`) so they load offline in plain and bundled games alike.
 //
 // Format (indentation makes blocks; 2 or 4 spaces, be consistent):
 //
@@ -173,7 +173,7 @@ export function interpolate(text, vars) {
 // ---------- run ----------
 
 /**
- * A runner over parsed nodes. vars is a plain object the game owns (keep it in save.data so choices
+ * A runner over parsed nodes. vars is a plain object the game owns (keep it in the game's save data so choices
  * persist); on is { eventName(...args) } for ~ emit; strings is { id: translated text }.
  * next() returns { type: 'line', who, mood, text, id } | { type: 'choices', options: [{ text, id, index }] } |
  * { type: 'end' }. choose(index) picks an option of the last choices.

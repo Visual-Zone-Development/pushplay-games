@@ -6,7 +6,7 @@
 //
 // Optional: generates sprites, textures or key art for a game with YOUR image API key, from the
 // game's art/prompts.json (a style contract plus a list of assets; see
-// docs/game-design/generated-art.md). Runs only on your machine or in your agent's session, never
+// .claude/skills/pushplay-runtime/references/generated-art.md). Runs only on your machine or in your agent's session, never
 // in the shipped game: the images are saved into the game folder and bundled like any other asset.
 //
 // Keys come from the environment (a cloud agent's environment settings) or from a .env file at the
@@ -81,7 +81,7 @@ if (!existsSync(catalogPath)) {
   ]
 }
 
-See docs/game-design/generated-art.md.`)
+See .claude/skills/pushplay-runtime/references/generated-art.md.`)
   process.exit(0)
 }
 const catalog = JSON.parse(readFileSync(catalogPath, 'utf8'))

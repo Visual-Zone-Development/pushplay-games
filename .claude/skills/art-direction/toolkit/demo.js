@@ -148,7 +148,7 @@ function draw(t) {
       y += 40
     }
   }
-  // prompts on ink blots (a real game builds these from input.label())
+  // prompts on ink blots (a real game builds these from its input-prompt helper)
   const prompt = (x, key, text, color) => {
     inkBlot(ctx, x + 70, card.y + card.h - 40, 88, 24, { color, seed: x })
     ctx.fillStyle = PAL.paper

@@ -11,7 +11,7 @@ export const brand = JSON.parse(readFileSync(existsSync(vendored) ? vendored : s
  * Bumped whenever the kit's files change (kit-lock.json holds their hash; a test enforces the bump).
  * ci.mjs writes it into the release index, so the launcher can tell a repo its kit is outdated.
  */
-export const KIT_VERSION = 12
+export const KIT_VERSION = 13
 /**
  * Runtime modules copied into every game; `update-kit` replaces them by this header. The number
  * after `v` is the KIT_VERSION that shipped the file, so a game folder says which kit it carries.
@@ -49,6 +49,23 @@ export const INDEX_ASSET = brand.indexAsset
 /** Where the kit lives inside a game repo, and its workflow. */
 export const KIT_DIR = `.github/${brand.slug}`
 export const WORKFLOW_FILE = `.github/workflows/${brand.slug}.yml`
+
+/**
+ * What `update-kit` refreshes besides the kit: the agent instructions and skills, written in the
+ * plugin repo and bundled into kit.zip. Skills are real files in SKILLS_DIR
+ * (Claude Code, Copilot and Cursor read it); AGENTS_SKILLS_LINK points there for the agents that
+ * read .agents/skills (Codex, Gemini CLI and others).
+ */
+export const PROMPT_FILES = ['AGENTS.md', 'CLAUDE.md']
+export const SKILLS_DIR = '.claude/skills'
+export const AGENTS_SKILLS_LINK = '.agents/skills'
+/** Kits up to v12 shipped these guides here; they now live in the skills' references/ folders. */
+export const RETIRED_DOCS_DIR = 'docs/game-design'
+export const RETIRED_DOCS = ['3d.md', 'DESIGN.template.md', 'art-directions.md', 'assets.md', 'complete-game.md', 'debugging.md', 'framework.md', 'generated-art.md', 'genres.md', 'inspiration.md', 'kickoff.md', 'motion.md', 'multiplayer.md', 'party.md', 'phone.md']
+/** Files outside the kit folder that a game repo starts with (kit.zip's root/): refreshed or added, never clobbering the repo's own. */
+export const ROOT_TOOLS_DIR = 'tools'
+export const ROOT_REPLACED = ['.github/workflows/promote.yml']
+export const ROOT_IF_MISSING = ['.env.example', 'README.md']
 
 /** Collection repos keep one game per folder here; single-game repos have the manifest at the root. */
 export const GAMES_DIR = 'games'

@@ -11,7 +11,7 @@ Run this only for games whose `pushplay.json` has a `phone` field. Use a
 390×844 viewport for `"orientation": "portrait"`, 844×390 for `"landscape"`,
 and both for `"any"`, at DPR 3 with touch emulation and no keyboard or
 gamepad. It's the hand-driven version of the check's phone pass; see
-`docs/game-design/phone.md` for the thumb zones and safe areas.
+[phone.md](../../pushplay-runtime/references/phone.md) for the thumb zones and safe areas.
 
 ## How to play
 Go through the title, settings, pause and game-over screens by tap only, then

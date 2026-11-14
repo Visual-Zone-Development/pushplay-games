@@ -1,16 +1,16 @@
 ---
 name: performance-pass
-description: Measure and fix frame rate, stutter, load time and memory for the game in this repo so it holds a steady 60 fps on a Steam Deck and Legion Go at DPR 2 — frame-time profiling, object pooling, removing per-frame allocations, canvas 2D draw costs (shadowBlur, text, gradients, cached sprites), three.js budgets (draw calls, triangles, textures, instancing), and bundle size. Use for "it lags", "fps drops when lots happens", "slow on the Deck", "loads slowly", or a performance check before shipping. For crashes and other bugs use debug-game.
+description: Measure and fix frame rate, stutter, load time and memory for the game in this repo so it holds a steady 60 fps on handheld-class hardware — frame-time profiling, object pooling, removing per-frame allocations, canvas 2D draw costs (shadowBlur, text, gradients, cached sprites), three.js budgets (draw calls, triangles, textures, instancing), and bundle size. Use for "it lags", "fps drops when lots happens", "slow on my handheld", "loads slowly", or a performance check before shipping.
 ---
 
 # Performance pass
 
-Follow AGENTS.md (*Performance*) and [debugging.md](../../../docs/game-design/debugging.md). For three.js games read the budgets in [3d.md](../../../docs/game-design/3d.md). Measure first, fix the biggest cost, measure again.
+Follow the project's own rules first (its `AGENTS.md` or platform guide): they decide the target device, the logical resolution, the checks and how to finish a change. For three.js games read the budgets in [3d.md](../threejs-models/references/3d.md). Measure first, fix the biggest cost, measure again.
 
 ## 1. Measure the worst case
-1. Find the heaviest moment: the most enemies, particles and effects (late waves, a boss, an explosion chain). Use `window.__game.jumpTo(...)` or raise spawn counts in `TUNING` to reach it.
+1. Find the heaviest moment: the most enemies, particles and effects (late waves, a boss, an explosion chain). Use a debug hook the game exposes (a `jumpTo(...)`, say) or raise spawn counts in `TUNING` to reach it.
 2. Add frame timing to the `?debug` overlay: frame time (ms) averaged over 1 s, the worst frame, and counts of entities, particles and (three.js) `renderer.info.render.calls` and `.triangles`.
-3. Measure headlessly with a repro script at **1280×800 DPR 1** and **1280×800 DPR 2** (the Legion Go case). Record the worst 1 s average and the worst single frame. The headless browser is slower than real hardware, so treat numbers as relative: compare before and after.
+3. Measure headlessly: drive the game with a short headless-browser script (Playwright) that presses the inputs and reads the timings, at the game's logical resolution at **DPR 1** and at **DPR 2** (a high-density handheld screen). Record the worst 1 s average and the worst single frame. The headless browser is slower than real hardware, so treat numbers as relative: compare before and after.
 4. For a breakdown, take a Chrome DevTools performance profile (Playwright's `page.context().tracing` or CDP `Profiler`) during the worst moment and find the top functions.
 
 Targets: a steady 16.7 ms frame; no single frame over ~33 ms during play; no growth in memory over 5 minutes.
@@ -25,7 +25,7 @@ Targets: a steady 16.7 ms frame; no single frame over ~33 ms during play; no gro
 | Lots of `fillText` | cache static text to a 2× canvas; fewer font changes |
 | Many small paths | batch same-colour shapes into one `beginPath` / `fill` |
 | Full-screen redraw of a static background | draw the background once to an offscreen canvas |
-| Fill cost at DPR 2 | fewer full-screen layers and alpha overlays; `fitCanvas` already caps DPR at 2 |
+| Fill cost at DPR 2 | fewer full-screen layers and alpha overlays; have the game's scaling layer cap DPR at 2 |
 | three.js: many meshes | `InstancedMesh`, merged geometries, shared materials; < ~150 draw calls |
 | three.js: heavy pixels | `renderer.setPixelRatio(Math.min(devicePixelRatio, 1))`, fewer real-time shadows, smaller shadow maps, no post-processing stack |
 | three.js: textures | ≤ 1024² for most, power-of-two, compressed or small canvases |
@@ -36,5 +36,4 @@ Targets: a steady 16.7 ms frame; no single frame over ~33 ms during play; no gro
 1. Re-measure the same worst case at DPR 1 and DPR 2; report before → after numbers.
 2. Play 5 minutes: no stutter creeping in, memory steady.
 3. Gameplay must not change: the same seed gives the same run.
-4. `npm run check`, fix every ✗.
-5. Bump `version` (patch), add a Changelog line with the numbers, commit (`<Name>: performance`) and push. Tell the user what to notice on the device ("the boss explosion should no longer hitch").
+4. Add a Changelog line to DESIGN.md with the numbers, then run the project's checks and finish the change the way its rules say. Tell the user what to notice on the device ("the boss explosion should no longer hitch").

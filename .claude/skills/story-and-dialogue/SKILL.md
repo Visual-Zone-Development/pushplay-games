@@ -5,7 +5,7 @@ description: Add story, characters and writing to the game in this repo — a on
 
 # Story and dialogue
 
-Follow AGENTS.md (*Screens and scaling*, *Input hints*). Read the game's `DESIGN.md`: fun targets (Narrative, Fantasy), theme, tone and art style. Story serves the play; one line of setup, then let the player do it ([framework.md](../../../docs/game-design/framework.md)).
+Follow the project's own rules first (its `AGENTS.md` or platform guide): they decide the screen size, the input prompts, the checks and how to finish a change. Read the game's `DESIGN.md`: fun targets (Narrative, Fantasy), theme, tone and art style. Story serves the play; one line of setup, then let the player do it ([framework.md](../game-design/references/framework.md)).
 
 ## 1. Write the story bible (short)
 Add a *Story* section to DESIGN.md:
@@ -16,7 +16,7 @@ Add a *Story* section to DESIGN.md:
 - **Vocabulary:** in-world names for the game's things ("parcels", not "points"; "the Hollow", not "level 3").
 
 ## 2. Writing rules for a handheld
-- A line is readable in **3 seconds**: about 60 characters at most; 2 lines per box; ≥ 28 px × `textScale`.
+- A line is readable in **3 seconds**: about 60 characters at most; 2 lines per box; ≥ 28 px × the game's text-size setting.
 - **Show, don't tell:** prefer a bark during play ("They're behind us!") to a cutscene.
 - **Never block play for long:** a story beat between levels is 1–3 boxes. Everything is skippable.
 - Every line has a speaker portrait, name or colour so the player knows who's talking.
@@ -25,16 +25,16 @@ Add a *Story* section to DESIGN.md:
 
 ## 3. Build it
 - **Data, not code:** a `story.js` module with beats as arrays of `{ who, text, mood? }`, keyed by level or trigger.
-- **Dialogue box:** bottom of the screen, ≥ 32 px from the edges, panel in the palette, text typed on quickly (30–60 chars/s) with a soft blip per few letters through `audio.tone` (see `game-audio`).
-  - `a` (or tap/click) finishes the line instantly, then advances; prompt from `drawPrompts(ctx, input, [['a', 'Next']])`.
-  - `b` (or a ≥ 56×56 px on-screen Skip button for mouse and touch) skips the whole beat; show it with a prompt.
-  - `menu` still pauses; the beat resumes where it was.
+- **Dialogue box:** bottom of the screen, ≥ 32 px from the edges, panel in the palette, text typed on quickly (30–60 chars/s) with a soft blip per few letters through the game's audio layer (see `game-audio`).
+  - Confirm (or tap/click) finishes the line instantly, then advances; show "Next" with the game's input-prompt helper (never literal key names).
+  - Back (or a ≥ 56×56 px on-screen Skip button for mouse and touch) skips the whole beat; show it with a prompt.
+  - Pause still pauses; the beat resumes where it was.
 - **Barks:** short lines above a character's head for 1.5–2.5 s, rate-limited so they don't spam.
-- **Remember what was seen** in `save.data` so repeat runs skip beats automatically (with a "Replay story" item in a menu if the story matters).
+- **Remember what was seen** in the game's save data so repeat runs skip beats automatically (with a "Replay story" item in a menu if the story matters).
 - **Ending:** a real ending screen with a closing line, then the results and the credits (including `assets/CREDITS.md` names if any).
 
 ## 4. Verify
-1. Read every beat on the 1280×800 screenshot: does it fit, at the largest `textScale` too?
+1. Read every beat on a screenshot at the game's logical resolution: does it fit, at the largest text size too?
 2. Advance and skip with controller, keyboard, mouse and touch.
 3. Pause mid-line, Restart mid-beat, Quit to title mid-beat: nothing breaks or replays wrongly.
-4. `npm run check`, fix every ✗. Bump `version`, update DESIGN.md (Story, Changelog), commit (`<Name>: story`) and push.
+4. Update DESIGN.md (Story, Changelog), then run the project's checks and finish the change the way its rules say.

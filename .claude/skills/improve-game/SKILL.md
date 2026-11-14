@@ -5,13 +5,13 @@ description: Change or improve the game in this repo. Covers specific requests (
 
 # Improve game
 
-Follow AGENTS.md. Design material lives in `docs/game-design/`.
+Follow AGENTS.md. Design material lives in the skills' `references/` folders. The specialist skills named below (`game-feel`, `level-design`, `game-audio`, …) are written for any web game. When one says "the game's menu system", "its save data" or "the project's checks", the `pushplay-runtime` skill gives the PushPlay calls, with a page per craft skill.
 
 ## 0. Get context, pick a mode
 1. Read `DESIGN.md` and the code relevant to the request.
-2. **No DESIGN.md?** Reverse-engineer one from the code, using [DESIGN.template.md](../../../docs/game-design/DESIGN.template.md):
+2. **No DESIGN.md?** Reverse-engineer one from the code, using [DESIGN.template.md](../new-game/references/DESIGN.template.md):
    - infer the fun targets, core loop, 8 elements and controls
-   - check it against [complete-game.md](../../../docs/game-design/complete-game.md) to fill in Definition of done, ticking what already exists
+   - check it against [complete-game.md](../new-game/references/complete-game.md) to fill in Definition of done, ticking what already exists
 
    Save it. For a direct change, just mention it to the user; for an open-ended request, confirm it with them as part of the debrief.
 3. Pick the mode:
@@ -31,7 +31,7 @@ Follow AGENTS.md. Design material lives in `docs/game-design/`.
    - saves: if the save shape changed, bump the `createSave` version and pass a `migrate`; keys stay prefixed with the game id
    - settings: new shake or flash honours `reducedShake`; new text honours `textScale`
    - local multiplayer via `input.pads[i]`, if the game has it
-   - online play, if the game has it: new state goes in `net.state` on the host, and the check's two-copy test still passes ([multiplayer.md](../../../docs/game-design/multiplayer.md)). Bump `version` when the netcode changes: only builds with the same version play together
+   - online play, if the game has it: new state goes in `net.state` on the host, and the check's two-copy test still passes ([multiplayer.md](../pushplay-runtime/references/multiplayer.md)). Bump `version` when the netcode changes: only builds with the same version play together
    - **adding online play** to a game: copy `net.js` and `lobby.js` from `.github/pushplay/templates/online/`, follow that folder's `game.js` for the screen flow (title → lobby → playing; the pause menu is still opened by `menu` and built with `menu.js`, but it only stops your controls and offers Leave game instead of Restart), move what players see into `net.state`, set `"online": true` and add the `online multiplayer` tag
    - a phone game (manifest `phone`): new HUD or targets placed from `fit.safe` and out of the thumb zones, text ≥ 32 px, a new verb gets its touch form (a `touch.js` button or a tap), the phone pass still passes
    - title, HUD and help text that mention the old behavior; prompts still come from `input.label`, not literals
@@ -44,8 +44,8 @@ Follow AGENTS.md. Design material lives in `docs/game-design/`.
 6. Report what changed and how to try it. Optionally suggest 1–2 related follow-ups, but don't build them unasked.
 
 ## Make it better
-1. **Look.** Run `npm run check` and view the screenshot. If deeper states matter, use the repro script in [debugging.md](../../../docs/game-design/debugging.md) to capture screenshots at 10s, 60s and so on.
-2. **Playtest debrief.** If the user has played it, ask one `AskUserQuestion` round in plain language. Skip anything they already told you.
+1. **Look.** Run `npm run check` and view the screenshot. If deeper states matter, use the repro script in [debugging.md](../pushplay-runtime/references/debugging.md) to capture screenshots at 10s, 60s and so on.
+2. **Playtest debrief.** If the user has played it, ask one round of questions in plain language (with a question tool if you have one). Skip anything they already told you.
    - **Why did you stop?** Got bored / too hard / confused / beat it / wanted more.
    - **How long did a session last?** < 2 min / 2–10 min / longer.
    - **Best or worst moment?** Free text via Other; offer guesses as options.
@@ -59,8 +59,8 @@ Follow AGENTS.md. Design material lives in `docs/game-design/`.
    | Confused | Onboarding, goal clarity, feedback |
    | Beat it / wanted more | Progression, meta loop, replay variety, content |
 3. **Diagnose.** Audit the game against:
-   - its fun targets and the 8 elements ([framework.md](../../../docs/game-design/framework.md)): is each target backed by mechanics?
-   - [complete-game.md](../../../docs/game-design/complete-game.md): missing items are usually the biggest, cheapest wins (no retry hook, silent actions, no ramp, no best score)
+   - its fun targets and the 8 elements (framework.md (in the `game-design` skill's `references/`)): is each target backed by mechanics?
+   - [complete-game.md](../new-game/references/complete-game.md): missing items are usually the biggest, cheapest wins (no retry hook, silent actions, no ramp, no best score)
    - game feel: response time, acceleration, hit-stop, shake, sound
    - the difficulty curve, read from `TUNING` and the spawn and ramp code
    - the **AGENTS.md rules checklist** (older games often predate it; each miss is a fix to propose):
@@ -76,8 +76,8 @@ Follow AGENTS.md. Design material lives in `docs/game-design/`.
 
    For a deeper look, run the `playtest` skill to measure run length, spikes and boring stretches. Hand the fixes to the specialist skills: `game-feel` (feel and juice), `level-design` (content and ramp), `game-audio` (sound), `game-ui` (HUD, menus, onboarding), `boss-design` (bosses and finales), `progression` (unlocks, upgrades, daily challenge), `story-and-dialogue` (story, characters, writing), `accessibility-audit` (colourblind, remapping, assists), `performance-pass` (frame rate, stutter, load time), `enemy-ai` (enemy behaviour), `camera` (following and framing), `physics-feel` (collisions, bounce, vehicles), `local-multiplayer` (couch play), `online-netcode` (online lag and sync), `mobile-port` (phone and tablet play), `touch-controls` (the touch gameplay scheme), `party-phone-screen` (party games' phone side), `localization` (other languages), `cover-art` and `screenshots` (how it looks in the library). Finish with `release-notes` when the user wants notes for the update.
 
-   If it helps, research how the DESIGN.md reference games, or similar games, solved the same problem ([inspiration.md](../../../docs/game-design/inspiration.md)).
-4. **Propose.** Offer 3–5 improvements in one `AskUserQuestion` (multiSelect). Each option gives the problem → the fix, its expected effect on feel, and its size (S/M/L).
+   If it helps, research how the DESIGN.md reference games, or similar games, solved the same problem (inspiration.md (in the `game-design` skill's `references/`)).
+4. **Propose.** Offer 3–5 improvements in one multiple-choice question (let them pick several). Each option gives the problem → the fix, its expected effect on feel, and its size (S/M/L).
    - Mix quick wins (tuning, juice, missing feedback) with one bigger idea: a new mechanic, a mode (daily seed, endless, boss rush, co-op) or a meta loop.
    - Put the fix for the **biggest fun problem** first, marked "(Recommended)", even if it isn't the smallest.
 5. **Implement** the chosen items one at a time, using the Direct change steps 2–4 for each.

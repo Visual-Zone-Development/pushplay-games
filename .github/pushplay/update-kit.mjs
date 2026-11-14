@@ -1,20 +1,21 @@
 // npm run update-kit [path-to-kit-dir | path-to-template-repo | kit.zip | --latest]
 // Brings a game repo up to the newest build kit:
 //   1. replaces .github/<slug>/ (keeping .work/ and node_modules/) and the workflow
-//   2. copies the AI prompts the kit bundles: AGENTS.md, CLAUDE.md, .claude/skills/, docs/game-design/
-//   3. in every game, replaces the runtime modules (input.js, menu.js, fit.js, ...) that carry the
+//   2. copies the agent instructions the kit bundles (AGENTS.md, CLAUDE.md, .claude/skills/), links
+//      .agents/skills to the skills, and removes the guides older kits kept in docs/game-design/
+//   3. refreshes the repo files a game repo starts with (tools/, promote.yml) and adds what's missing
+//      from package.json and .gitignore, leaving the repo's own changes alone
+//   4. in every game, replaces the runtime modules (input.js, menu.js, fit.js, ...) that carry the
 //      runtime header, adds the ones that are missing, and warns about files it had to overwrite
 // --latest downloads kit.zip from the newest launcher release (brand.json releasesRepo).
 import { spawnSync } from 'node:child_process'
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { cpSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { basename, dirname, join, resolve } from 'node:path'
-import { brand, KIT_DIR, KIT_VERSION, ONLINE_RUNTIME_FILES, PARTY_RUNTIME_FILES, RUNTIME_FILES, RUNTIME_HEADER_RE, WORKFLOW_FILE } from './config.mjs'
+import { basename, dirname, join, relative, resolve } from 'node:path'
+import { AGENTS_SKILLS_LINK, brand, KIT_DIR, KIT_VERSION, ONLINE_RUNTIME_FILES, PARTY_RUNTIME_FILES, PROMPT_FILES, RETIRED_DOCS, RETIRED_DOCS_DIR, ROOT_IF_MISSING, ROOT_REPLACED, ROOT_TOOLS_DIR, RUNTIME_FILES, RUNTIME_HEADER_RE, SKILLS_DIR, WORKFLOW_FILE } from './config.mjs'
 import { listGames, log, npmSpawn, ROOT } from './repo.mjs'
 
 const KIT_ZIP = 'kit.zip'
-const PROMPT_FILES = ['AGENTS.md', 'CLAUDE.md']
-const PROMPT_DIRS = ['.claude/skills', 'docs/game-design']
 /** Runtime files that older kits shipped without a header; games forked them, so they're replaced anyway. */
 const LEGACY_RUNTIME = new Set(['input.js', 'menu.js', 'net.js', 'lobby.js'])
 
@@ -55,7 +56,7 @@ try {
       log(`  ✓ ${file}`)
     }
     // Entry by entry, so a repo's own skills and docs next to the kit's survive.
-    for (const dir of PROMPT_DIRS) {
+    for (const dir of [SKILLS_DIR, RETIRED_DOCS_DIR]) {
       if (!existsSync(join(source.prompts, dir))) continue
       mkdirSync(join(ROOT, dir), { recursive: true })
       for (const name of readdirSync(join(source.prompts, dir))) {
@@ -64,9 +65,17 @@ try {
       }
       log(`  ✓ ${dir}/`)
     }
-  } else log('  – no prompts bundled with this kit (AGENTS.md, skills and docs left as they are)')
+    if (existsSync(join(source.prompts, SKILLS_DIR))) {
+      linkAgentsSkills()
+      // The guides moved into the skills' references/ folders; a kit that still ships the docs folder keeps it.
+      if (!existsSync(join(source.prompts, RETIRED_DOCS_DIR))) retireDocs()
+    }
+  } else log('  – no prompts bundled with this kit (AGENTS.md and skills left as they are)')
 
-  // 3. Runtime modules in every game
+  // 3. Repo files
+  if (source.root) repoFiles(source.root)
+
+  // 4. Runtime modules in every game
   const templates = join(kitDir, 'templates')
   const replaced = []
   const added = []
@@ -110,7 +119,7 @@ try {
   }
   if (kept.length) log(`  ⚠ kept (the game's own file shares a runtime name): ${kept.join(', ')}`)
 
-  // 4. The kit's dependencies, so the next check uses the right versions
+  // 5. The kit's dependencies, so the next check uses the right versions
   if (!noInstall) {
     const install = spawnSync('npm', ['ci', '--prefix', kitDir, '--no-audit', '--no-fund'], { ...npmSpawn, cwd: ROOT, stdio: 'inherit' })
     if (install.status !== 0) log('  ⚠ npm ci in the kit folder failed; run `npm run setup`')
@@ -124,7 +133,93 @@ try {
   rmSync(scratch, { recursive: true, force: true })
 }
 
-/** Where the kit, workflow and prompts come from: { kit, workflow?, prompts?, label }. */
+/** Agents that read .agents/skills (Codex, Gemini CLI, …) find the same skills through a link. */
+function linkAgentsSkills() {
+  const link = join(ROOT, AGENTS_SKILLS_LINK)
+  let stat = null
+  try {
+    stat = lstatSync(link)
+  } catch {}
+  if (stat?.isSymbolicLink()) return
+  if (stat) return log(`  – ${AGENTS_SKILLS_LINK} already exists, so it isn't linked to ${SKILLS_DIR}/ (agents that only read it won't see the kit's skills)`)
+  try {
+    mkdirSync(dirname(link), { recursive: true })
+    symlinkSync(relative(dirname(link), join(ROOT, SKILLS_DIR)).split('\\').join('/'), link, 'dir')
+    log(`  ✓ ${AGENTS_SKILLS_LINK} → ${SKILLS_DIR}`)
+  } catch (err) {
+    log(`  – couldn't link ${AGENTS_SKILLS_LINK} to ${SKILLS_DIR} (${err.code ?? err.message}); agents that only read it won't see the skills`)
+  }
+}
+
+function retireDocs() {
+  const dir = join(ROOT, RETIRED_DOCS_DIR)
+  if (!existsSync(dir)) return
+  const removed = RETIRED_DOCS.filter((name) => existsSync(join(dir, name)))
+  for (const name of removed) rmSync(join(dir, name))
+  if (!readdirSync(dir).length) rmSync(dir, { recursive: true })
+  if (existsSync(dirname(dir)) && !readdirSync(dirname(dir)).length) rmSync(dirname(dir), { recursive: true })
+  if (removed.length) log(`  ✓ removed ${removed.length} guides from ${RETIRED_DOCS_DIR}/ (they moved into the skills' references/ folders)`)
+}
+
+/** tools/ and promote.yml are the kit's to refresh; package.json and .gitignore only gain what's missing. */
+function repoFiles(root) {
+  const tools = join(root, ROOT_TOOLS_DIR)
+  if (existsSync(tools) && resolve(root) !== ROOT) {
+    for (const name of readdirSync(tools)) {
+      rmSync(join(ROOT, ROOT_TOOLS_DIR, name), { recursive: true, force: true })
+      cpSync(join(tools, name), join(ROOT, ROOT_TOOLS_DIR, name), { recursive: true })
+    }
+    log(`  ✓ ${ROOT_TOOLS_DIR}/`)
+  }
+  for (const rel of ROOT_REPLACED) {
+    if (!existsSync(join(root, rel))) continue
+    mkdirSync(dirname(join(ROOT, rel)), { recursive: true })
+    cpSync(join(root, rel), join(ROOT, rel))
+    log(`  ✓ ${rel}`)
+  }
+  for (const rel of ROOT_IF_MISSING) {
+    if (!existsSync(join(root, rel)) || existsSync(join(ROOT, rel))) continue
+    cpSync(join(root, rel), join(ROOT, rel))
+    log(`  ✓ ${rel} (added)`)
+  }
+
+  if (existsSync(join(root, 'package.json'))) {
+    const theirs = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'))
+    const file = join(ROOT, 'package.json')
+    if (!existsSync(file)) {
+      writeFileSync(file, JSON.stringify({ ...theirs, name: basename(ROOT).toLowerCase().replace(/[^a-z0-9._-]+/g, '-') }, null, 2) + '\n')
+      log('  ✓ package.json (added)')
+    } else {
+      const ours = JSON.parse(readFileSync(file, 'utf8'))
+      const added = []
+      for (const field of ['scripts', 'devDependencies']) {
+        for (const [key, value] of Object.entries(theirs[field] ?? {})) {
+          if (ours[field]?.[key] === undefined) {
+            ours[field] = { ...ours[field], [key]: value }
+            added.push(key)
+          } else if (field === 'scripts' && ours[field][key] !== value) log(`  – kept your "${key}" script (the kit's is: ${value})`)
+        }
+      }
+      if (added.length) {
+        writeFileSync(file, JSON.stringify(ours, null, 2) + '\n')
+        log(`  ✓ package.json (added ${added.join(', ')})`)
+      }
+    }
+  }
+
+  if (existsSync(join(root, '.gitignore'))) {
+    const file = join(ROOT, '.gitignore')
+    const current = existsSync(file) ? readFileSync(file, 'utf8') : ''
+    const have = new Set(current.split(/\r?\n/).map((line) => line.trim()))
+    const missing = readFileSync(join(root, '.gitignore'), 'utf8').split(/\r?\n/).filter((line) => line.trim() && !line.startsWith('#') && !have.has(line.trim()))
+    if (missing.length) {
+      writeFileSync(file, current + (current && !current.endsWith('\n') ? '\n' : '') + missing.join('\n') + '\n')
+      log(`  ✓ .gitignore (added ${missing.join(', ')})`)
+    }
+  }
+}
+
+/** Where the kit, workflow, prompts and repo files come from: { kit, workflow?, prompts?, root?, label }. */
 async function locate(arg) {
   if (arg === '--latest') return extract(await download(), 'the latest release')
   const path = resolve(arg)
@@ -136,17 +231,17 @@ async function locate(arg) {
   // A template repo (exported kit inside), or a bare kit folder.
   if (existsSync(join(path, KIT_DIR, 'config.mjs'))) {
     const workflow = join(path, WORKFLOW_FILE)
-    return { kit: join(path, KIT_DIR), workflow: existsSync(workflow) ? workflow : null, prompts: existsSync(join(path, 'AGENTS.md')) ? path : null, label: arg }
+    return { kit: join(path, KIT_DIR), workflow: existsSync(workflow) ? workflow : null, prompts: existsSync(join(path, 'AGENTS.md')) ? path : null, root: path, label: arg }
   }
   if (existsSync(join(path, 'config.mjs'))) {
     const repoRoot = resolve(path, '../..')
     const workflow = join(repoRoot, WORKFLOW_FILE)
-    return { kit: path, workflow: existsSync(workflow) ? workflow : null, prompts: existsSync(join(repoRoot, 'AGENTS.md')) ? repoRoot : null, label: arg }
+    return { kit: path, workflow: existsSync(workflow) ? workflow : null, prompts: existsSync(join(repoRoot, 'AGENTS.md')) ? repoRoot : null, root: repoRoot, label: arg }
   }
   throw new Error(`${arg} isn't a kit folder, a template repo or a kit.zip`)
 }
 
-/** kit.zip layout (see zip.mjs): kit/, workflow/<slug>.yml, prompts/. */
+/** kit.zip layout (see zip.mjs): kit/, workflow/<slug>.yml, prompts/, root/. */
 function extract(zip, label) {
   const dir = join(scratch, 'zip')
   mkdirSync(dir, { recursive: true })
@@ -157,7 +252,7 @@ function extract(zip, label) {
   }
   if (!existsSync(join(dir, 'kit/config.mjs'))) throw new Error(`${label} doesn't contain a build kit (no kit/config.mjs)`)
   const workflow = join(dir, 'workflow', basename(WORKFLOW_FILE))
-  return { kit: join(dir, 'kit'), workflow: existsSync(workflow) ? workflow : null, prompts: existsSync(join(dir, 'prompts')) ? join(dir, 'prompts') : null, label }
+  return { kit: join(dir, 'kit'), workflow: existsSync(workflow) ? workflow : null, prompts: existsSync(join(dir, 'prompts')) ? join(dir, 'prompts') : null, root: existsSync(join(dir, 'root')) ? join(dir, 'root') : null, label }
 }
 
 /** kit.zip from the newest launcher release, without a token (the releases repo is public). */

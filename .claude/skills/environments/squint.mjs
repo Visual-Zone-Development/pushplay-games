@@ -2,7 +2,7 @@
 // (greyscale) and shapes only (blurred) — and measure value separation between screen regions. Works for any
 // game and any art style. Look at the output images: the player, hazards and the path should still pop.
 //
-//   node .claude/skills/environments/squint.mjs <screenshot.png> <out-dir> [--play x,y,w,h] [--bg x,y,w,h]
+//   node <skill-dir>/squint.mjs <screenshot.png> <out-dir> [--play x,y,w,h] [--bg x,y,w,h]
 //
 // --play / --bg: rectangles (in screenshot px) around the play layer (player, platforms, path) and the
 // background. Prints their mean luminance and the contrast between them; under ~0.15 apart, the play layer
@@ -10,7 +10,6 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { createRequire } from 'node:module'
-import { execSync } from 'node:child_process'
 
 const args = process.argv.slice(2)
 const opt = (name) => { const i = args.indexOf(name); return i >= 0 ? args.splice(i, 2)[1].split(',').map(Number) : null }
@@ -19,14 +18,37 @@ const [input, outDir] = args
 if (!input || !outDir) { console.error('usage: node squint.mjs <screenshot.png> <out-dir> [--play x,y,w,h] [--bg x,y,w,h]'); process.exit(1) }
 fs.mkdirSync(outDir, { recursive: true })
 
-async function loadPlaywright() {
-  try { return await import('playwright') } catch {}
-  for (const base of [path.resolve('.github/pushplay/package.json'), path.resolve('package.json')]) {
-    try { return createRequire(base)('playwright') } catch {}
+// Find Playwright without knowing where the project keeps it: the PW_MODULE env var (a path to a `playwright`
+// or `playwright-core` package folder), then the working directory's own dependencies, then any
+// node_modules up to two folders below the working directory (hidden folders included).
+function findPlaywright() {
+  const names = ['playwright-core', 'playwright']
+  const cwd = process.cwd()
+  const load = (dir) => createRequire(path.join(dir, 'package.json'))(dir)
+  if (process.env.PW_MODULE) {
+    try { return load(path.resolve(process.env.PW_MODULE)) } catch (e) {
+      console.error(`PW_MODULE=${process.env.PW_MODULE} is not a playwright or playwright-core package folder (${e.message.split('\n')[0]})`)
+      process.exit(1)
+    }
   }
-  return createRequire(path.join(execSync('npm root -g').toString().trim(), 'noop.js'))('playwright')
+  const require = createRequire(path.join(cwd, 'package.json'))
+  for (const name of names) { try { return require(name) } catch {} }
+  const subdirs = (dir) => {
+    try {
+      return fs.readdirSync(dir, { withFileTypes: true }).filter((e) => e.isDirectory() && e.name !== 'node_modules').map((e) => path.join(dir, e.name))
+    } catch { return [] }
+  }
+  const level1 = subdirs(cwd)
+  for (const dir of [cwd, ...level1, ...level1.flatMap(subdirs)]) {
+    for (const name of names) {
+      const pkg = path.join(dir, 'node_modules', name)
+      if (fs.existsSync(path.join(pkg, 'package.json'))) { try { return load(pkg) } catch {} }
+    }
+  }
+  console.error('Playwright not found. Install it in the project (npm i -D playwright) or set PW_MODULE to the folder of a playwright or playwright-core package.')
+  process.exit(1)
 }
-const { chromium } = await loadPlaywright()
+const { chromium } = findPlaywright()
 const browser = await chromium.launch()
 const page = await browser.newPage()
 const data = 'data:image/png;base64,' + fs.readFileSync(input).toString('base64')

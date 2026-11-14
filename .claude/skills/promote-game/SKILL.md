@@ -1,6 +1,6 @@
 ---
 name: promote-game
-description: Move a finished game out of this workshop (games/<id>) into its own public GitHub repo, so it can be listed on PushPlay's Discover tab and get its own releases, while players keep their saves. Use when the user says a game is "ready", "done", wants to "promote", "publish", "release", "put it on Discover", "give it its own repo" or "move it out". For a Steam release use graduate-game instead.
+description: Move a finished game out of this workshop (games/<id>) into its own public GitHub repo, so it can be listed on PushPlay's Discover tab and get its own releases, while players keep their saves. Use when the user says a game is "ready", "done", wants to "promote", "publish", "release", "put it on Discover", "give it its own repo" or "move it out".
 ---
 
 # Promote a game
@@ -17,7 +17,7 @@ Players don't lose anything: the launcher sees `movedFrom` and moves its tile to
 
 ## 1. Confirm
 - The user has played it and calls it ready. Read `games/<id>/DESIGN.md` and mention unticked Definition of done items in one line; they don't block promoting.
-- Ask once (one `AskUserQuestion`) only for what isn't known: the **repo name** (default: the game id, under the same owner as this repo) and **public or private** (public by default; only public repos can be listed on Discover).
+- Ask once only for what isn't known: the **repo name** (default: the game id, under the same owner as this repo) and **public or private** (public by default; only public repos can be listed on Discover).
 
 ## 2. Run it (pick what this environment can do)
 

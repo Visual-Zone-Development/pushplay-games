@@ -10,9 +10,11 @@ Ask an AI for a game, and it shows up on your Steam Deck, or in PushPlay on a Li
 Just ask your agent for a game: it asks which you want the first time. For finished examples to play and learn from, see the starter games, each in its own repo and on **Discover**:
 
 - **[Arcade Sampler](https://github.com/Visual-Zone-Development/arcade-sampler)**: twelve tiny, complete games in one cabinet, each a different genre in its own art style, all drawn in code.
-- **[Motion Lab](https://github.com/Visual-Zone-Development/motion-lab)**: a party game where your phone is the controller: tilt a marble maze, swing for home runs, slash fruit, shake maracas and steer a kart, with a live Sensor Bench. Make your own with `npm run new-game <id> --party --controller motion` and [`docs/game-design/motion.md`](docs/game-design/motion.md).
+- **[Motion Lab](https://github.com/Visual-Zone-Development/motion-lab)**: a party game where your phone is the controller: tilt a marble maze, swing for home runs, slash fruit, shake maracas and steer a kart, with a live Sensor Bench. Make your own with `npm run new-game <id> --party --controller motion` and the `motion-controls` skill.
 
 Good for prototypes, playtests, and games made just for you.
+
+> **This repo is generated.** The agent instructions and skills are written in [pushplay-plugin](https://github.com/Visual-Zone-Development/pushplay-plugin) and the build kit in PushPlay itself; each PushPlay release installs them here with `npm run update-kit` (**Actions → Update the kit**). Change a skill there, not here. With that plugin installed, an agent can also set up a game repo in any empty folder without this template.
 
 ## Set up your own
 
@@ -22,7 +24,7 @@ Good for prototypes, playtests, and games made just for you.
 
 ## One game, or a workshop
 
-`npm run new-game <id>` in a fresh copy puts the game at the root of the repo: `pushplay.json`, `index.html`, `game.js` and `art/` sit next to this README, and the agent's guides (`AGENTS.md`, `.claude/`, `docs/`) stay out of the build. That repo is now that game; `new-game` refuses a second one.
+`npm run new-game <id>` in a fresh copy puts the game at the root of the repo: `pushplay.json`, `index.html`, `game.js` and `art/` sit next to this README, and the agent's guides (`AGENTS.md`, `.claude/`) stay out of the build. That repo is now that game; `new-game` refuses a second one.
 
 `npm run new-game <id> --workshop` instead makes the repo a workshop: each game is a folder in `games/`, there's no limit, and a build only rebuilds the games that changed. When a game is ready for Discover:
 
@@ -40,7 +42,7 @@ Use any coding agent that can push to GitHub. The rules live in [`AGENTS.md`](AG
 
 > Make a game where you defend a breakroom from paper airplanes.
 
-The agent asks a few quick questions (how it should feel, 2D or 3D, art style, any assets or games you love), writes a one-page design brief for you to approve, then builds the game, designs its cover and banner art, runs the check, and pushes. Later, ask it to *improve* the game ("it gets boring after a minute") or *fix* one, and it works from the same brief. The design guides live in [`docs/game-design/`](docs/game-design/).
+The agent asks a few quick questions (how it should feel, 2D or 3D, art style, any assets or games you love), writes a one-page design brief for you to approve, then builds the game, designs its cover and banner art, runs the check, and pushes. Later, ask it to *improve* the game ("it gets boring after a minute") or *fix* one, and it works from the same brief. The step-by-step guides the agent follows are skills in [`.claude/skills/`](.claude/skills/) (the same folders appear under `.agents/skills/` for agents that look there).
 
 | Where you are | How |
 |---|---|
@@ -61,7 +63,7 @@ If you'd like painted sprites, textures or key art as well, give the agent your 
 2. **On your computer:** copy `.env.example` to `.env` and paste the key in. `.env` is gitignored, so it never gets pushed. **In a cloud agent** (Claude Code on the web, Codex): add the same variable to the environment's settings instead.
 3. Ask for it: *"generate painted art with my key"*. The agent writes the prompts and tells you the estimated cost (`npm run art -- --dry`). Only after you agree does it generate the images, look at them and refine them. Every later batch or redo is quoted and asked about again: `npm run art` refuses to charge anything an agent hasn't been given approval for, and in a terminal it asks you first.
 
-It costs roughly $0.003–$0.21 per image depending on the provider and quality, so about $0.50–$6 for a typical game. Each run stops at 12 images unless you allow more. Details: [`docs/game-design/generated-art.md`](docs/game-design/generated-art.md).
+It costs roughly $0.003–$0.21 per image depending on the provider and quality, so about $0.50–$6 for a typical game. Each run stops at 12 images unless you allow more. Details: [`generated-art.md`](.claude/skills/pushplay-runtime/references/generated-art.md).
 
 ## Already have a game in its own repo?
 
@@ -102,5 +104,5 @@ The workflow runs in two jobs: **build** runs the game with read-only permission
 ## Notes
 
 - **Actions minutes:** private repos use your plan's minutes (2,000/month free). A typical build takes about 2 minutes.
-- **Updating the build kit:** repos made from the template keep the kit version they started with, and the launcher shows "build kit outdated" once a newer one exists. Run `npm run update-kit` to fetch the newest kit from the latest PushPlay release: it replaces `.github/pushplay/` and the workflow, refreshes `AGENTS.md`, `CLAUDE.md`, `.claude/skills/` and `docs/game-design/`, and swaps the runtime files (files that still start with the `pushplay runtime v…` header; a hand-edited `input.js` or `menu.js` is replaced too, with a warning, so move key aliases to `input.extendKeys()` in `game.js`). It also accepts a path to a kit folder, an unpacked template repo, or a downloaded `kit.zip`. Then run `npm run check` and commit.
+- **Updating the build kit:** repos made from the template keep the kit version they started with, and the launcher shows "build kit outdated" once a newer one exists. Run `npm run update-kit` to fetch the newest kit from the latest PushPlay release: it replaces `.github/pushplay/` and the workflow, refreshes `AGENTS.md`, `CLAUDE.md`, the skills in `.claude/skills/`, `tools/` and `promote.yml`, and swaps the runtime files (files that still start with the `pushplay runtime v…` header; a hand-edited `input.js` or `menu.js` is replaced too, with a warning, so move key aliases to `input.extendKeys()` in `game.js`). It also accepts a path to a kit folder, an unpacked template repo, or a downloaded `kit.zip`. Then run `npm run check` and commit.
 - **Renaming:** names shared with the launcher (`pushplay.json`, the release tag) come from `.github/pushplay/brand.json`.

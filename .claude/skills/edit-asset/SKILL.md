@@ -5,6 +5,8 @@ description: Make one focused change to one existing asset in the game in this r
 
 # Edit one asset
 
+Follow the project's own rules first (its `AGENTS.md` or platform guide): they decide the APIs, the screen size, the checks and how to finish a change. `<skill-dir>` is the folder this file is in.
+
 The goal is a **small, contained, reversible** change: the user asks for one thing, one asset changes, and
 everything else in the game stays exactly as it was. Sweeping restyles are a different job (model-asset, or a
 STYLE.md change agreed with the user).
@@ -25,11 +27,11 @@ STYLE.md change agreed with the user).
 Render the asset in isolation and in the game, with model-asset's `scripts/shot.mjs`:
 
 ```sh
-node .claude/skills/model-asset/scripts/shot.mjs <game-id> <scratch>/before \
+node <skill-dir>/../model-asset/scripts/shot.mjs <game-dir> <scratch>/before \
   "gallery.html?asset=<id>&scale=4|close.png" "index.html|in-game.png|keys=Enter|wait=2500"
 ```
 
-Use the game's gallery/viewer page if it has one (canvas2d-assets has `gallery.html`, threejs-models `viewer.html`),
+Run it from the project root; `<game-dir>` is the game's folder (`.` for a game at the root). Use the game's gallery/viewer page if it has one (canvas2d-assets has `gallery.html`, threejs-models `viewer.html`),
 otherwise the game itself.
 Add a frame strip if the change could affect motion. Renders go to the scratchpad, never into the repo.
 
@@ -52,6 +54,5 @@ Add a frame strip if the change could affect motion. Renders go to the scratchpa
 ## 5. Finish
 
 - Remove the `<id>Old` copy unless the user wants to keep comparing.
-- Update the asset's row in STYLE.md's catalogue; add a line to DESIGN.md's changelog; bump `version` in `pushplay.json`.
-- Run `npm run check`.
-- Commit it on its own: `<game>: <asset> — <change>`, so it's easy to revert.
+- Update the asset's row in STYLE.md's catalogue; add a line to DESIGN.md's changelog.
+- Run the project's checks and finish the change the way its rules say, as a change of its own (one asset, one change), so it's easy to revert.

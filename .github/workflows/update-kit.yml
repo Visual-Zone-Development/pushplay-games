@@ -1,0 +1,38 @@
+# Brings this template up to the newest PushPlay release: the build kit, AGENTS.md, CLAUDE.md,
+# the skills and the repo tools, exactly as `npm run update-kit` does in any game repo. The
+# PushPlay release starts it; it can also be run by hand (Actions → Update the kit).
+# The skills and instructions are written in Visual-Zone-Development/pushplay-plugin, not here.
+name: Update the kit
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency: update-kit
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+      - run: npm ci --prefix .github/pushplay --no-audit --no-fund
+      # Twice: when the kit's own updater changed, the first run is the old one and the second finishes.
+      - run: node .github/pushplay/update-kit.mjs --latest
+      - run: node .github/pushplay/update-kit.mjs --latest --no-install
+      - name: Commit
+        run: |
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Already up to date."
+            exit 0
+          fi
+          kit=$(node -p "require('./.github/pushplay/package.json').version.split('.')[0]")
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -q -m "Kit: update to v$kit"
+          git push

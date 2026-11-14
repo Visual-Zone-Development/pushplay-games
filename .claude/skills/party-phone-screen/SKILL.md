@@ -5,7 +5,7 @@ description: Design and build the phone side of a party game — controller.html
 
 # Party phone screen
 
-Follow AGENTS.md (*Party games*) and **read [party.md](../../../docs/game-design/party.md) first**: it has the full `party` (TV) and `controller` (phone) APIs and recipes. Never edit `party.js`, `party-lobby.js`, `qr.js`, `controller.js` or `net.js`; `controller.html` and `game.js` are yours.
+Follow AGENTS.md (*Party games*) and **read [party.md](../pushplay-runtime/references/party.md) first**: it has the full `party` (TV) and `controller` (phone) APIs and recipes. Never edit `party.js`, `party-lobby.js`, `qr.js`, `controller.js` or `net.js`; `controller.html` and `game.js` are yours.
 
 ## 1. Map every phase to one phone screen
 For each phase of the game (lobby, prompt, answering, waiting, voting, reveal, results), write one row:

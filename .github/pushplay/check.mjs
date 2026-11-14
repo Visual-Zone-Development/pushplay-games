@@ -4,9 +4,10 @@
 // With no ids, checks every game. Exit code 1 if any game has errors.
 // Without a headless browser (its download blocked), the static checks still run and the rest is
 // skipped with a note; KIT_BROWSER=/path/to/chrome uses an installed browser instead.
+import { existsSync } from 'node:fs'
 import { join } from 'node:path'
-import { ART, CHECK_RUN_MS, VIEWPORT, VIEWPORT_PHONE } from './config.mjs'
-import { display, listGames, log, layout } from './repo.mjs'
+import { ART, CHECK_RUN_MS, RETIRED_DOCS, RETIRED_DOCS_DIR, VIEWPORT, VIEWPORT_PHONE } from './config.mjs'
+import { display, listGames, log, layout, ROOT } from './repo.mjs'
 import { ART_DIR, buildGame, launchBrowser } from './pipeline.mjs'
 
 const wanted = process.argv.slice(2).filter((a) => !a.startsWith('--'))
@@ -56,4 +57,9 @@ for (const game of selected) {
 }
 await browser?.close()
 log(failed ? `\n${failed} of ${selected.length} game(s) need fixes.` : `\nAll ${selected.length} game(s) passed.`)
+// The guides moved into the skills with kit v13. An update started by an older kit's update-kit
+// installs this kit but can't do that move, so its old copies are still here.
+if (RETIRED_DOCS.some((name) => existsSync(join(ROOT, RETIRED_DOCS_DIR, name)))) {
+  log(`\n⚠ This repo's kit was updated by an older update-kit, which stopped half-way. Run \`npm run update-kit\` once more to finish (it removes the old guides in ${RETIRED_DOCS_DIR}/, links .agents/skills and adds the newer tools).`)
+}
 process.exit(failed ? 1 : 0)

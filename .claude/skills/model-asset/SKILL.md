@@ -5,6 +5,8 @@ description: Create or rebuild a visual asset for the game in this repo — a ch
 
 # Model an asset
 
+Follow the project's own rules first (its `AGENTS.md` or platform guide): they decide the APIs, the screen size, the checks and how to finish a change. `<skill-dir>` is the folder this file is in.
+
 Quality comes from one discipline: **work from a reference and compare renders against it every round.**
 Never "improve" from memory alone. This skill is the workflow; *how* to draw or build the thing depends on
 the game's rendering, so pair it with an engine skill when one exists:
@@ -13,8 +15,8 @@ the game's rendering, so pair it with an engine skill when one exists:
 |---|---|
 | 2D canvas: vector shapes, pixel art, sprite sheets, SVG | **canvas2d-assets** skill (style, animation and sprite toolkit, asset gallery) |
 | three.js, models built in code | **threejs-models** skill (rig, sculpting toolkit, asset viewer) |
-| three.js with model files (GLB) | `docs/game-design/3d.md` → *Models*, `docs/game-design/assets.md` |
-| Cover / hero art (SVG) | edit the SVG; `npm run check` renders it, or use the script below |
+| three.js with model files (GLB) | [3d.md](../threejs-models/references/3d.md) → *Models*, [assets.md](../game-design/references/assets.md) |
+| Cover / key art (SVG) | edit the SVG; render it with the project's own art check, or use the script below |
 
 Sister skills share the game's `STYLE.md`: **edit-asset** (one focused change) and **animate-asset** (motion).
 
@@ -65,18 +67,22 @@ wrong silhouette or an asset that's the wrong size for its hitbox.
 Render the asset where you can see it clearly. Options, best first:
 - a **gallery page** in the game folder (e.g. `gallery.html`) that draws one asset by query string:
   `?asset=<id>&view=<…>&anim=<…>&frames=<n>&scale=<…>&compare=<id2>`, and sets `document.title = 'ready'` when done.
-  It isn't part of the build (Vite only bundles `index.html`; for plain games list it in `.pushplayignore`).
+  Keep it out of the shipped build (Vite only bundles `index.html`; otherwise use the project's ignore list).
   canvas2d-assets ships one for 2D (`gallery.html`) and threejs-models one for 3D (`viewer.html`).
 - the game itself (`index.html`), reaching the right screen with keys.
 
 `scripts/shot.mjs` (next to this file) renders any of these to PNG:
 
 ```sh
-node .claude/skills/model-asset/scripts/shot.mjs <game-id> <scratch>/round1 \
+node <skill-dir>/scripts/shot.mjs <game-dir> <scratch>/round1 \
   "gallery.html?asset=hero&scale=4|hero-big.png" \
   "gallery.html?asset=hero&scale=1|hero-play-size.png" \
   "index.html|in-game.png|keys=Enter|wait=2500"
 ```
+
+Run it from the project root. `<game-dir>` is the game's folder relative to it (`.` for a game at the root, or e.g.
+`games/my-game`); add `|size=WxH` to a shot of the game to match its logical resolution. It needs Playwright: it uses the
+project's copy, or the package folder named in the `PW_MODULE` env var, and says what to install when it finds neither.
 
 Each round:
 1. Render the same views as the reference, **plus the asset at play size, in the game**.
@@ -89,9 +95,10 @@ Renders go to the scratchpad or a temp folder, never into the repo.
 ## 6. Finish
 
 - Update STYLE.md: the catalogue row (file, reference in words, status) and any new shared rule.
-- Check motion if it moves (animate-asset), then `npm run check` and look at its screenshot.
-- Add a line to DESIGN.md's changelog and bump `version` in `pushplay.json`.
+- Check motion if it moves (animate-asset).
+- Add a line to DESIGN.md's changelog.
 - Keep the old version reachable while the user decides (e.g. `<id>Old`), then remove it.
+- Run the project's checks (look at any screenshot they produce) and finish the change the way its rules say.
 
 ## Lessons so far
 

@@ -5,7 +5,7 @@
 // inner lines where parts overlap, and cleanup of stray pixels. Because every direction and frame comes from
 // one model, they always match: the consistency hand-made sheets and AI tools struggle with.
 //
-// Bake, never per frame (48 px × 8 directions × 18 frames ≈ 0.3 s on a desktop, roughly double on a Deck:
+// Bake, never per frame (48 px × 8 directions × 18 frames ≈ 0.3 s on a desktop, roughly double on a handheld:
 // spread it over a few ticks or bake each animation on first use), then draw frames with
 // ctx.imageSmoothingEnabled = false at whole-number scales.
 

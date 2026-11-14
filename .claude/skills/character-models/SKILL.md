@@ -1,11 +1,12 @@
 ---
 name: character-models
-description: Bring a high-quality 3D character into a --vite three.js game from a model file instead of building it in code — sourcing (VRoid Studio for anime characters, Blender, CC0 packs, the user's own files), budgets for the Deck, loading GLB and VRM (@pixiv/three-vrm with spring-bone hair and cloth), animation clips, the anime / storybook toon look (stepped shading with coloured shadows, rim light, outlines that follow skinning) and a character creator (swappable parts, recolours, saved choices). Use for "I want a character that looks like <anime / JRPG screenshot>", "add a proper hero model", "character creator", "use my VRoid / Blender model", "make the 3D look cel-shaded". For crowds and simple stylised units built in code use threejs-models.
+description: Bring a high-quality 3D character into a bundled (Vite) three.js game from a model file instead of building it in code — sourcing (VRoid Studio for anime characters, Blender, CC0 packs, the user's own files), budgets for handheld-class GPUs, loading GLB and VRM (@pixiv/three-vrm with spring-bone hair and cloth), animation clips, the anime / storybook toon look (stepped shading with coloured shadows, rim light, outlines that follow skinning) and a character creator (swappable parts, recolours, saved choices). Use for "I want a character that looks like <anime / JRPG screenshot>", "add a proper hero model", "character creator", "use my VRoid / Blender model", "make the 3D look cel-shaded". For crowds and simple stylised units built in code use threejs-models.
 ---
 
 # Character models from files
 
-Follow AGENTS.md and `docs/game-design/3d.md` (render size, HUD canvas, models in `public/assets/models/`,
+Follow the project's own rules first (its `AGENTS.md` or platform guide): they decide the APIs, the screen size, the checks and how to finish a change.
+Follow [3d.md](../threejs-models/references/3d.md) too (render size, HUD canvas, models in `public/assets/models/`,
 loading screen). Workflow and rounds are from **model-asset** (reference, breakdown, render-and-compare);
 the whole-screen look is **art-direction**. This skill covers the part code-built models can't reach: a
 hand-modelled, rigged, textured hero character, made to look anime / storybook in three.js.
@@ -28,7 +29,7 @@ You can't download from these sites yourself; guide the user, then they put the 
 | **Mixamo** (free with an Adobe account) | animations (walk, run, attack, idle) | Download FBX "without skin", convert to GLB in Blender, or retarget to VRM (see *Animation*). Usable in games under Adobe's terms; don't redistribute the raw files on their own. |
 | **AI image-to-3D** | rough props, background characters | Needs cleanup, retopology and a rig to be usable; check the service's licence. Rarely good enough for a hero yet. |
 
-**Budget (Deck / Legion Go):** hero ≤ ~15k triangles, others ≤ ~5k (`docs/game-design/assets.md`), textures
+**Budget (a handheld-class integrated GPU):** hero ≤ ~15k triangles, others ≤ ~5k ([assets.md](../game-design/references/assets.md)), textures
 ≤ 1024, ≤ 8 materials, ≤ ~60 bones. VRoid exports are often 30–70k triangles with 2048 textures: re-export
 with reduction on, or decimate in Blender. Check file size (a hero GLB/VRM should stay under ~8 MB).
 
@@ -56,9 +57,9 @@ scene.add(gltf.scene)
 // each frame, after your own animation: vrm?.update(dt)   → spring bones (hair, cape, skirt) and expressions
 ```
 
-- Load behind a loading screen; the title and pause screens must never wait for the model (AGENTS.md: the
-  check screenshots at ~3 s and presses Start soon after).
-- Keep `renderer.setPixelRatio(Math.min(devicePixelRatio, 1))` at 1280×800 (3d.md); outlines and toon bands
+- Load behind a loading screen; the title and pause screens must never wait for the model (automated
+  checks often screenshot and press buttons within seconds of load).
+- Keep `renderer.setPixelRatio(Math.min(devicePixelRatio, 1))` at the game's logical resolution (3d.md); outlines and toon bands
   stay clean at that size.
 
 ## 3. The look (`toolkit/toon.js`)
@@ -98,7 +99,7 @@ const hulls = outline(model, { width: 0.012 })         // ~1–1.5 % of the char
   the game's `src/`.
 - Idle matters most on a character screen: a slow breathe, a blink every 2–5 s, hair and cape settling via
   spring bones (`vrm.update(dt)`), and a small turn toward the selected menu row.
-- Freeze `mixer` and `vrm.update` while paused (AGENTS.md: the game is fully frozen when paused).
+- Freeze `mixer` and `vrm.update` while paused (the game is fully frozen when paused).
 
 ## 5. Character creator
 
@@ -106,13 +107,13 @@ const hulls = outline(model, { width: 0.012 })         // ~1–1.5 % of the char
   `Hair_Short`) and switch with `showVariant(model, 'Hair', 'Short')`. With VRoid, export one VRM per hairstyle
   only if they really differ; otherwise do it in Blender.
 - **Colours:** `recolor(model, { Hair: '#e8e6ea' })` by material name; swatches drawn as circles on the HUD canvas.
-- **UI:** a `menu.js` menu with `choice` value items (left/right changes the value) drawn in the game's style
-  (art-direction's parchment card), the model in the left half turning slowly, prompts from `input.label()`.
-- **Save** the choices in `save.data.hero` and call `save.save()` on Accept.
+- **UI:** the game's menu system with choice items (left/right changes the value) drawn in the game's style
+  (art-direction's parchment card), the model in the left half turning slowly, prompts from the game's input-prompt helper.
+- **Save** the choices in the game's save data (a `hero` entry) on Accept.
 
 ## 6. Verify
 
 1. Render the character at play size and close up, in the game, next to the reference (model-asset's
    `shot.mjs` with `index.html` and keys to reach the screen).
-2. Frame time on the Deck target with the character, outline and overlay on (**performance-pass**).
-3. `npm run check`, bump `version`, Changelog line, credits in `assets/CREDITS.md`, commit and push.
+2. Frame time on the target device with the character, outline and overlay on (**performance-pass**).
+3. Changelog line in DESIGN.md, credits in `assets/CREDITS.md`, then run the project's checks and finish the change the way its rules say.

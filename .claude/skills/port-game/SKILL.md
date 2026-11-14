@@ -1,6 +1,6 @@
 ---
 name: port-game
-description: Bring an existing web game into this repo — the user's own HTML/JS game, a game-jam entry, a tutorial project or an open-source game with a licence that allows it — and convert it to the PushPlay rules: runtime input with controller, keyboard, mouse and touch, menu.js menus, pause, settings, fitCanvas scaling to 1280×800, saves, offline assets, a manifest and art. Use for "add my old game", "port this game", "import this repo / folder / zip", "make this HTML game work on the Deck".
+description: Bring an existing web game into this repo — the user's own HTML/JS game, a game-jam entry, a tutorial project or an open-source game with a licence that allows it — and convert it to the PushPlay rules, meaning runtime input with controller, keyboard, mouse and touch, menu.js menus, pause, settings, fitCanvas scaling to 1280×800, saves, offline assets, a manifest and art. Use for "add my old game", "port this game", "import this repo / folder / zip", "make this HTML game work on the Deck".
 ---
 
 # Port a game
@@ -15,7 +15,7 @@ Follow AGENTS.md. The aim is the same game, now playing well on a handheld with 
 ## 2. Set up the repo
 1. `npm run new-game <id> --name "<Name>"` (with `--vite` if needed) for the runtime files, `pushplay.json`, the starter skeleton and art placeholders, at the repo root (one game per repo; if a game is already here, port into a new repo from the template).
 2. Copy the game's code and assets in next to them (`assets/` for media). Download any CDN libraries and remote fonts into the repo (or `npm install` them in a `--vite` game); the check fails on network requests.
-3. Write `DESIGN.md` by reverse-engineering the game ([DESIGN.template.md](../../../docs/game-design/DESIGN.template.md)), with *Ported from <source>* in the Changelog.
+3. Write `DESIGN.md` by reverse-engineering the game ([DESIGN.template.md](../new-game/references/DESIGN.template.md)), with *Ported from <source>* in the Changelog.
 
 ## 3. Convert, step by step (run the game after each)
 1. **Loop and screens:** fold its loop into the starter's frame: `input.update()` first, `state.screen` with `title | playing | paused | settings | gameover`, `window.__game = { state, TUNING }`. Use the starter's title, pause (Resume, Restart, Settings, Quit to title) and settings screens; replace its own menus with `menu.js` (which also gives the pause menu Quit to library inside the launcher; if a menu has to stay custom, add that item as *Leaving your game* in AGENTS.md shows).

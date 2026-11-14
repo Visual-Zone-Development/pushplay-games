@@ -1,11 +1,13 @@
 ---
 name: art-direction
-description: Give the game in this repo a cohesive, polished look across the whole screen, not one asset at a time — a material vocabulary (paper and ink, painted gouache, neon glass…), value and palette structure, textured backgrounds, UI that looks like part of the world (parchment cards, brush-stroke headers, ink-blot prompts), typography pairing with bundled fonts, lighting and atmosphere, and one finishing pass that ties every layer together. Ships a surface toolkit (texture.js) and an OFL serif font. Use for "make it look like <screenshot>", "it looks flat / generic / like a tech demo", "make it prettier", "art pass", "polish the visuals", "the menus look plain", or the visual-polish milestone of new-game. Pairs with model-asset / edit-asset for individual assets and character-models for 3D characters loaded from files.
+description: Give the game in this repo a cohesive, polished look across the whole screen, not one asset at a time — a material vocabulary (paper and ink, painted gouache, neon glass…), value and palette structure, textured backgrounds, UI that looks like part of the world (parchment cards, brush-stroke headers, ink-blot prompts), typography pairing with bundled fonts, lighting and atmosphere, and one finishing pass that ties every layer together. Ships a surface toolkit (texture.js) and an OFL serif font. Use for "make it look like <screenshot>", "it looks flat / generic / like a tech demo", "make it prettier", "art pass", "polish the visuals", "the menus look plain", or the visual-polish milestone of a new game. Pairs with model-asset / edit-asset for individual assets and character-models for 3D characters loaded from files.
 ---
 
 # Art direction
 
-Follow AGENTS.md (*Screens and scaling*, *Performance*, *Art*). The asset skills (model-asset, edit-asset,
+Follow the project's own rules first (its `AGENTS.md` or platform guide): they decide the APIs, the screen size, the performance budget, the checks and how to finish a change. `<skill-dir>` is the folder this file is in.
+
+The asset skills (model-asset, edit-asset,
 animate-asset) make one thing look right; this skill makes **the whole frame** look like one deliberate
 world. Games that look striking in a screenshot nearly always win on four things, in this order:
 
@@ -25,8 +27,8 @@ Detail comes last; it never rescues a frame that fails these four.
 
 - `DESIGN.md` (fun targets, art direction, palette) and `STYLE.md` if there is one.
 - Capture the screens that matter at play size: title, gameplay after ~20 s, pause, game over, any custom
-  screen. Use `node .claude/skills/model-asset/scripts/shot.mjs <id> <scratch>/before "index.html|title.png" "index.html|play.png|keys=Enter|wait=20000"`
-  (or the `npm run check` screenshot). Renders go to the scratchpad, never the repo.
+  screen. Use `node <skill-dir>/../model-asset/scripts/shot.mjs <game-dir> <scratch>/before "index.html|title.png" "index.html|play.png|keys=Enter|wait=20000"`
+  from the project root (`<game-dir>` is the game's folder, `.` for a game at the root; or use a screenshot from the project's checks). Renders go to the scratchpad, never the repo.
 
 ## 1. Get a reference and break it down
 
@@ -46,7 +48,7 @@ characters. Take its *principles*. Write a look breakdown:
 | Light and framing | soft top-left key light; character fills the left half, menu the right |
 
 Then write the game's **Scene look** into `STYLE.md` (create it from
-`.claude/skills/model-asset/STYLE.template.md` if missing). Add this section under *Look*:
+`<skill-dir>/../model-asset/STYLE.template.md` if missing). Add this section under *Look*:
 
 ```md
 ## Scene look
@@ -68,11 +70,11 @@ Change one layer at a time and re-render the same screens after each.
 2. **Background surface.** Replace flat fills with a baked surface: `wash()` for painted, `paper()` for
    parchment or sketchbook, plus `stamp()` with a motif at low alpha for culture, and `vignette()`.
 3. **UI as an object.** Panels become `paperCard()` (or the game's equivalent material), headers sit on a
-   `brush()` stroke, button prompts on an `inkBlot()`. Keep `menu.js` for behaviour and draw its items yourself
-   (`menu.items`, `menu.selected`), with the selection in the hero colour. Prompts still come from
-   `input.label()` / `drawPrompts`, never literal key names.
+   `brush()` stroke, button prompts on an `inkBlot()`. Keep the game's menu system for behaviour and draw its items yourself,
+   with the selection in the hero colour. Prompts still come from
+   the game's input-prompt helper, never literal key names.
 4. **Typography.** Bundle a display face (see *Fonts*), use small caps with letter spacing (`ctx.letterSpacing`)
-   for labels, italics for flavour lines. Every size stays ≥ 24 px × `settings.data.textScale`.
+   for labels, italics for flavour lines. Every size stays ≥ 24 px × the game's text-size setting.
 5. **Light and depth.** 2D: a consistent light direction in every asset's shading, a soft ground shadow under
    characters, parallax background layers, ambient particles (dust, leaves, embers) at low count. 3D: see
    **character-models** (toon shading, coloured shadows, rim light) and add fog.
@@ -84,7 +86,7 @@ Change one layer at a time and re-render the same screens after each.
 ## Toolkit
 
 In `toolkit/` next to this file. Copy `texture.js` (and the fonts you use) into the game folder (next to
-`game.js`, or `src/` in a `--vite` game). If the game already has its own versions, extend those.
+its main script, or `src/` in a bundled game). If the game already has its own versions, extend those.
 
 | Export | What it gives you |
 |---|---|
@@ -103,7 +105,7 @@ In `toolkit/` next to this file. Copy `texture.js` (and the fonts you use) into 
 folder and render it to see the target quality and how the layers are composed:
 
 ```sh
-cd .claude/skills/art-direction/toolkit && python3 -m http.server 8765 &
+cd <skill-dir>/toolkit && python3 -m http.server 8765 &
 # then screenshot http://localhost:8765/demo.html?t=2 (add &scale=2 for DPR 2) with Playwright
 ```
 
@@ -114,12 +116,11 @@ with fine detail so it stays crisp at DPR 2; a full-screen `wash` can stay at 1�
 
 ### Optional: painted surfaces with the user's own image key
 
-If `OPENAI_API_KEY`, `GEMINI_API_KEY` or `REPLICATE_API_TOKEN` is set (environment or `.env`), painted
-backgrounds, terrain textures, key art and detailed props can also be generated: write
-`art/prompts.json` with the Scene look as its `style`, run `npm run art -- --dry` and tell
-the user the cost. Wait for them to agree, then generate 2–3 with `--approve <$>`, look at the contact
-sheet, tell them the cost of the rest and ask again before generating it
-([generated-art.md](../../../docs/game-design/generated-art.md)). Bake them like any surface and keep
+If the project has an image-generation tool and the user has set a key for it, painted
+backgrounds, terrain textures, key art and detailed props can also be generated, with the Scene look as
+the style prompt. Follow the tool's cost rules: never spend the user's money without a yes. Tell
+the user the cost first and wait for them to agree, then generate 2–3, look at the results,
+tell them the cost of the rest and ask again before generating it. Bake them like any surface and keep
 the toolkit versions as fallbacks. With no key, skip this; the toolkit alone reaches the target quality.
 
 ## Fonts
@@ -130,14 +131,14 @@ storybook / literary / fantasy serif. Copy the files you use to `assets/fonts/`,
 `new FontFace(...)` and wait for it before the first text draw (`demo.js` → `fonts()` shows how). Other OFL
 fonts can be fetched with `npm pack @fontsource/<font>` and copied the same way (only the `latin` `.woff2`
 weights you use). Pick by mood: serif for fantasy and storybook, a geometric sans for sci-fi and UI-heavy
-games, a rounded display face for cozy and kids' games. The cover art can only use the fonts AGENTS.md lists,
-so pick the closest one there for the cover title (or draw the cover with `art/cover.html`, which can load the
+games, a rounded display face for cozy and kids' games. If the project's cover or key art can only use
+certain fonts, pick the closest one there for the title (or draw that art with a page that loads the
 game's own font from its folder).
 
 ## Look recipes
 
 Starting points for any genre (fantasy, sci-fi, modern, abstract); the game's references always win. Record the one you pick in STYLE.md and adapt it. More presets (pixel art, neon, low-poly…)
-are in `docs/game-design/art-directions.md`.
+are in [art-directions.md](references/art-directions.md).
 
 | Look | Materials | Palette idea | Toolkit |
 |---|---|---|---|
@@ -155,7 +156,7 @@ are in `docs/game-design/art-directions.md`.
 ## 3. Render and compare, in rounds
 
 Same as model-asset, but for whole screens:
-1. Render the same screens as the reference **and** your *before* shots, at 1280×800 and at DPR 2.
+1. Render the same screens as the reference **and** your *before* shots, at the game's logical resolution and at DPR 2.
 2. List the **top 5 differences**, biggest first: values > palette > surfaces > UI objects > type > detail.
 3. Fix, re-render, repeat (3–5 rounds is normal). Show the user before / after with the reference.
 4. Check readability at play: gameplay must still be readable at a glance. Textures sit *behind* the play
@@ -163,10 +164,10 @@ Same as model-asset, but for whole screens:
 
 ## 4. Finish
 
-- Match the library art to the new look (**cover-art**; an `art/cover.html` can reuse `texture.js`).
+- Match the project's cover or key art to the new look (a cover page can reuse `texture.js`).
 - Measure frame time on gameplay with the overlay on (**performance-pass** if it drops below 60 fps at DPR 2).
-- `npm run check`, look at the screenshot, bump `version`, add a Changelog line to DESIGN.md, update
-  STYLE.md's Scene look, commit (`<Name>: art pass …`) and push.
+- Add a Changelog line to DESIGN.md and update STYLE.md's Scene look.
+- Run the project's checks (look at any screenshot they produce) and finish the change the way its rules say.
 
 ## Lessons so far
 
@@ -178,6 +179,6 @@ Same as model-asset, but for whole screens:
   any textured background and survives scaling down; a 1 px highlight on the edges facing the light finishes it.
 - Things that rotate keep the world's light: draw the surface rotated, then the shading unrotated, clipped to
   the same outline (`drawRock` in [Star Courier's `art.js`](https://github.com/Visual-Zone-Development/arcade-sampler/tree/main/games/star-courier/art.js) in Arcade Sampler).
-- Keep one art module that the game, `art/cover.html`, `art/hero.html` and an `art/gallery.html` contact sheet
-  all import, so the library art can't drift from the game (Battle Drones' HUD icons are renders of its models
-  for the same reason). `npm run art:shots` renders them all, plus the cover at tile size.
+- Keep one art module that the game, its cover or key art and a gallery contact sheet
+  all import, so the art outside the game can't drift from the game (Battle Drones' HUD icons are renders of its models
+  for the same reason).

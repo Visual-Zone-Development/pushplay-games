@@ -5,7 +5,9 @@ description: Design and build the world the game in this repo takes place in, fo
 
 # Environments
 
-Follow AGENTS.md (*Screens and scaling*, *Performance*). Read the game's DESIGN.md (genre, camera, fun
+Follow the project's own rules first (its `AGENTS.md` or platform guide): they decide the APIs, the screen size, the performance budget, the checks and how to finish a change. `<skill-dir>` is the folder this file is in.
+
+Read the game's DESIGN.md (genre, camera, fun
 targets) and STYLE.md. This skill is for every kind of game: it never assumes a genre, a camera or a style.
 What an environment looks like comes from the game's references. What stays fixed is the craft: the world
 has to be readable, navigable and consistent before it can be pretty.
@@ -68,9 +70,9 @@ Write an **Environment style** block in STYLE.md, one per area or biome if they 
 - **Environmental storytelling:** props suggest what happened here (a toppled cart, scorch marks, a
   half-eaten meal), in the game's tone.
 - **Motion budget:** a few ambient movements make a space alive; too many fight the gameplay for attention.
-  Honour `settings.data.reducedShake` (no flashing, lightning or camera-shaking weather when it's on).
+  Honour the game's reduced shake / flash setting (no flashing, lightning or camera-shaking weather when it's on).
 - **Performance:** bake static layers once (ground, backdrops), draw them as images, and cull off-screen tiles.
-  In 3D, instance repeated props and keep to `docs/game-design/3d.md` budgets.
+  In 3D, instance repeated props and keep to the [3d.md](../threejs-models/references/3d.md) budgets.
 
 ## 3. Build: pick the approach per layer
 
@@ -81,7 +83,7 @@ Write an **Environment style** block in STYLE.md, one per area or biome if they 
 | **Scattering** | trees, rocks, grass, debris, crowds, stars, asteroids, 3D instances | `scatter.js`: `poisson` (even but natural spacing, with `density` and `avoid` callbacks to keep paths, doors and spawns clear), `clusters` (patches, rubble, belts), `pick` (weighted variants). |
 | **Backdrops** | skies, distant scenery, menus, any background | `backdrop.js`: `sky` gradients; `layer(kind, …)` seamless strips (hills, mountains, dunes, waves, forest, pines, city, clouds, stars) in vector or pixel mode (`pixel: 4`); `drawParallax` by camera; `haze` for atmospheric perspective; `timeOfDay` blends palette keyframes. |
 | **Set pieces** | landmarks, boss arenas, story spots | Hand-built per game (model-asset workflow) and placed by the level text or by hand. |
-| **3D scenes** | three.js games | Ground as a few large meshes or a heightfield; scatter positions from `scatter.js` → `InstancedMesh`; sky gradient on a large sphere or `scene.background`; fog colour = haze colour; one directional light + hemisphere light; budgets in `docs/game-design/3d.md`. |
+| **3D scenes** | three.js games | Ground as a few large meshes or a heightfield; scatter positions from `scatter.js` → `InstancedMesh`; sky gradient on a large sphere or `scene.background`; fog colour = haze colour; one directional light + hemisphere light; budgets in [3d.md](../threejs-models/references/3d.md). |
 
 Recipes by camera, as starting points to adapt to the measured style:
 
@@ -113,16 +115,17 @@ Recipes by camera, as starting points to adapt to the measured style:
 
 ## 5. Render, squint, compare
 
-1. Capture the area in the game (model-asset's `shot.mjs`, or the check's screenshot) next to the reference.
+1. Capture the area in the game (model-asset's `shot.mjs`, or a screenshot from the project's checks) next to the reference.
 2. Run the squint test:
-   `node .claude/skills/environments/squint.mjs <shot.png> <scratch> --play x,y,w,h --bg x,y,w,h`. Look at
+   `node <skill-dir>/squint.mjs <shot.png> <scratch> --play x,y,w,h --bg x,y,w,h`. Look at
    `-values.png` and `-squint.png`: the player, the path and hazards must still read. It also reports the
    value separation between play layer and background.
 3. List the top 5 differences from the reference, biggest first: value structure > readability of walkable
    and blocked areas > palette > texture density and edges > detail. Fix, re-render, repeat.
 4. Check scale against a character, every camera position the game uses, the largest and smallest
    areas, and frame time (performance-pass).
-5. Update STYLE.md, bump `version`, add a Changelog line, `npm run check`, commit and push.
+5. Update STYLE.md and add a Changelog line to DESIGN.md.
+6. Run the project's checks and finish the change the way its rules say.
 
 `toolkit/demo.html` shows four game types (side view, top-down, space, a city at dusk in pixel mode) built
 from the same toolkit with placeholder vector art.

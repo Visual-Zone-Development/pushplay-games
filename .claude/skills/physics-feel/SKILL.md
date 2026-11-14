@@ -1,11 +1,11 @@
 ---
 name: physics-feel
-description: Build and tune the physics of the game in this repo so it feels good and stays stable — fixed-timestep integration, collision detection and response (AABB, circles, tilemaps, swept tests to stop tunnelling), bounce, friction, gravity, knockback, vehicles and ragdoll-lite motion, and when to use a physics library in a --vite game. Use for "objects go through walls", "the physics is jittery / explodes", "the ball bounces weirdly", "driving feels like ice", "add knockback", or a physics-based game (pinball, golf, billiards, stacking, destruction).
+description: Build and tune the physics of the game in this repo so it feels good and stays stable — fixed-timestep integration, collision detection and response (AABB, circles, tilemaps, swept tests to stop tunnelling), bounce, friction, gravity, knockback, vehicles and ragdoll-lite motion, and when to use a physics library. Use for "objects go through walls", "the physics is jittery / explodes", "the ball bounces weirdly", "driving feels like ice", "add knockback", or a physics-based game (pinball, golf, billiards, stacking, destruction).
 ---
 
 # Physics feel
 
-Follow AGENTS.md (*Tech*, *Performance*). Read the game's `DESIGN.md`. Game physics is about **feel and readability**, not realism: tune for what's fun and predictable. For the feel layer on top (hit-stop, shake, squash) use `game-feel`.
+Follow the project's own rules first (its `AGENTS.md` or platform guide): they decide the tech (whether npm packages are allowed), the performance target, the checks and how to finish a change. Read the game's `DESIGN.md`. Game physics is about **feel and readability**, not realism: tune for what's fun and predictable. For the feel layer on top (hit-stop, shake, squash) use `game-feel`.
 
 ## 1. A stable base
 - **Fixed timestep:** accumulate the clamped frame `dt` and step physics at a fixed 1/120 s (or 1/60) with a cap on steps per frame; render with interpolation if motion stutters. This makes results identical at 60, 90 and 120 Hz and on any device, and makes `?seed=` replays exact.
@@ -34,10 +34,10 @@ Follow AGENTS.md (*Tech*, *Performance*). Read the game's `DESIGN.md`. Game phys
 - **Juice:** sound and particles on impacts scaled by impact speed, rate-limited.
 
 ## 4. A library or your own?
-Hand-written physics is best for platformers, top-down games and arcade bouncing. For stacking, ragdolls, joints or many interacting bodies, use a library in a `--vite` game (`npm install <pkg>`, e.g. a small 2D engine such as planck.js or matter-js, or Rapier / cannon-es for 3D), keep its timestep fixed, and keep its debug draw behind `?debug`.
+Hand-written physics is best for platformers, top-down games and arcade bouncing. For stacking, ragdolls, joints or many interacting bodies, use a library if the project's setup allows npm packages (e.g. a small 2D engine such as planck.js or matter-js, or Rapier / cannon-es for 3D), keep its timestep fixed, and keep its debug draw behind `?debug`.
 
 ## 5. Verify
 1. Stress test: the fastest object against the thinnest wall, the biggest pile, the longest run; nothing tunnels, explodes or jitters at rest.
-2. Same seed and inputs → same result (repro script, [debugging.md](../../../docs/game-design/debugging.md)).
+2. Same seed and inputs → same result (check with a short headless-browser script (Playwright) that replays the inputs and screenshots the result).
 3. 60 fps at the heaviest moment, DPR 2 included (see `performance-pass`).
-4. `npm run check`, fix every ✗. Bump `version`, add a Changelog line, commit (`<Name>: physics …`) and push.
+4. Add a Changelog line to DESIGN.md, then run the project's checks and finish the change the way its rules say.

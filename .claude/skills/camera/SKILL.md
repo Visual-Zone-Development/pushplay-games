@@ -5,7 +5,7 @@ description: Build and tune the camera for the game in this repo, 2D or 3D — s
 
 # Camera
 
-Follow AGENTS.md (*Screens and scaling*). Read the game's `DESIGN.md` (kickoff answer for **camera / view**). The logical screen is always 1280×800; the camera decides which part of the world maps onto it. For three.js also read [3d.md](../../../docs/game-design/3d.md).
+Follow the project's own rules first (its `AGENTS.md` or platform guide): they decide the logical resolution, the scaling layer, the checks and how to finish a change. Read the game's `DESIGN.md` (kickoff answer for **camera / view**). The logical screen is a fixed size (`W`×`H` below, the game's logical resolution); the camera decides which part of the world maps onto it. For three.js also read [3d.md](../threejs-models/references/3d.md).
 
 ## 1. Decide what the player must see
 - What's the most important thing to see **ahead**: the next platform, incoming enemies, the track?
@@ -13,7 +13,7 @@ Follow AGENTS.md (*Screens and scaling*). Read the game's `DESIGN.md` (kickoff a
 - A **single fixed screen** is the easiest to read on a handheld. Only scroll if the design needs it.
 
 ## 2. 2D camera recipe
-Keep a camera object `{ x, y, zoom }`; draw the world with `ctx.translate(640 - cam.x * zoom, 400 - cam.y * zoom)` and `ctx.scale(zoom, zoom)` inside `save()`/`restore()`, and draw the HUD afterwards in screen space.
+Keep a camera object `{ x, y, zoom }`; draw the world with `ctx.translate(W / 2 - cam.x * zoom, H / 2 - cam.y * zoom)` and `ctx.scale(zoom, zoom)` inside `save()`/`restore()`, and draw the HUD afterwards in screen space.
 - **Dead zone:** the camera only moves when the target leaves a box around screen centre (e.g. 160×120 px). Stops small movements from jiggling the view.
 - **Look-ahead:** offset the target by velocity (platformers: 120–220 px in the facing direction; vertical look-ahead only when falling).
 - **Smoothing:** frame-rate-independent lerp, `cam.x += (target - cam.x) * (1 - Math.exp(-k * dt))` with k ≈ 5–10. Never smooth so much that the player leaves the screen.
@@ -24,19 +24,19 @@ Keep a camera object `{ x, y, zoom }`; draw the world with `ctx.translate(640 - 
 - **Pixel art:** round the final camera offset to whole pixels at the game's internal resolution to avoid shimmering.
 
 ## 3. 3D camera recipe (three.js)
-- **Third-person chase:** a target point slightly above the character; the camera sits behind at a fixed distance and height, follows with damping, and turns with the right stick (`input.aimX` / `aimY`) with sensible limits on pitch. Recentre behind the player after ~1.5 s with no stick input.
+- **Third-person chase:** a target point slightly above the character; the camera sits behind at a fixed distance and height, follows with damping, and turns with the right stick with sensible limits on pitch. Recentre behind the player after ~1.5 s with no stick input.
 - **Wall avoidance:** raycast from the target to the desired camera position; if it hits, move the camera in front of the hit point. Fade or hide objects between camera and player instead if raycasts are too costly.
 - **Top-down / isometric:** fixed angle, follow with damping, optional slight look-ahead; usually the most readable choice on a handheld.
 - **Field of view:** 50–65° for third-person; a small FOV kick (+3–5°) on boosts reads as speed.
 - **Motion comfort:** avoid camera roll, constant bobbing and fast automatic spins; keep the horizon level.
 
 ## 4. Shake and effects
-- Apply shake as an offset **after** following, from a decaying trauma value (see `game-feel`), and **skip it when `settings.data.reducedShake` is on**.
+- Apply shake as an offset **after** following, from a decaying trauma value (see `game-feel`), and **skip it when the game's reduced shake / flash setting is on**.
 - Zoom punches on big moments (+5–10% for 200 ms) are fine; keep them out of reduced shake too if they're sharp.
 
 ## 5. Verify
 1. Play the hardest moving part of the game: can you always see what's coming? Never lose the player off screen?
-2. Check at 1280×800 and a 16:9 window (fitCanvas letterboxes, the camera itself doesn't change).
+2. Check at the game's logical resolution and in a window of another shape (the scaling layer letterboxes, the camera itself doesn't change).
 3. Pause freezes the camera; Restart snaps it to the start (no slide from the old position).
-4. All camera numbers in `TUNING.camera`. `npm run check`, view the screenshot, fix every ✗.
-5. Bump `version`, add a Changelog line, commit (`<Name>: camera`) and push.
+4. All camera numbers in `TUNING.camera`.
+5. Add a Changelog line to DESIGN.md, then run the project's checks and finish the change the way its rules say.

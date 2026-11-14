@@ -5,6 +5,8 @@ description: Make motion in the game in this repo look natural, readable and con
 
 # Animate an asset
 
+Follow the project's own rules first (its `AGENTS.md` or platform guide): they decide the APIs, the screen size, the checks and how to finish a change.
+
 Motion has two jobs: **feel good** (weight, snap, personality) and **tell the truth about the game**
 (where things are, when an attack will land, how fast something moves). The second job comes from the
 game's physics and rules, which differ in every game, so start there.
@@ -54,7 +56,7 @@ If animation and simulation disagree, change the animation (or ask), not the phy
 1. **Name the problem precisely** with the user ("feet slide", "landing has no impact") or from captures.
 2. **Capture before changing anything**: a strip of frames across one cycle, plus the motion in the game.
    With model-asset's `scripts/shot.mjs`, render the game's gallery/viewer page with `frames=<n>` (it lays out one
-   cycle as a strip), or capture the game at a few `wait=` offsets. Watch it live in `npm run dev` too.
+   cycle as a strip), or capture the game at a few `wait=` offsets. Watch it live in the project's dev server too.
 3. **Decide where the fix lives**: one asset's timing (its own data), a whole class (shared curves or timing tokens),
    or a new action (new frames/curve, documented in STYLE.md).
 4. **Change one thing, re-capture the same strip, compare** frame by frame. Keep the before strip for the user.
@@ -63,6 +65,7 @@ If animation and simulation disagree, change the animation (or ask), not the phy
 6. **Performance**: animation runs every frame for every instance; no allocations in the per-frame path, cap particle
    effects, and prefer shared curves over per-instance work.
 7. **Update STYLE.md** (timing table, rules) and the DESIGN.md changelog.
+8. Run the project's checks and finish the change the way its rules say.
 
 ## 4. Recipes
 

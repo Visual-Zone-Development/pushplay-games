@@ -16,12 +16,12 @@ Brom (grumpy): Well? {w} I haven't got all day.
     >> end
 `
 
-// a stand-in for the game's input.js: the parts the box reads
+// a stand-in for the game's input state: the parts the box reads (see the top of dialogue.js)
 const input = { mode: 'gamepad', navY: 0, pointer: { x: 0, y: 0, pressed: false }, _p: new Set(), pressed(b) { return this._p.has(b) } }
 const step = (box, frames = 1, press = []) => { for (let i = 0; i < frames; i++) { input._p = new Set(i === 0 ? press : []); box.update(1 / 60) } input._p = new Set() }
 
 // the game's own prompt drawer would be passed in; this stand-in draws a chip and the label
-const drawPrompts = (ctx, inp, pairs, { x, y, align, size }) => {
+const prompts = (ctx, inp, pairs, { x, y, align, size }) => {
   ctx.save(); ctx.font = `600 ${size}px system-ui`; ctx.textBaseline = 'middle'
   const txt = pairs.map(([b, t]) => `[${{ a: 'A', b: 'B', select: 'View' }[b]}] ${t}`).join('    ')
   ctx.textAlign = align; ctx.fillStyle = '#cfc6b0'; ctx.fillText(txt, x, y); ctx.restore()
@@ -37,7 +37,7 @@ const portrait = (ctx, who, mood, x, y, s, talking) => {
 function scene(title, setup) {
   const c = document.createElement('canvas'); c.width = 1280; c.height = 800; document.body.appendChild(c)
   const ctx = c.getContext('2d')
-  const box = createDialogueBox({ input, drawPrompts, portrait, style: { nameColors: { Brom: '#ffb36b' } } })
+  const box = createDialogueBox({ input, prompts, portrait, style: { nameColors: { Brom: '#ffb36b' } } })
   box.open(createRunner(script, { vars: { name: 'Ash', gold: 60 } }).start('smith'))
   setup(box)
   const g = ctx.createLinearGradient(0, 0, 0, 800); g.addColorStop(0, '#2b3a55'); g.addColorStop(1, '#141824')

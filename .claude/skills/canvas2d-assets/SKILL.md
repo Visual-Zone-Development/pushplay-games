@@ -1,9 +1,11 @@
 ---
 name: canvas2d-assets
-description: Draw and animate 2D game assets on canvas in any art style — vector shapes, pixel art, painted or user-supplied sprite sheets, SVG — for any 2D camera or game type: side-view platformers and fighters, top-down action, racing and twin-stick shooters, isometric strategy and builders, vertical/horizontal shmups, puzzle, card and board games, and UI. Toolkit for consistent outlines and shading, natural procedural animation, pixel-perfect scaling, sprite sheets and baking, isometric and directional helpers, plus an asset gallery page for renders. Load it with model-asset, edit-asset or animate-asset whenever a 2D game's assets are drawn or animated.
+description: Draw and animate 2D game assets on canvas in any art style — vector shapes, pixel art, painted or user-supplied sprite sheets, SVG — for any 2D camera or game type, such as side-view platformers and fighters, top-down action, racing and twin-stick shooters, isometric strategy and builders, vertical/horizontal shmups, puzzle, card and board games, and UI. Toolkit for consistent outlines and shading, natural procedural animation, pixel-perfect scaling, sprite sheets and baking, isometric and directional helpers, plus an asset gallery page for renders. Load it with model-asset, edit-asset or animate-asset whenever a 2D game's assets are drawn or animated.
 ---
 
 # 2D canvas assets
+
+Follow the project's own rules first (its `AGENTS.md` or platform guide): they decide the APIs, the screen size, the checks and how to finish a change. `<skill-dir>` is the folder this file is in.
 
 The general workflow (reference, breakdown, rounds, STYLE.md) is in **model-asset**, **edit-asset** and
 **animate-asset**. This skill is the 2D how-to: how to structure, draw, animate and check 2D assets so they
@@ -11,13 +13,13 @@ look consistent in any art style and read well in the game's camera.
 
 ## Toolkit
 
-In `toolkit/` next to this file. Copy what the game needs into the game folder (next to `game.js`, or `src/` in
-a `--vite` game); if the game already has its own versions, extend those instead of adding a second system.
+In `toolkit/` next to this file. Copy what the game needs into the game folder (next to its main script, or `src/` in
+a bundled game); if the game already has its own versions, extend those instead of adding a second system.
 
 | File | Gives you |
 |---|---|
 | `sprite.js` | Style: `createStyle()` (outline colour/width, `flat`/`cel`/`soft` shading, light direction), `shape()` (fill + shading + outline in that style), `tint()`, paths `blobPath()`, `roundPoly()`. Motion: `keys()` eased keyframes (`inOut`, `out`, `in`, `back`, `elastic`), `spring()` for secondary motion, volume-preserving `squash()`, `pose()` transform, `seeded()` random. Pixel art: `pixels()` (draw at native resolution), `pixelOutline()`, `blit()` (whole-number scale, smoothing off). Sprites: `loadSheet()`, `bake()` (cache procedural frames at 2× for DPR 2), `drawFrame()`, `clip()`. Cameras: `iso()`, `depthSort()`, `directionIndex()`, `nineSlice()`. |
-| `gallery.html`, `gallery.js` | Asset gallery: `?asset=<id>&scales=1,3`, `&anim=<a>&frames=<n>` (cycle strip), `&facings=<n>` (directional/top-down), `&compare=<id2>,<id3>`, `&hitbox=1`, `&bg=game|light|dark|checker|#hex`, `&t=`, `&team=`, `?list`. Sets `document.title = 'ready'` for model-asset's `scripts/shot.mjs`. Not part of the build: list it in `.pushplayignore` for plain games. |
+| `gallery.html`, `gallery.js` | Asset gallery: `?asset=<id>&scales=1,3`, `&anim=<a>&frames=<n>` (cycle strip), `&facings=<n>` (directional/top-down), `&compare=<id2>,<id3>`, `&hitbox=1`, `&bg=game|light|dark|checker|#hex`, `&t=`, `&team=`, `?list`. Sets `document.title = 'ready'` for model-asset's `scripts/shot.mjs`. Not part of the build: keep it out of what the game ships. |
 | `assets2d.js` | The asset registry the gallery reads, with five worked examples: a vector side-view hero (idle/run/jump/attack), a pixel-art slime (held frames, outline, whole-number scale), a top-down tank (any facing, tread roll, recoil), a coin pickup (squash spin, sparkle) and a UI card (flip, hover). Replace them with the game's assets. |
 
 ## Asset contract
@@ -48,7 +50,7 @@ export const ASSETS = {
 | Style | How |
 |---|---|
 | **Vector shapes** (flat, cel, soft) | `shape()` with one shared `createStyle()`; outline width constant at play size; shading direction shared by every asset; exaggerate silhouettes. |
-| **Pixel art** | Draw with `pixels()` at native size (e.g. 16×16, 32×32), add `pixelOutline()`, blit at whole-number scales with smoothing off; `fitCanvas(..., { integer: true })`; snap positions to whole pixels; use few, held frames (4–8 per cycle) and a fixed palette from STYLE.md. |
+| **Pixel art** | Draw with `pixels()` at native size (e.g. 16×16, 32×32), add `pixelOutline()`, blit at whole-number scales with smoothing off; set the game's scaling layer to whole-number scales; snap positions to whole pixels; use few, held frames (4–8 per cycle) and a fixed palette from STYLE.md. |
 | **Painted / user sprite sheets** | `loadSheet()` + `clip()` + `drawFrame()`; keep the artist's frame rate; anchor every frame at the same pivot; never scale up beyond the source resolution (supply 2× art for DPR 2); credit in `assets/CREDITS.md`. |
 | **SVG** | Draw shapes as SVG paths (`new Path2D(d)`) or rasterise once with `bake()`; good for UI, icons and crisp flat art. |
 | **Expensive procedural art** (glows, many paths, hundreds of copies) | `bake()` frames once at 2× into a sheet, then `drawFrame()`; never `shadowBlur` per frame. |
@@ -62,21 +64,22 @@ export const ASSETS = {
 | **Isometric** (strategy, builders, tactics) | `iso()` for positions, anchor at the base, `depthSort()` by screen y (or x + y); 2:1 tiles; draw tall objects so their base sits on their tile; 4 or 8 facings. |
 | **Shmups / arcade** | Strong colour coding (player, enemy, enemy bullet, pickup, hazard all distinct by colour *and* shape), bullets brightest and simplest; bake glows; the hitbox much smaller than the sprite for the player and visible on demand. |
 | **Puzzle, card, board** | Pieces and cards read at a glance (symbol + colour), state changes as quick tweens with an `out` ease or small `back` overshoot, hover/selection lift with a shadow, `nineSlice()` panels; never block input on decoration. |
-| **UI and HUD** | Same style object (outline, palette) as the game art; text ≥ 24 px; icons from `input.label`/`drawPrompts` for buttons; animate in 150–300 ms. |
+| **UI and HUD** | Same style object (outline, palette) as the game art; text ≥ 24 px; button icons from the game's input-prompt helper (never literal key names); animate in 150–300 ms. |
 
 Physics and goals differ per game: read DESIGN.md first and let the animation follow the simulation
 (animate-asset): stride from velocity, arcs from gravity, wind-ups from the telegraph rules.
 
-## Crispness and scaling (PushPlay)
+## Crispness and scaling
 
-- The logical space is 1280×800 and `fitCanvas` scales it (DPR up to 2). Paths and text stay crisp automatically;
-  bitmaps don't: bake procedural frames at `scale: 2`, supply 2× sprite sheets, or use pixel art with `integer: true`.
+- The game draws in its logical resolution and its scaling layer fits that to the screen (often at DPR up to 2). Paths
+  and text stay crisp automatically; bitmaps don't: bake procedural frames at `scale: 2`, supply 2× sprite sheets, or
+  use pixel art at whole-number scales.
 - Avoid `shadowBlur` and per-frame `filter`; cap particles; cache static backgrounds in an offscreen canvas.
 
 ## Rendering for comparison
 
 ```sh
-node .claude/skills/model-asset/scripts/shot.mjs <game-id> <scratch> \
+node <skill-dir>/../model-asset/scripts/shot.mjs <game-dir> <scratch> \
   "gallery.html?asset=hero&scales=1,4|hero.png" \
   "gallery.html?asset=hero&anim=run&frames=8&scale=3|run.png" \
   "gallery.html?asset=tank&facings=8&scale=2|facings.png" \
@@ -84,4 +87,5 @@ node .claude/skills/model-asset/scripts/shot.mjs <game-id> <scratch> \
   "index.html|in-game.png|keys=Enter|wait=2500"
 ```
 
+Run it from the project root; `<game-dir>` is the game's folder (`.` for a game at the root).
 Always look at the ×1 (play size) column and the in-game shot, not only the zoomed one.

@@ -1,23 +1,43 @@
 // Dialogue box (dialogue skill): draws and drives a conversation from dialogue-script.js on the game's
-// 1280×800 canvas with controller, keyboard, mouse and touch. Typewriter text with pauses, emphasis, colour
-// and shake markup; per-speaker voice blips; name plate and portrait; choices; skip; a log of past lines;
-// text size and reduced-shake from Settings. Looks are injected (style.panel, portrait, colours, font), so the
-// box matches the game's art direction instead of having one look of its own.
+// canvas with controller, keyboard, mouse and touch. Typewriter text with pauses, emphasis, colour and shake
+// markup; per-speaker voice blips; name plate and portrait; choices; skip; a log of past lines; text size,
+// text speed and reduced shake from the game's settings. Looks are injected (style.panel, portrait, colours,
+// font), so the box matches the game's art direction instead of having one look of its own.
+//
+// The box has no dependencies. It talks to the game through a few small objects the game passes in:
+//
+//   input     (required) the game's input state, or a thin adapter over it, read every update():
+//               pressed(name) → true on the frame that button went down. Names asked for: 'a' (confirm /
+//                               advance), 'b' (skip to the next choice), 'select' (open and close the log).
+//                               Other names: pass buttons: { confirm, skip, log }.
+//               navY          → -1 / 0 / +1, a stepped up / down with key repeat (d-pad, stick, arrows)
+//               pointer       → { x, y, pressed } in the canvas's logical units; pressed is true on the frame
+//                               a click or tap went down
+//               mode          → the device used last: 'touch' and 'mouse' show the on-screen Skip button and
+//                               'mouse' gives hover highlight; any other value ('gamepad', 'keyboard') doesn't
+//   width, height           the logical size the game draws in (default 1280 by 800)
+//   settings  (optional)    { textScale, textSpeed, reducedShake }, read live; an object that keeps those
+//                           under .data works too
+//   prompts   (optional)    (ctx, input, pairs, { x, y, align, size }) => void: draws button hints with the
+//                           game's own prompt helper. pairs is [[buttonName, label], …], e.g. [['a', 'Next']].
+//                           Without it the box draws only its built-in "next" arrow (and a Back label in the log).
+//   portrait  (optional)    (ctx, who, mood, x, y, size, talking) => void
+//   blip      (optional)    (who, char) => void, called as letters appear; voiceBlip() below makes one
+//   avoid     (optional)    [{ x, y, w, h }]: rectangles where a tap must not advance the text (a pause button)
 //
 //   import { createRunner } from './dialogue-script.js'
 //   import { createDialogueBox, voiceBlip } from './dialogue.js'
-//   import { drawPrompts } from './prompts.js'
-//   const talk = createDialogueBox({ input, settings, drawPrompts, avoid: [PAUSE_BUTTON],
-//     blip: voiceBlip(audio, { Brom: { freq: 130 }, Ash: { freq: 260 } }),
+//   const talk = createDialogueBox({ input, settings, prompts: drawButtonHints, avoid: [PAUSE_BUTTON],
+//     blip: voiceBlip(playTone, { Brom: { freq: 130 }, Ash: { freq: 260 } }),
 //     portrait: (ctx, who, mood, x, y, size, talking) => drawPortrait(who, mood, …), style: { … } })
-//   talk.open(createRunner(script, { vars: save.data.dialogue, on: { give: giveItem } }).start('smith'))
-//   // each frame while state.screen === 'playing' (not while paused):
-//   if (talk.active) { if (talk.update(dt) === 'done') save.save() } else updateGameplay(dt)
+//   talk.open(createRunner(script, { vars: saved.dialogue, on: { give: giveItem } }).start('smith'))
+//   // each frame during play (not while paused):
+//   if (talk.active) { if (talk.update(dt) === 'done') saveGame() } else updateGameplay(dt)
 //   … draw the world …; talk.draw(ctx)
 
 const DEFAULT_STYLE = {
   font: 'system-ui, sans-serif',
-  size: 30,                 // px before settings.textScale (≥ 28 on a handheld)
+  size: 30,                 // px before the text-size setting (≥ 28 on a small screen)
   lines: 3,                 // lines per page
   cps: 45,                  // characters per second
   margin: 32,               // from the screen edges
@@ -33,15 +53,20 @@ const DEFAULT_STYLE = {
   punctuationPause: { '.': 0.22, '!': 0.22, '?': 0.22, ',': 0.08, ';': 0.12, ':': 0.12, '—': 0.12, '…': 0.3 }
 }
 
-/** Per-speaker voice: a short tone every couple of letters, pitch varied a little by the letter. */
-export function voiceBlip(audio, voices = {}, { every = 2, gain = 0.06 } = {}) {
+/**
+ * Per-speaker voice: a short tone every couple of letters, pitch varied a little by the letter.
+ * sound is the game's tone generator: a function ({ freq, dur, type, gain }) => void (dur in seconds, type an
+ * oscillator type), or an object with such a function as its tone method.
+ */
+export function voiceBlip(sound, voices = {}, { every = 2, gain = 0.06 } = {}) {
+  const play = typeof sound === 'function' ? sound : (o) => sound.tone(o)
   let n = 0
   return (who, ch) => {
     if (!/[\p{L}\p{N}]/u.test(ch) || n++ % every) return
     const v = voices[who] || voices['*'] || { freq: 220 }
     const vary = v.vary ?? 0.08
     const k = 1 + ((ch.toLowerCase().charCodeAt(0) * 7) % 9 - 4) / 4 * vary
-    audio.tone({ freq: v.freq * k, dur: v.dur ?? 0.035, type: v.type ?? 'square', gain: v.gain ?? gain })
+    play({ freq: v.freq * k, dur: v.dur ?? 0.035, type: v.type ?? 'square', gain: v.gain ?? gain })
   }
 }
 
@@ -75,19 +100,22 @@ function glyphs(text, style) {
   return out
 }
 
-export function createDialogueBox({ input, settings = null, drawPrompts = null, portrait = null, blip = null, avoid = [], style = {}, labels = {} } = {}) {
+export function createDialogueBox({ input, settings = null, prompts = null, portrait = null, blip = null, avoid = [], style = {}, labels = {}, buttons = {}, width = 1280, height = 800 } = {}) {
   const S = { ...DEFAULT_STYLE, ...style }
   const L = { next: 'Next', skip: 'Skip', log: 'Log', back: 'Back', choose: 'Choose', ...labels }
+  const B = { confirm: 'a', skip: 'b', log: 'select', ...buttons }
+  const W = width, H = height
+  const setting = (key, fallback) => (settings?.data ?? settings)?.[key] ?? fallback
   const measure = document.createElement('canvas').getContext('2d')
   let runner = null, view = null, pages = [], page = 0, shown = 0, wait = 0, t = 0, acc = 0
   let choice = 0, mode = 'idle', log = [], logScroll = 0, skipping = false, last = null
 
-  const scale = () => settings?.data?.textScale ?? 1
+  const scale = () => setting('textScale', 1)
   const size = () => Math.round(S.size * scale())
   const lineH = () => Math.round(size() * 1.32)
   const boxRect = () => {
     const h = S.pad * 2 + lineH() * S.lines
-    return { x: S.margin, y: 800 - S.margin - h, w: 1280 - S.margin * 2, h }
+    return { x: S.margin, y: H - S.margin - h, w: W - S.margin * 2, h }
   }
   const textRect = () => {
     const b = boxRect()
@@ -166,12 +194,12 @@ export function createDialogueBox({ input, settings = null, drawPrompts = null, 
       const tap = p.pressed && !avoid.some((r) => inside(p, r))
       const tapSkip = tap && (input.mode === 'touch' || input.mode === 'mouse') && inside(p, skipButton()) && mode !== 'choices'
       if (mode === 'log') {
-        if (input.pressed('select') || input.pressed('b') || tap) mode = view?.type === 'choices' ? 'choices' : 'waiting'
+        if (input.pressed(B.log) || input.pressed(B.skip) || tap) mode = view?.type === 'choices' ? 'choices' : 'waiting'
         logScroll = Math.max(0, Math.min(log.length - 1, logScroll - input.navY))
         return null
       }
-      if (input.pressed('select')) { mode = 'log'; logScroll = 0; return null }
-      if (input.pressed('b') || tapSkip) skipping = mode !== 'choices'
+      if (input.pressed(B.log)) { mode = 'log'; logScroll = 0; return null }
+      if (input.pressed(B.skip) || tapSkip) skipping = mode !== 'choices'
       if (skipping) {
         // fast-forward through lines (events still fire) and stop at the next choice or the end
         for (let i = 0; i < 500 && skipping; i++) { const r = proceed(); if (r === 'done') return 'done' }
@@ -181,7 +209,7 @@ export function createDialogueBox({ input, settings = null, drawPrompts = null, 
         const rects = choiceRects()
         if (input.navY) choice = (choice + input.navY + rects.length) % rects.length
         if (input.mode === 'mouse') rects.forEach((r, i) => { if (inside(p, r)) choice = i })
-        let pick = input.pressed('a') ? choice : -1
+        let pick = input.pressed(B.confirm) ? choice : -1
         if (p.pressed) rects.forEach((r, i) => { if (inside(p, r)) pick = i })
         if (pick >= 0) {
           log.push({ who: '›', text: view.options[pick].text })
@@ -190,10 +218,10 @@ export function createDialogueBox({ input, settings = null, drawPrompts = null, 
         }
         return null
       }
-      const confirm = input.pressed('a') || (tap && !tapSkip)
+      const confirm = input.pressed(B.confirm) || (tap && !tapSkip)
       if (mode === 'typing') {
         if (confirm) { finishPage(); return null }
-        const speed = S.cps * (settings?.data?.textSpeed ?? 1)
+        const speed = S.cps * setting('textSpeed', 1)
         if (wait > 0) { wait -= dt; return null }
         acc += dt * speed
         const flat = pages[page].flat()
@@ -211,7 +239,7 @@ export function createDialogueBox({ input, settings = null, drawPrompts = null, 
     },
     draw(ctx) {
       if (!runner || !view) return
-      const reduced = settings?.data?.reducedShake
+      const reduced = setting('reducedShake', false)
       const panel = (x, y, w, h, kind) => {
         if (S.panel) return S.panel(ctx, x, y, w, h, kind)
         ctx.fillStyle = S.fill
@@ -274,26 +302,32 @@ export function createDialogueBox({ input, settings = null, drawPrompts = null, 
         ctx.fillText(L.skip, s.x + s.w / 2, s.y + s.h / 2)
         ctx.textAlign = 'left'; ctx.textBaseline = 'top'
       }
-      if (drawPrompts && input.mode !== 'touch') {
+      if (prompts && input.mode !== 'touch') {
         if (view.type === 'choices') {
           const r = choiceRects()
-          drawPrompts(ctx, input, [['a', L.choose]], { x: r[0].x - 28, y: r[r.length - 1].y + r[r.length - 1].h / 2, align: 'right', size: 24 })
+          prompts(ctx, input, [[B.confirm, L.choose]], { x: r[0].x - 28, y: r[r.length - 1].y + r[r.length - 1].h / 2, align: 'right', size: 24 })
         } else {
           // left of the on-screen Skip button when it shows (mouse), so they never overlap
           const right = input.mode === 'mouse' ? skipButton().x - 16 : b.x + b.w - 12
-          drawPrompts(ctx, input, [['a', L.next], ['b', L.skip], ['select', L.log]], { x: right, y: b.y - 34, align: 'right', size: 24 })
+          prompts(ctx, input, [[B.confirm, L.next], [B.skip, L.skip], [B.log, L.log]], { x: right, y: b.y - 34, align: 'right', size: 24 })
         }
       }
       if (mode === 'log') {
-        panel(80, 60, 1120, 640, 'log')
+        panel(80, 60, W - 160, H - 160, 'log')
         ctx.font = `${size()}px ${S.font}`
-        const rows = Math.floor(560 / lineH())
+        const rows = Math.floor((H - 240) / lineH())
         const start = Math.max(0, log.length - rows - logScroll)
         log.slice(start, start + rows).forEach((e, i) => {
           ctx.fillStyle = e.who === '›' ? S.emphasis : S.nameColors[e.who] || S.color
-          ctx.fillText(e.who ? `${e.who}: ${e.text}` : e.text, 112, 92 + i * lineH(), 1056)
+          ctx.fillText(e.who ? `${e.who}: ${e.text}` : e.text, 112, 92 + i * lineH(), W - 224)
         })
-        if (drawPrompts) drawPrompts(ctx, input, [['b', L.back]], { x: 1170, y: 668, align: 'right', size: 24 })
+        if (prompts) prompts(ctx, input, [[B.skip, L.back]], { x: W - 110, y: H - 132, align: 'right', size: 24 })
+        else {
+          ctx.font = `600 ${Math.round(24 * scale())}px ${S.font}`
+          ctx.fillStyle = S.dim; ctx.textAlign = 'right'; ctx.textBaseline = 'middle'
+          ctx.fillText(L.back, W - 110, H - 132)
+          ctx.textAlign = 'left'; ctx.textBaseline = 'top'
+        }
       }
       ctx.restore()
     }

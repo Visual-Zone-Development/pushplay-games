@@ -5,12 +5,12 @@ description: Make an existing game in this repo play well on a phone and a table
 
 # Mobile port
 
-Follow AGENTS.md (*Controls*, *Screens and scaling*, *Manifest*) and **read [phone.md](../../../docs/game-design/phone.md) first**: it has the phone spaces, safe areas, thumb zones, text sizes and what phones can't do. Read the game's `DESIGN.md`. The on-screen controls themselves are the `touch-controls` skill's job; call it from step 4. Never edit the runtime files (`fit.js`, `input.js`, `touch.js`, `menu.js`…): everything here lives in `game.js` and the manifest.
+Follow AGENTS.md (*Controls*, *Screens and scaling*, *Manifest*) and **read [phone.md](../pushplay-runtime/references/phone.md) first**: it has the phone spaces, safe areas, thumb zones, text sizes and what phones can't do. Read the game's `DESIGN.md`. The on-screen controls themselves are the `touch-controls` skill's job; call it from step 4. Never edit the runtime files (`fit.js`, `input.js`, `touch.js`, `menu.js`…): everything here lives in `game.js` and the manifest.
 
 **What "earning the label" means.** PushPlay reads where a game plays from `pushplay.json` and only trusts what `npm run check` has verified: **Phone** needs `"phone": { "orientation": … }`, `"touch"` in `inputs` and a green phone pass; **Tablet** needs landscape play with touch (every 1280×800 game with `"touch"` already has it; without touch it shows "Needs a controller"); **Desktop** needs `"keyboard"` and `"mouse"` and the mouse-only pass; **Handheld & controller** every game has. A port keeps every label the game already had: a phone game must still play with a controller and a keyboard.
 
 ## 1. Audit on a phone-sized screen
-1. `npm run check` for the baseline; then open the game in DevTools device mode (iPhone 14 at 390×844 and rotated, touch emulation on, DPR 3) with `npm run dev`, or take screenshots with the repro script in [debugging.md](../../../docs/game-design/debugging.md) using `viewport: { width: 390, height: 844 }, deviceScaleFactor: 3, hasTouch: true, isMobile: true`.
+1. `npm run check` for the baseline; then open the game in DevTools device mode (iPhone 14 at 390×844 and rotated, touch emulation on, DPR 3) with `npm run dev`, or take screenshots with the repro script in [debugging.md](../pushplay-runtime/references/debugging.md) using `viewport: { width: 390, height: 844 }, deviceScaleFactor: 3, hasTouch: true, isMobile: true`.
 2. Walk every screen (title, play, pause, settings, game over, lobby) with touch only and write a short table: screen → what breaks. Look for:
    - text that lands under 32 px in the phone space, or anything under a notch or the home bar
    - HUD or targets the thumbs cover during play; anything the player must press in the top half
@@ -21,7 +21,7 @@ Follow AGENTS.md (*Controls*, *Screens and scaling*, *Manifest*) and **read [pho
 3. Note the thumb-zone map for this game: sketch where the stick, buttons, HUD and pause button will go (phone.md has the two figures).
 
 ## 2. Pick the space with the user
-One `AskUserQuestion` round, your recommendation first:
+Ask the user in one round (with a question tool if you have one), your recommendation first:
 - **Landscape 1280×720** (Recommended for most existing games: same width as 1280×800, 80 px less height, feels right on the Deck and a tablet with a pad; two-thumb controls).
 - **Portrait 720×1280** when the game is one-thumb or vertical (tapper, stacker, lane runner, cards, puzzle). A relayout, not a resize.
 - **Any** only when the design genuinely plays both ways; it means two layouts and a swap on `fit.onResize`.

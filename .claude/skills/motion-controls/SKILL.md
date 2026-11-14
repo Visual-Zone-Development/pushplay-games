@@ -5,7 +5,7 @@ description: Make a party game that uses each phone's motion sensors as the cont
 
 # Motion controls
 
-Follow AGENTS.md (*Party games*). Read **[motion.md](../../../docs/game-design/motion.md)** first (what phones can and can't do, and why) and [party.md](../../../docs/game-design/party.md) for the party API. The worked examples are [Motion Lab](https://github.com/Visual-Zone-Development/motion-lab) (six stations and a live Sensor Bench). Never edit the party runtime files; `controller.html` and `motion.js` are yours.
+Follow AGENTS.md (*Party games*). Read **[motion.md](../pushplay-runtime/references/motion.md)** first (what phones can and can't do, and why) and [party.md](../pushplay-runtime/references/party.md) for the party API. The worked examples are [Motion Lab](https://github.com/Visual-Zone-Development/motion-lab) (six stations and a live Sensor Bench). Never edit the party runtime files; `controller.html` and `motion.js` are yours.
 
 ## 1. Pick gestures phones can do
 Map every verb in the design to one row of motion.md's tables. Rules that came from real playtests:
@@ -36,7 +36,7 @@ Write the motion pipeline into DESIGN.md: each verb, its signal, its settings, i
 - Every station also plays with stick, keyboard, mouse and touch (motion.md, *Fallbacks*); the title says "Phones join with the QR code; controllers and keyboards work too".
 
 ## 5. Test
-1. **Fake sensors**: `node .claude/skills/motion-controls/toolkit/fake-sensors.mjs controller.html`. Add a scenario per gesture (a push-pull for a flick, a pendulum for a throw, a held turn for a wheel, a held phone with drift) and check direction, power and timing to within a sample (~5 ms).
+1. **Fake sensors**: `node <skill-dir>/toolkit/fake-sensors.mjs controller.html`. Add a scenario per gesture (a push-pull for a flick, a pendulum for a throw, a held turn for a wheel, a held phone with drift) and check direction, power and timing to within a sample (~5 ms).
 2. **Simulated players**: drive the TV side with a bot that reacts 150–250 ms late and wobbles, to tune assists, windows and medals (a casual bot should reach bronze, a good one gold).
 3. `npm run check`: headless phones join, play and reconnect (they have no sensors, so the touch pad path runs). Every phone must always have its own `party.view(id)`, even one that joins mid-game.
 4. **Real phones**, an iPhone and an Android, on the **published https build** (`npm run dev` over Wi-Fi is http: phones get the touch pad there). Ask the player: does it go where you expect? does it drift? is a quick motion ever missed? how far do you have to tilt or turn? Fix those before adding content.

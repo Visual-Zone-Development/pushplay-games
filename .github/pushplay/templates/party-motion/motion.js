@@ -16,7 +16,7 @@
 //   motion.configure(cfg, id?)   swing detection for every phone, or one: { thr, cd, at, gk, … }
 //   motion.now()           the TV clock swing times use (seconds)
 //
-// Why it works this way (docs/game-design/motion.md):
+// Why it works this way (motion.md in the pushplay-runtime skill):
 //   - Tilt and the wheel come from gravity, so they're absolute: no drift, lag can't make them wander.
 //   - Swings are detected on the phone from every sensor event and timed there; the TV keeps the
 //     fastest of the last few pings to know the phone's clock, so swing times are right to a few ms.
