@@ -11,6 +11,8 @@ on:
   push:
     branches: ['**']
     paths-ignore: ['**/*.md']
+  release:
+    types: [published] # a game with "release" in its manifest is packaged from your release's own files
   workflow_dispatch:
 
 jobs:

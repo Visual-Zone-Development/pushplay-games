@@ -1,23 +1,26 @@
-# PushPlay game repo (starter)
+# My Game
 
-An empty repo that is ready for [PushPlay](https://pushplay.gg), the launcher that plays your games on a Steam Deck, a Legion Go, a PC and a phone. It holds one thing: the small workflow file that builds, checks and publishes whatever game you put here.
+A starter game for [PushPlay](https://pushplay.gg): it already has a title screen, a pause menu and a settings screen that work with a controller, a keyboard, a mouse and touch. Make it yours.
 
-You don't need this repo to use PushPlay. It only saves you copying one file.
+## From here to playing it
 
-## Use it
+1. Press **Use this template** on GitHub to make your own repo from this one, and clone it.
+2. Play it on your computer: `npx github:Visual-Zone-Development/pushplay-plugin dev`
+3. Write your game in `game.js`. Give it a name, a description and tags in `pushplay.json`, and replace the two pictures in `art/`.
+4. Check it: `npx github:Visual-Zone-Development/pushplay-plugin check` (it plays the game and tells you in plain words what is wrong).
+5. Push. GitHub builds and checks the game on every push (`.github/workflows/pushplay.yml` does that; there is nothing to set up).
+6. In PushPlay: **Add game → Connect GitHub**, then pick your repo. The game is in your library from then on, and every push updates it.
 
-1. **Use this template → Create a new repository.** Name it after your game, or something like `my-games` if you want to keep several in `games/`.
-2. **Put a game in it.** Any of these:
-   - Ask a coding agent that has the [PushPlay skills](https://github.com/Visual-Zone-Development/pushplay-plugin): *"Make me a game about a frog delivering mail."*
-   - Start one yourself: `npx github:Visual-Zone-Development/pushplay-plugin new-game my-game`
-   - Bring a game you already have, in any engine: add a `pushplay.json` and two pictures. The [build guide](https://github.com/Visual-Zone-Development/pushplay-plugin/blob/main/docs/pushplay-build.md) shows how for Godot, Unity, native builds and plain JavaScript.
-3. **Push.** GitHub builds the game, plays it headlessly to catch problems, and publishes it from the default branch.
-4. **In PushPlay:** Add game → Follow a GitHub account, and follow yourself.
+Steps 2 and 4 need [Node.js](https://nodejs.org) on your computer. Without it you can still edit, push and play in PushPlay; the check then runs on GitHub only.
 
-Check before you push: `npx github:Visual-Zone-Development/pushplay-plugin check`.
+## What is in here
 
-## What ends up in your repo
+| File | What it is |
+|---|---|
+| `index.html`, `game.js` | The game. Start in `game.js`. |
+| `input.js`, `menu.js`, `fit.js`, `audio.js`, `save.js`, `settings.js`, `prompts.js`, `touch.js` | Helpers the starter's screens are built on. Use them or not; refresh them with `npx github:Visual-Zone-Development/pushplay-plugin update-runtime`. |
+| `pushplay.json` | What PushPlay shows about the game: name, description, tags, how it is played. |
+| `art/cover.svg`, `art/hero.svg` | The library tile and the banner. |
+| `.github/workflows/pushplay.yml` | Builds, checks and publishes the game on every push. |
 
-Your game, `pushplay.json`, its art, and `.github/workflows/pushplay.yml`. Nothing else is added for PushPlay: the build runs from outside your repo, your own release workflow is not touched, and PushPlay's builds go to their own release.
-
-Finished examples to play and read: [Arcade Sampler](https://github.com/Visual-Zone-Development/arcade-sampler) and [Motion Lab](https://github.com/Visual-Zone-Development/motion-lab).
+Everything PushPlay needs from a game, whatever it is made with: https://github.com/Visual-Zone-Development/pushplay-plugin/blob/main/docs/pushplay-build.md

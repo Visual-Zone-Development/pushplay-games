@@ -1,0 +1,25 @@
+{
+  "$schema": "https://raw.githubusercontent.com/Visual-Zone-Development/pushplay-plugin/v1/schema/manifest.schema.json",
+  "id": "my-game",
+  "name": "My Game",
+  "description": "A starter game: a title screen, a pause menu and settings that work with every input. Make it yours.",
+  "version": "0.1.0",
+  "entry": {
+    "web": "index.html"
+  },
+  "art": {
+    "cover": "art/cover.svg",
+    "hero": "art/hero.svg"
+  },
+  "controls": "gamepad",
+  "inputs": [
+    "gamepad",
+    "keyboard",
+    "mouse",
+    "touch"
+  ],
+  "players": "1",
+  "tags": [
+    "starter"
+  ]
+}
