@@ -4,14 +4,20 @@ A starter game for [PushPlay](https://pushplay.gg): it already has a title scree
 
 ## From here to playing it
 
-1. Press **Use this template** on GitHub to make your own repo from this one, and clone it.
-2. Play it on your computer: `npx github:Visual-Zone-Development/pushplay-kit dev`
-3. Write your game in `game.js`. Give it a name, a description and tags in `pushplay.json`, and replace the two pictures in `art/`.
-4. Check it: `npx github:Visual-Zone-Development/pushplay-kit check` (it plays the game and tells you in plain words what is wrong).
-5. Push. GitHub builds and checks the game on every push (`.github/workflows/pushplay.yml` does that; there is nothing to set up).
-6. In PushPlay: **Add game → Connect GitHub**, then pick your repo. The game is in your library from then on, and every push updates it.
+You can do all of this on github.com, with nothing installed.
 
-Steps 2 and 4 need [Node.js](https://nodejs.org) on your computer. Without it you can still edit, push and play in PushPlay; the check then runs on GitHub only.
+1. Press **Use this template** on GitHub to make your own repo from this one (private is fine). Don't fork it: forks have Actions turned off.
+2. Write your game in `game.js`. To edit on github.com, open the file, press the pencil, and press **Commit changes** when you are done: that is a push.
+3. In `pushplay.json`, change `"id"` and `"name"` from `my-game` to your own (and the matching `ID` at the top of `game.js`; it names the game's saves), write a description and tags, and replace the two pictures in `art/`.
+4. Every push builds and checks the game (`.github/workflows/pushplay.yml` does that; there is nothing to set up). Open the repo's **Actions** tab: a green tick after about two minutes means it is published, and a red cross opens to say in plain words what is wrong. A change to a `.md` file alone doesn't start a build.
+5. In PushPlay: **Add game → Connect GitHub**, then pick your repo. The game is in your library from then on, and every push updates it.
+
+### On your computer (optional)
+
+With [Node.js](https://nodejs.org) installed you can clone the repo and try the game before you push:
+
+- Play it: `npx github:Visual-Zone-Development/pushplay-kit dev`
+- Check it: `npx github:Visual-Zone-Development/pushplay-kit check` (it plays the game and tells you in plain words what is wrong; GitHub runs the same check on each push).
 
 ## What is in here
 
