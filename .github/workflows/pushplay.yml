@@ -4,7 +4,7 @@
 # game repo, so there is nothing else to keep up to date here.
 #
 # Your own release workflow is not affected: this one has its own file and its own releases.
-# To hand it files your own build makes, see https://github.com/Visual-Zone-Development/pushplay-plugin/blob/main/docs/pushplay-build.md
+# To hand it files your own build makes, see https://github.com/Visual-Zone-Development/pushplay-kit/blob/main/docs/pushplay-build.md
 name: PushPlay
 
 on:
@@ -17,7 +17,7 @@ on:
 
 jobs:
   pushplay:
-    uses: Visual-Zone-Development/pushplay-plugin/.github/workflows/build.yml@v1
+    uses: Visual-Zone-Development/pushplay-kit/.github/workflows/build.yml@v1
     permissions:
       contents: write # publish the builds to this repo's releases
       id-token: write # online games: prove which repo built them

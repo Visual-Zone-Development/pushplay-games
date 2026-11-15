@@ -1,5 +1,5 @@
 {
-  "$schema": "https://raw.githubusercontent.com/Visual-Zone-Development/pushplay-plugin/v1/schema/manifest.schema.json",
+  "$schema": "https://raw.githubusercontent.com/Visual-Zone-Development/pushplay-kit/v1/schema/manifest.schema.json",
   "id": "my-game",
   "name": "My Game",
   "description": "A starter game: a title screen, a pause menu and settings that work with every input. Make it yours.",
